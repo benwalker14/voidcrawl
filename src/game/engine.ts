@@ -12,11 +12,13 @@ import {
   PlayerInventory,
   PlayerProgression,
   MAX_INVENTORY_SIZE,
+  AIBehavior,
 } from "./config";
 import { generateDungeon } from "./generation/dungeon";
 import { spawnEnemies } from "./generation/enemies";
 import { computeFov } from "./generation/fov";
 import { generateLootDrop } from "./data/items";
+import { findPath, findFleeStep } from "./pathfinding";
 
 function createPlayer(pos: Position): GameEntity {
   return {
@@ -267,6 +269,43 @@ export function applyInventoryItem(state: GameState, index: number): GameState {
   return newState;
 }
 
+function getBlockedPositions(state: GameState, excludeId: string): Set<string> {
+  const blocked = new Set<string>();
+  for (const e of state.entities) {
+    if (e.hp > 0 && e.id !== excludeId) {
+      blocked.add(`${e.pos.x},${e.pos.y}`);
+    }
+  }
+  // Player position is a valid target (for adjacent attacks) but not walkable
+  blocked.add(`${state.player.pos.x},${state.player.pos.y}`);
+  return blocked;
+}
+
+function wanderStep(
+  map: TileType[][],
+  from: Position,
+  blocked: Set<string>,
+): Position | null {
+  const dirs = [
+    { x: 0, y: -1 }, { x: 0, y: 1 }, { x: -1, y: 0 }, { x: 1, y: 0 },
+  ];
+  // Shuffle directions
+  for (let i = dirs.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [dirs[i], dirs[j]] = [dirs[j], dirs[i]];
+  }
+  for (const dir of dirs) {
+    const nx = from.x + dir.x;
+    const ny = from.y + dir.y;
+    if (nx < 0 || nx >= MAP_WIDTH || ny < 0 || ny >= MAP_HEIGHT) continue;
+    const tile = map[ny][nx];
+    if (tile === TileType.WALL || tile === TileType.VOID) continue;
+    if (blocked.has(`${nx},${ny}`)) continue;
+    return { x: nx, y: ny };
+  }
+  return null;
+}
+
 function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
   for (const enemy of state.entities) {
     if (enemy.hp <= 0) continue;
@@ -274,11 +313,10 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
     const dx = state.player.pos.x - enemy.pos.x;
     const dy = state.player.pos.y - enemy.pos.y;
     const dist = Math.abs(dx) + Math.abs(dy);
+    const detectRange = enemy.detectRange ?? 8;
+    const behavior = enemy.behavior ?? AIBehavior.CHASE;
 
-    // Only chase if within detection range
-    if (dist > 8) continue;
-
-    // Adjacent — attack
+    // Adjacent — always attack regardless of behavior
     if (dist === 1) {
       combat(enemy, state.player, state.messages, 0, playerDefenseBonus);
       if (state.player.hp <= 0) {
@@ -288,18 +326,70 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
       continue;
     }
 
-    // Move toward player (simple approach)
-    const moveX = dx !== 0 ? (dx > 0 ? 1 : -1) : 0;
-    const moveY = dy !== 0 ? (dy > 0 ? 1 : -1) : 0;
+    const blocked = getBlockedPositions(state, enemy.id);
 
-    // Try horizontal first, then vertical
-    const newX = enemy.pos.x + moveX;
-    const newY = enemy.pos.y + moveY;
+    switch (behavior) {
+      case AIBehavior.CHASE: {
+        if (dist > detectRange) continue;
+        const step = findPath(state.map, enemy.pos, state.player.pos, blocked);
+        if (step) {
+          enemy.pos.x = step.x;
+          enemy.pos.y = step.y;
+        }
+        break;
+      }
 
-    if (!isBlocked(state, newX, enemy.pos.y) && !getEntityAt(state, newX, enemy.pos.y)) {
-      enemy.pos.x = newX;
-    } else if (!isBlocked(state, enemy.pos.x, newY) && !getEntityAt(state, enemy.pos.x, newY)) {
-      enemy.pos.y = newY;
+      case AIBehavior.WANDER: {
+        if (dist <= detectRange) {
+          // Player spotted — chase with pathfinding
+          const step = findPath(state.map, enemy.pos, state.player.pos, blocked);
+          if (step) {
+            enemy.pos.x = step.x;
+            enemy.pos.y = step.y;
+          }
+        } else {
+          // Wander randomly (30% chance to move each turn)
+          if (Math.random() < 0.3) {
+            const step = wanderStep(state.map, enemy.pos, blocked);
+            if (step) {
+              enemy.pos.x = step.x;
+              enemy.pos.y = step.y;
+            }
+          }
+        }
+        break;
+      }
+
+      case AIBehavior.AMBUSH: {
+        // Stay still until player is close, then aggressively pursue
+        if (dist > detectRange) continue;
+        const step = findPath(state.map, enemy.pos, state.player.pos, blocked);
+        if (step) {
+          enemy.pos.x = step.x;
+          enemy.pos.y = step.y;
+        }
+        break;
+      }
+
+      case AIBehavior.COWARD: {
+        if (dist > detectRange) continue;
+        // Flee when below 40% HP
+        if (enemy.hp < enemy.maxHp * 0.4) {
+          const step = findFleeStep(state.map, enemy.pos, state.player.pos, blocked);
+          if (step) {
+            enemy.pos.x = step.x;
+            enemy.pos.y = step.y;
+          }
+        } else {
+          // Otherwise chase normally
+          const step = findPath(state.map, enemy.pos, state.player.pos, blocked);
+          if (step) {
+            enemy.pos.x = step.x;
+            enemy.pos.y = step.y;
+          }
+        }
+        break;
+      }
     }
   }
 }

@@ -21,7 +21,6 @@
 - [ ] Add ESLint config
 
 ### P1 - Core Gameplay
-- [ ] Improve enemy AI (pathfinding, varied behaviors)
 - [ ] Add more enemy variety per floor tier
 - [ ] Add mini-map showing explored areas
 
@@ -74,3 +73,4 @@
 - [x] Health potions that drop from enemies
 - [x] ESLint lint passes clean
 - [x] Experience points and leveling system
+- [x] Improved enemy AI (A* pathfinding, 4 behavior types, per-enemy detection ranges)

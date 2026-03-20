@@ -37,3 +37,21 @@
 - Death screen now shows level reached alongside floor and turns
 - Progression persists across floor transitions
 - Lint and build both pass clean
+
+### 2026-03-20 23:30 | developer | Enemy AI overhaul: pathfinding and behaviors
+- Created A* pathfinding module (src/game/pathfinding.ts) with binary min-heap
+  - findPath(): returns next step toward goal, navigates around walls/corridors
+  - findFleeStep(): finds best adjacent tile to move away from a target
+  - Search depth capped at 30 steps for performance
+- Added AIBehavior enum with 4 behavior types:
+  - CHASE: Standard A* pursuit (Void Walker, Abyssal Hound, Rift Wraith, Void Lord)
+  - WANDER: Random movement until player is spotted, then pathfind chase (Void Rat, Void Beetle)
+  - AMBUSH: Stationary until player enters short detect range, then aggressive (Dark Slime, Shade)
+  - COWARD: Chase normally but flee when below 40% HP (Shadow Wisp)
+- Added per-enemy detection ranges (3-16 tiles) instead of uniform 8-tile range
+  - Short range: Dark Slime (3), Shade (4), Void Rat (5) — must get close to trigger
+  - Long range: Abyssal Hound (12), Rift Wraith (14), Void Lord (16) — sense player from far away
+- Rewrote moveEnemies() to use behavior-driven AI with pathfinding
+- Enemies now properly navigate corridors, doorways, and around obstacles
+- Blocked position tracking prevents enemies from stacking on same tile
+- Lint and build both pass clean

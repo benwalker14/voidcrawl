@@ -86,6 +86,14 @@ export interface Position {
   y: number;
 }
 
+// Enemy AI behavior types
+export enum AIBehavior {
+  CHASE = "chase",       // Pursue player with pathfinding
+  WANDER = "wander",     // Random walk until player spotted, then chase
+  AMBUSH = "ambush",     // Stationary until player is close, then aggressive
+  COWARD = "coward",     // Chase but flee when low HP
+}
+
 export interface GameEntity {
   id: string;
   type: EntityType;
@@ -98,6 +106,8 @@ export interface GameEntity {
   color: string;
   symbol: string;
   xpReward?: number;
+  behavior?: AIBehavior;
+  detectRange?: number;
 }
 
 export interface PlayerProgression {
