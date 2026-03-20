@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "@/game/config";
 import { initGame, processPlayerTurn, applyInventoryItem, MoveDirection } from "@/game/engine";
 import { render } from "@/game/renderer";
 import type { GameState, GameMessage, PlayerInventory, RunStats } from "@/game/config";
 import HelpOverlay from "./HelpOverlay";
+import PauseMenu from "./PauseMenu";
 
 function formatPlayTime(startTime: number): string {
   const elapsed = Math.floor((Date.now() - startTime) / 1000);
@@ -42,6 +44,7 @@ function getInventoryFromState(state: GameState): PlayerInventory {
 const initialState = initGame();
 
 export default function GameCanvas() {
+  const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<GameState>(initialState);
   const [messages, setMessages] = useState<GameMessage[]>([{ text: "Welcome to Voidcrawl. Use arrow keys or WASD to move. Space to wait.", color: "#e2e8f0" }]);
@@ -51,6 +54,8 @@ export default function GameCanvas() {
   const [runStats, setRunStats] = useState<RunStats>(initialState.runStats);
   const [showHelp, setShowHelp] = useState(false);
   const showHelpRef = useRef(false);
+  const [showPause, setShowPause] = useState(false);
+  const showPauseRef = useRef(false);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -77,22 +82,35 @@ export default function GameCanvas() {
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      // Help toggle: ? or h/H to open/close, Escape to close
+      // Help toggle: ? or h/H to open/close
       if (e.key === "?" || e.key === "h" || e.key === "H") {
         e.preventDefault();
         const next = !showHelpRef.current;
         showHelpRef.current = next;
         setShowHelp(next);
+        // Close pause menu when opening help
+        if (next) {
+          showPauseRef.current = false;
+          setShowPause(false);
+        }
         return;
       }
+      // Escape: close help if open, otherwise toggle pause menu
       if (e.key === "Escape") {
-        showHelpRef.current = false;
-        setShowHelp(false);
+        e.preventDefault();
+        if (showHelpRef.current) {
+          showHelpRef.current = false;
+          setShowHelp(false);
+        } else {
+          const next = !showPauseRef.current;
+          showPauseRef.current = next;
+          setShowPause(next);
+        }
         return;
       }
 
-      // Block game input while help is open
-      if (showHelpRef.current) return;
+      // Block game input while help or pause is open
+      if (showHelpRef.current || showPauseRef.current) return;
 
       if (!gameRef.current || gameRef.current.gameOver) return;
 
@@ -233,6 +251,15 @@ export default function GameCanvas() {
           tabIndex={0}
         />
 
+        {showPause && (
+          <PauseMenu
+            onResume={() => { showPauseRef.current = false; setShowPause(false); }}
+            onHelp={() => { showPauseRef.current = false; setShowPause(false); showHelpRef.current = true; setShowHelp(true); }}
+            onRestart={() => { showPauseRef.current = false; setShowPause(false); restart(); }}
+            onQuit={() => { router.push("/"); }}
+          />
+        )}
+
         {showHelp && <HelpOverlay onClose={() => { showHelpRef.current = false; setShowHelp(false); }} />}
 
         {gameOver && (
@@ -308,7 +335,7 @@ export default function GameCanvas() {
 
       {/* Controls hint */}
       <div className="mt-2 text-xs" style={{ color: "var(--void-muted)" }}>
-        Arrow keys / WASD to move &middot; Space to wait &middot; Walk into enemies to attack &middot; Find the stairs (&gt;) to descend &middot; 1-8 to use items &middot; ? for help
+        Arrow keys / WASD to move &middot; Space to wait &middot; Walk into enemies to attack &middot; Find the stairs (&gt;) to descend &middot; 1-8 to use items &middot; Esc to pause &middot; ? for help
       </div>
     </div>
   );

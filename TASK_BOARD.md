@@ -24,7 +24,7 @@
 - [x] Add help overlay (press ? or H) showing controls, mechanics, and enemy/item legends — players currently have no way to learn game systems beyond the tiny footer hint
 
 - [x] Add run stats to death screen (enemies killed, items found, damage dealt/taken, deepest floor, time played) — gives players a reason to care about each run
-- [ ] Pause menu (Escape key) with Resume, Help, Restart, Quit to Menu — currently no way to pause or access help mid-game
+- [x] Pause menu (Escape key) with Resume, Help, Restart, Quit to Menu — currently no way to pause or access help mid-game
 - [ ] Add floating damage numbers on canvas (brief "+5 HP", "-3 DMG" over entities) — combat currently has zero visual feedback beyond message log
 
 ### P1 - Core Gameplay
@@ -103,3 +103,4 @@
 - [x] Color-coded message log (11 color categories for combat, loot, XP, healing, warnings, etc.)
 - [x] Help overlay (press ? or H) with controls, mechanics, enemy bestiary, and item legend
 - [x] Run stats on death screen (enemies killed, items found, damage dealt/taken, deepest floor, time played)
+- [x] Pause menu (Escape key) with Resume, Help, Restart, Quit to Menu

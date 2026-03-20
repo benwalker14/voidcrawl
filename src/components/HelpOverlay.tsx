@@ -50,7 +50,7 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
           <h2 className="text-lg font-bold" style={{ color: "#06b6d4" }}>
             Voidcrawl — Help
           </h2>
-          <span style={{ color: "var(--void-muted)" }}>Press ? or Esc to close</span>
+          <span style={{ color: "var(--void-muted)" }}>Press ?, H, or Esc to close</span>
         </div>
 
         {/* Controls */}

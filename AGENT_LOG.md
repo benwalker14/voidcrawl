@@ -135,3 +135,20 @@
 - Added 4 new P1 content tasks, expanded P2 content section from 5 generic to 6 detailed implementation specs
 - **Design principle:** Every new element should interact with OTHER systems (multiplicative content, not additive)
 - No money spent
+
+### 2026-03-20 29:00 | developer | Pause menu implementation
+- Created PauseMenu component (src/components/PauseMenu.tsx) with 4 menu options:
+  - Resume: closes pause menu, returns to game
+  - Help: closes pause menu, opens help overlay
+  - Restart: resets game state, starts fresh run
+  - Quit to Menu: navigates back to landing page (/)
+- Integrated into GameCanvas with Escape key toggle:
+  - Escape opens/closes pause menu
+  - If help overlay is open, Escape closes help first (then next Escape opens pause)
+  - Game input fully blocked while pause menu is displayed
+- Click-to-dismiss on overlay background (resumes game)
+- Each menu button styled with thematic color (cyan/gold/orange/red) matching game palette
+- Updated controls hint footer to mention "Esc to pause"
+- Updated HelpOverlay close hint to include H key
+- Used ref + state pattern (consistent with existing help overlay) to avoid stale closures
+- Lint and build both pass clean
