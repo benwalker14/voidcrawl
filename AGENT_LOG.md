@@ -103,3 +103,19 @@
 - Click-to-close on overlay background
 - Updated footer hint to mention ? for help
 - Lint and build both pass clean
+
+### 2026-03-20 27:00 | developer | Run stats on death screen
+- Added RunStats interface to config.ts: enemiesKilled, itemsFound, damageDealt, damageTaken, deepestFloor, startTime
+- Updated combat() return type from boolean to { killed, damage } to enable damage tracking
+- Engine now tracks all stats throughout gameplay:
+  - damageDealt incremented on player attacks
+  - damageTaken incremented on enemy attacks
+  - enemiesKilled incremented on kills
+  - itemsFound incremented on item pickups
+  - deepestFloor updated on floor transitions
+  - startTime set at game init for elapsed time
+- RunStats persists across floor transitions via generateFloor()
+- Death screen now shows 6-stat grid: enemies slain, items found, damage dealt, damage taken, deepest floor, time played
+- Each stat has a thematic color matching existing message log palette
+- Time played computed from startTime and formatted as Xm Ys
+- Lint and build both pass clean

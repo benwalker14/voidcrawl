@@ -4,8 +4,16 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "@/game/config";
 import { initGame, processPlayerTurn, applyInventoryItem, MoveDirection } from "@/game/engine";
 import { render } from "@/game/renderer";
-import type { GameState, GameMessage, PlayerInventory, PlayerProgression } from "@/game/config";
+import type { GameState, GameMessage, PlayerInventory, RunStats } from "@/game/config";
 import HelpOverlay from "./HelpOverlay";
+
+function formatPlayTime(startTime: number): string {
+  const elapsed = Math.floor((Date.now() - startTime) / 1000);
+  const mins = Math.floor(elapsed / 60);
+  const secs = elapsed % 60;
+  if (mins === 0) return `${secs}s`;
+  return `${mins}m ${secs}s`;
+}
 
 function getStatsFromState(state: GameState) {
   const weaponAtk = state.inventory.equippedWeapon?.attack ?? 0;
@@ -40,6 +48,7 @@ export default function GameCanvas() {
   const [stats, setStats] = useState(() => getStatsFromState(initialState));
   const [inventory, setInventory] = useState<PlayerInventory>(() => getInventoryFromState(initialState));
   const [gameOver, setGameOver] = useState(false);
+  const [runStats, setRunStats] = useState<RunStats>(initialState.runStats);
   const [showHelp, setShowHelp] = useState(false);
   const showHelpRef = useRef(false);
 
@@ -53,6 +62,7 @@ export default function GameCanvas() {
   const updateUI = useCallback((state: GameState) => {
     setStats(getStatsFromState(state));
     setInventory(getInventoryFromState(state));
+    setRunStats(state.runStats);
     if (state.messages.length > 0) {
       setMessages((prev) => [...state.messages, ...prev].slice(0, 50));
     }
@@ -226,13 +236,30 @@ export default function GameCanvas() {
         {showHelp && <HelpOverlay onClose={() => { showHelpRef.current = false; setShowHelp(false); }} />}
 
         {gameOver && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80">
-            <p className="text-3xl font-bold mb-4" style={{ color: "#ef4444" }}>
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85">
+            <p className="text-3xl font-bold mb-1" style={{ color: "#ef4444" }}>
               YOU DIED
             </p>
-            <p className="text-sm mb-4" style={{ color: "var(--void-muted)" }}>
+            <p className="text-sm mb-3" style={{ color: "var(--void-muted)" }}>
               Level {stats.level} &middot; Floor {stats.floor} &middot; {stats.turns} turns
             </p>
+            <div
+              className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs font-mono mb-4 px-4 py-2 rounded"
+              style={{ backgroundColor: "rgba(26, 26, 46, 0.8)", border: "1px solid #333" }}
+            >
+              <span style={{ color: "#fb923c" }}>Enemies slain</span>
+              <span className="text-right">{runStats.enemiesKilled}</span>
+              <span style={{ color: "#06b6d4" }}>Items found</span>
+              <span className="text-right">{runStats.itemsFound}</span>
+              <span style={{ color: "#f97316" }}>Damage dealt</span>
+              <span className="text-right">{runStats.damageDealt}</span>
+              <span style={{ color: "#ef4444" }}>Damage taken</span>
+              <span className="text-right">{runStats.damageTaken}</span>
+              <span style={{ color: "#fbbf24" }}>Deepest floor</span>
+              <span className="text-right">{runStats.deepestFloor}</span>
+              <span style={{ color: "var(--void-muted)" }}>Time played</span>
+              <span className="text-right">{formatPlayTime(runStats.startTime)}</span>
+            </div>
             <button
               onClick={restart}
               className="px-6 py-2 border-2 font-bold tracking-wider transition-all hover:scale-105"

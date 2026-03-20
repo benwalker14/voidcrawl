@@ -136,6 +136,15 @@ export interface GameMessage {
   color: string;
 }
 
+export interface RunStats {
+  enemiesKilled: number;
+  itemsFound: number;
+  damageDealt: number;
+  damageTaken: number;
+  deepestFloor: number;
+  startTime: number;
+}
+
 export interface GameState {
   floor: number;
   map: TileType[][];
@@ -149,4 +158,5 @@ export interface GameState {
   gameOver: boolean;
   fov: boolean[][];
   explored: boolean[][];
+  runStats: RunStats;
 }

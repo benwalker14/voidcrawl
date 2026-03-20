@@ -23,7 +23,7 @@
 ### P1 - Player Experience (NEW — strategist analysis 2026-03-20)
 - [x] Add help overlay (press ? or H) showing controls, mechanics, and enemy/item legends — players currently have no way to learn game systems beyond the tiny footer hint
 
-- [ ] Add run stats to death screen (enemies killed, items found, damage dealt/taken, deepest floor, time played) — gives players a reason to care about each run
+- [x] Add run stats to death screen (enemies killed, items found, damage dealt/taken, deepest floor, time played) — gives players a reason to care about each run
 - [ ] Pause menu (Escape key) with Resume, Help, Restart, Quit to Menu — currently no way to pause or access help mid-game
 - [ ] Add floating damage numbers on canvas (brief "+5 HP", "-3 DMG" over entities) — combat currently has zero visual feedback beyond message log
 
@@ -96,3 +96,4 @@
 - [x] Improved enemy AI (A* pathfinding, 4 behavior types, per-enemy detection ranges)
 - [x] Color-coded message log (11 color categories for combat, loot, XP, healing, warnings, etc.)
 - [x] Help overlay (press ? or H) with controls, mechanics, enemy bestiary, and item legend
+- [x] Run stats on death screen (enemies killed, items found, damage dealt/taken, deepest floor, time played)

@@ -12,6 +12,7 @@ import {
   GroundItem,
   PlayerInventory,
   PlayerProgression,
+  RunStats,
   MAX_INVENTORY_SIZE,
   AIBehavior,
   MSG_COLORS,
@@ -74,8 +75,19 @@ function awardXp(
   }
 }
 
+function createRunStats(): RunStats {
+  return {
+    enemiesKilled: 0,
+    itemsFound: 0,
+    damageDealt: 0,
+    damageTaken: 0,
+    deepestFloor: 1,
+    startTime: Date.now(),
+  };
+}
+
 export function initGame(): GameState {
-  return generateFloor(1, null, null, null);
+  return generateFloor(1, null, null, null, null);
 }
 
 export function generateFloor(
@@ -83,6 +95,7 @@ export function generateFloor(
   prevPlayer: GameEntity | null,
   prevInventory: PlayerInventory | null,
   prevProgression: PlayerProgression | null,
+  prevRunStats: RunStats | null,
 ): GameState {
   const dungeon = generateDungeon(floor);
 
@@ -116,6 +129,10 @@ export function generateFloor(
     }
   }
 
+  const runStats = prevRunStats
+    ? { ...prevRunStats, deepestFloor: Math.max(prevRunStats.deepestFloor, floor) }
+    : createRunStats();
+
   return {
     floor,
     map: dungeon.map,
@@ -129,6 +146,7 @@ export function generateFloor(
     gameOver: false,
     fov,
     explored,
+    runStats,
   };
 }
 
@@ -149,7 +167,7 @@ function combat(
   messages: GameMessage[],
   attackBonus: number = 0,
   defenseBonus: number = 0,
-): boolean {
+): { killed: boolean; damage: number } {
   const atk = attacker.attack + attackBonus;
   const def = defender.defense + defenseBonus;
   const damage = Math.max(1, atk - def + Math.floor(Math.random() * 3) - 1);
@@ -165,9 +183,9 @@ function combat(
       text: `${defender.name} is destroyed!`,
       color: MSG_COLORS.KILL,
     });
-    return true;
+    return { killed: true, damage };
   }
-  return false;
+  return { killed: false, damage };
 }
 
 function getEquipmentBonuses(inventory: PlayerInventory): { attack: number; defense: number } {
@@ -243,8 +261,9 @@ function pickupItem(state: GameState): void {
     state.messages.push({ text: `Picked up ${item.name}.`, color: MSG_COLORS.LOOT });
   }
 
-  // Remove from ground
+  // Remove from ground and track the pickup
   state.items = state.items.filter((gi) => gi !== groundItem);
+  state.runStats.itemsFound++;
 }
 
 export function applyInventoryItem(state: GameState, index: number): GameState {
@@ -328,7 +347,8 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
 
     // Adjacent — always attack regardless of behavior
     if (dist === 1) {
-      combat(enemy, state.player, state.messages, 0, playerDefenseBonus);
+      const result = combat(enemy, state.player, state.messages, 0, playerDefenseBonus);
+      state.runStats.damageTaken += result.damage;
       if (state.player.hp <= 0) {
         state.gameOver = true;
         state.messages.push({ text: "You have been consumed by the void...", color: MSG_COLORS.DEATH });
@@ -418,6 +438,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       items: [...state.inventory.items],
     },
     progression: { ...state.progression },
+    runStats: { ...state.runStats },
   };
   let dx = 0;
   let dy = 0;
@@ -438,8 +459,10 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
     // Check for enemy at target
     const enemy = getEntityAt(newState, newX, newY);
     if (enemy) {
-      const killed = combat(newState.player, enemy, newState.messages, bonuses.attack, 0);
-      if (killed) {
+      const result = combat(newState.player, enemy, newState.messages, bonuses.attack, 0);
+      newState.runStats.damageDealt += result.damage;
+      if (result.killed) {
+        newState.runStats.enemiesKilled++;
         // Award XP
         awardXp(newState, enemy.xpReward ?? 5);
         // Try to drop loot at enemy position
@@ -459,7 +482,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       // Check for stairs
       if (newState.map[newY][newX] === TileType.STAIRS_DOWN) {
         newState.messages.push({ text: "You descend deeper into the void...", color: MSG_COLORS.INFO });
-        return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression);
+        return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression, newState.runStats);
       }
     }
   }
