@@ -119,3 +119,19 @@
 - Each stat has a thematic color matching existing message log palette
 - Time played computed from startTime and formatted as Xm Ys
 - Lint and build both pass clean
+
+### 2026-03-20 28:00 | strategist | Content depth audit and planning (second strategist session)
+- **Analysis type:** Content Planning (type B)
+- Audited full content inventory: 9 enemies, 13 items (5 weapons, 5 armor, 3 healing potions), 0 bosses, 0 floor themes, 0 consumable variety, 0 environmental hazards, 0 item special effects
+- Researched 6 benchmark roguelikes (Brogue, DCSS, Hades, Shattered Pixel Dungeon, Caves of Qud, Slay the Spire) for content design patterns
+- **Key finding:** Replayability comes from combinatorial interactions between content elements, not raw content volume. Brogue achieves extraordinary depth with 68 enemies and ~70 items because those items interact with the environment and each other. Every new element should multiply the possibility space, not just add to it.
+- **Current content vs. minimum viable for 10+ hours:** Enemies 9→25 needed, Bosses 0→3 needed, Consumable types 1→8 needed, Floor themes 0→3 needed, Item effects 0→8 needed
+- **Biggest gaps identified (priority order):**
+  1. **Consumable variety (CRITICAL):** Only healing potions exist. Every successful roguelike has 8-15 consumable types. Adding 6 potion types + 4 scroll types creates tactical decisions every turn. Highest impact-to-effort ratio of any content addition.
+  2. **Enemy special abilities:** All 9 enemies are pure stat blocks with movement behaviors only. Adding unique mechanics (split on death, life drain, phase through walls, ranged attacks) to existing enemies requires zero new content creation — just behavior code.
+  3. **Floor 5 boss:** Zero milestone encounters. Players need a concrete "can I beat floor 5?" goal. One boss with a spawn-management mechanic would create the game's first memorable moment.
+  4. **Weapon/armor runics:** Items are pure +ATK/+DEF stat sticks. Runic effects (vampiric, flaming, stunning, thorned) make loot decisions interesting.
+  5. **Floor themes:** 3 visual zones with distinct color palettes and enemy pools. Mostly data changes — massive perceived variety per effort.
+- Added 4 new P1 content tasks, expanded P2 content section from 5 generic to 6 detailed implementation specs
+- **Design principle:** Every new element should interact with OTHER systems (multiplicative content, not additive)
+- No money spent

@@ -85,3 +85,53 @@ I've set mobile tasks at P2 for now (option C). Let me know if you want to repri
 All suggestions comply with the ethics rules (no dark patterns, no monetization hooks).
 
 ---
+
+### 2026-03-20 | strategist | Content Depth Audit — decisions needed
+
+**From:** Strategist Agent (second session — Content Planning)
+**Priority:** Medium-High
+
+I audited the game's full content inventory and compared it against 6 benchmark roguelikes (Brogue, DCSS, Shattered PD, Hades, Caves of Qud, Slay the Spire). The core systems (combat, AI, loot, leveling) are solid, but the **content depth is well below the minimum for player retention**.
+
+#### The Numbers
+
+| Content | Voidcrawl Now | Minimum for 10+ hrs | Gap |
+|---------|--------------|---------------------|-----|
+| Enemy types | 9 | 20-25 | Big |
+| Bosses | 0 | 3-4 | Critical |
+| Consumable types | 1 (healing only) | 6-8 | Critical |
+| Floor themes | 0 | 3 | Big |
+| Item special effects | 0 | 5-8 | Big |
+| Environmental hazards | 0 | 3-4 | Moderate |
+
+#### What I Recommend Building First (in order)
+
+1. **Consumable variety** — Add 6 potion types (Haste, Invisibility, Teleport, Fire, Poison, Strength) + 4 scrolls (Magic Mapping, Enchanting, Fear, Summon). This is the single biggest bang-for-buck content addition. Every successful roguelike has 8-15 consumable types because they create tactical decisions every turn.
+
+2. **Enemy special abilities** — Retrofit existing enemies with unique mechanics (slime splits on death, shade drains life, wisp phases through attacks, wraith moves through walls). Zero new sprites needed, just behavior code. Makes every enemy encounter tactically different.
+
+3. **Floor 5 boss** — "Void Nucleus" that spawns adds and must be focus-fired during pauses. Gives players their first concrete milestone goal. Guaranteed rare loot on kill.
+
+4. **Weapon/armor runics** — Vampiric sword, flaming blade, thorned armor, etc. Makes loot decisions interesting beyond "bigger number = better."
+
+5. **3 floor themes** — Color palette swaps + distinct enemy pools per zone. Massive perceived variety for minimal code.
+
+#### Decision Needed: Content vs. Polish Priority
+
+The game currently has ~2 hours of unique content before repetition sets in. Two paths:
+
+- **A) Content-first:** Prioritize items 1-5 above. Delay visual polish (sprites, animations, screen shake) until the game has enough content to retain players. This is the Dwarf Fortress / Brogue philosophy — depth over looks.
+
+- **B) Polish-first:** Continue with P1 visual polish tasks (floating damage numbers, animations). Ship a beautiful but shallow game, add content later. Risk: players try the game once, see its pretty but shallow, and don't return.
+
+- **C) Interleave:** Alternate content and polish tasks. Slower on both fronts but steady progress on each.
+
+**My recommendation: Option A (content-first).** The game's ASCII art style is already working — players of browser roguelikes expect this aesthetic. What they won't tolerate is running out of new things to discover on floor 3. Consumables + enemy abilities + one boss would 3x the game's tactical depth.
+
+I've promoted the top 4 content items to **P1** on the task board. Let me know if you want to reprioritize.
+
+#### Key Design Principle Discovered
+
+Across all 6 benchmark games: **replayability comes from combinatorial interactions, not raw content volume.** Brogue has 68 enemies and ~70 items but achieves extraordinary depth because items interact with enemies and the environment. Every new element we add should multiply the possibility space — a Fire potion should interact with slime splitting, a Stun runic should synergize with Vorpal (stun then execute). I've flagged this for the developer agents to keep in mind.
+
+---
