@@ -41,6 +41,16 @@
 - [x] Floor 5 boss encounter: "Void Nucleus" (symbol `O`, cyan) — stationary, spawns add waves, players must manage spawns then DPS during pause. Boss room is a single large generated room with no corridor escape. Boss telegraphs special attack 1 turn before via message. Guaranteed rare+ loot drop on kill.
 - [x] Weapon/armor runic effects: add `runic` property to Item interface. Weapon runics: Vampiric (heal 1 HP on kill), Flaming (25% burn DoT), Stunning (20% skip enemy turn), Vorpal (2x dmg below 30% HP). Armor runics: Reflective (15% reflect damage), Regenerating (1 HP per 10 turns), Thorned (1 dmg to melee attackers). Uncommon items get 25% runic chance, Rare get 60%. Makes loot decisions interesting beyond "bigger number."
 
+### P1 - Growth & Discoverability (NEW — strategist Growth/SEO analysis 2026-03-20)
+- [ ] Add full Open Graph + Twitter Card metadata to `layout.tsx`: og:title, og:description, og:image, og:type, twitter:card, twitter:image, keywords, metadataBase, canonical URL, theme-color. Currently only title and description exist — every link shared on Discord/Twitter/Reddit shows a bare text link with no preview image. This is the single lowest-effort, highest-impact growth fix. Code example in `.planning/research/SEO_TECHNICAL_RESEARCH.md`.
+- [ ] Create dynamic OG image via `src/app/opengraph-image.tsx` using Next.js ImageResponse API — dark void background, "VOIDCRAWL" in glowing cyan, "FREE BROWSER ROGUELIKE" tagline, feature pills. 1200x630px PNG. This auto-generates the og:image for all social platforms. Without this, shared links are invisible in feeds.
+- [ ] Add `src/app/sitemap.ts` and `src/app/robots.ts` — Next.js 16 has built-in support. sitemap.xml enables Google to index pages; robots.txt controls crawling. Both are 5-10 lines of code each. Required for Google Search Console submission.
+- [ ] Add JSON-LD structured data (schema.org/VideoGame + SoftwareApplication co-type) to landing page — enables Google rich results (price, platform, genre display in search). Create `src/app/json-ld.tsx` component, add to layout. Code example in research file.
+- [ ] Remove `"use client"` from `src/app/play/page.tsx` — the page already uses `dynamic()` to import GameCanvas client-side, so the page itself should be a Server Component. This enables adding page-level metadata exports for the /play route (currently impossible because metadata can only be exported from Server Components).
+- [ ] Add descriptive SEO paragraph to landing page (`src/app/page.tsx`) — currently almost no crawlable text content. Add a "What is Voidcrawl?" section below the fold with natural keyword usage: "free turn-based roguelike", "browser dungeon crawler", "procedural generation", "no download required". One paragraph hits 8+ target keywords.
+- [ ] Create itch.io page for Voidcrawl — link to Vercel deployment, add 3+ screenshots, cover image (630x500), tags (roguelike, dungeon-crawler, turn-based, browser, HTML5, free). itch.io is the #1 platform for indie browser game discovery. No approval process needed. Research: Rogule, A Dark Room, and most successful browser roguelikes list on itch.io.
+- [ ] Create RogueBasin wiki page for Voidcrawl — RogueBasin is THE roguelike database. Every roguelike should have a page. Self-service wiki, free, permanent discoverability by core roguelike players. Include: name, developer, platform (Web), language (TypeScript), status, description, screenshots, link.
+
 ### P1 - Visual Polish
 - [ ] Replace ASCII characters with pixel art sprites
 - [ ] Add hit/damage animations
@@ -87,12 +97,23 @@
 - [ ] Premium hero skins
 - [ ] Premium dungeon themes
 
-### P3 - Growth
-- [ ] SEO optimization (landing page, meta tags)
-- [ ] Social sharing — see P1 shareable death screen for core implementation; this covers additional sharing channels (Twitter/X post button, Reddit-formatted output, itch.io community integration)
-- [ ] Mobile touch controls
-- [ ] Open Graph / Twitter card preview
-- [ ] Submit to browser game directories: itch.io, Newgrounds, CrazyGames, game jams (7DRL, itch.io game jams). Research shows browser roguelikes get discovered through directories and jams more than SEO. (NEW — strategist research 2026-03-20)
+### P2 - Growth & Community (NEW — strategist Growth/SEO analysis 2026-03-20)
+- [ ] Set up Google Search Console: verify site ownership, submit sitemap.xml, request indexing of `/` and `/play`. Monitor "Performance" tab for search queries and impressions. Free, takes 15 minutes, essential for understanding how players find the game.
+- [ ] Create press kit page (`/press` route): game description (short + long), 5-8 downloadable screenshots, logo PNG, gameplay GIF, fact sheet (genre, platform, price, developer, contact), download links. Reference format: dopresskit.com. Enables press coverage and blog/review sites to write about Voidcrawl.
+- [ ] Post to r/WebGames (131K members): "Voidcrawl - Turn-based roguelike dungeon crawler [browser]". Direct game link, respond to every comment. r/WebGames → Hacker News is the exact funnel Rogule used to get 19,000 players in one day. Timing: when game has shareable death screen + OG images.
+- [ ] Post to r/roguelikes (160K+ members): genuine community participation first (10:1 ratio of contributions to self-promotion), then share Voidcrawl. The audience perfectly matches the game.
+- [ ] Start weekly r/roguelikedev Sharing Saturday participation: show development progress weekly. 500+ weekly threads and counting — the primary showcase mechanism for roguelike developers. Post early in the thread (first hour gets most views).
+- [ ] Submit "Show HN: Voidcrawl – a turn-based browser roguelike" to Hacker News: post on Sunday (less competition), use "Show HN:" prefix, factual language, technical angle ("Built with Next.js + HTML5 Canvas"). Reply to every comment in the first hour. Rogule hit #1 on HN and got 19K players that day.
+- [ ] Write dev.to post: "Building a Browser Roguelike with Next.js and HTML5 Canvas" — targets developer keywords, generates backlinks, builds credibility in dev community. Cross-post to Hashnode/Medium.
+- [ ] Submit to Newgrounds as HTML5 game — established indie game community with strong appreciation for retro/ASCII aesthetics. Good cultural fit for Voidcrawl.
+
+### P3 - Growth (EXPANDED — strategist Growth/SEO analysis 2026-03-20)
+- [ ] Social sharing channels: Twitter/X post button (using Web Share API or tweet intent URL), Reddit-formatted run summary, itch.io community integration. Builds on the P1 shareable death screen clipboard copy.
+- [ ] Submit to additional game directories: BBOGD, Top Web Games, iDev Games, Armor Games, GameJolt, FreeToGame. Lower traffic individually but compound over time.
+- [ ] Enter next year's 7DRL jam with a Voidcrawl spin-off variant (e.g., "Voidcrawl: The Breach" — 7-floor speed-run). Cannot submit existing game (violates rules), but a standalone variant built during jam week links back to the main game. 7DRL is the #1 roguelike-specific jam.
+- [ ] Remove unused Phaser dependency from package.json (~1MB) — it's listed as a dependency but the game uses vanilla HTML5 Canvas. Reduces bundle size and improves PageSpeed scores.
+- [ ] Consider Discord server when daily active players exceed 50. Premature Discord servers feel empty and deter joiners. Until then, community lives on Reddit threads, itch.io comments, and GitHub Issues.
+- [ ] Run `@next/bundle-analyzer` to measure bundle sizes and confirm game engine is properly code-split. Add "analyze" script to package.json.
 
 ---
 

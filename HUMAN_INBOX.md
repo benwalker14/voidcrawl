@@ -189,3 +189,69 @@ Should potions and scrolls have randomized names per run (NetHack/Shattered PD s
 My recommendation: **Option B** (partial). Randomize potions but keep scrolls labeled — this is the Shattered Pixel Dungeon approach and feels most natural. It adds discovery to the most common consumable type without making scrolls feel illogical.
 
 ---
+
+### 2026-03-20 | strategist | Growth & SEO Analysis — 3 decisions needed
+
+**From:** Strategist Agent (fourth session — Growth & SEO Research)
+**Priority:** High
+
+I researched how browser roguelikes get discovered, studied 6+ case studies (Rogule, Wordle, A Dark Room, Candy Box, DCSS), and analyzed SEO, social sharing, Reddit strategy, and game directories. Full research saved in `.planning/research/`. Here's what needs your input:
+
+#### The Big Picture
+
+Voidcrawl has substantial gameplay content now (17 items, 9 enemies + boss, 7 runics, 11 status effects), but **zero discoverability infrastructure**. No OG images, no social cards, no sitemap, no structured data, no shareable run summaries, no presence on itch.io or RogueBasin. Every link shared anywhere shows as a bare text URL with no preview. This is the single biggest gap.
+
+The proven growth funnel for browser roguelikes is: **Technical SEO + Shareable Results → r/WebGames post → Hacker News pickup → viral spike → sustained community**. Rogule followed this exact path to 19,000 players in one day, settling to 2,000/day sustained.
+
+#### Decision 1: Production URL
+
+All SEO tasks (metadata, sitemap, OG images, Google Search Console, directory listings) require knowing the production URL. The Vercel deployment is connected but the URL hasn't been documented. Options:
+
+- **A) Use the Vercel auto-generated URL** (e.g., `voidcrawl.vercel.app`) — free, immediate, good enough for now
+- **B) Buy a custom domain** (voidcrawl.com, voidcrawl.gg, voidcrawl.io) — more professional, better brand recall, ~$10-15/year
+
+My recommendation: **Option A for now, B later**. Use the Vercel URL to unblock all SEO work immediately. Add a custom domain when there's player traction to justify it. The domain question was deferred earlier — this is fine, but we need the Vercel URL documented in CLAUDE.md to unblock the developer agents.
+
+**Action needed:** Please share the Vercel deployment URL so agents can configure metadata.
+
+#### Decision 2: Growth Task Priority vs. Content/Game Design Tasks
+
+The task board now has tasks across 4 competing priorities:
+1. **Content depth** (P1 — unidentified consumables, floor themes, new enemies, etc.)
+2. **Game design systems** (P2 — Void Attunement, shrines, cursed equipment, enemy intent)
+3. **Growth infrastructure** (NEW P1 — OG images, sitemap, SEO text, itch.io page)
+4. **Shareability features** (P1 — shareable death screen, daily challenge)
+
+Options:
+
+- **A) Growth-first sprint:** Developer agents do 1-2 days of pure SEO/metadata work (items 1-6 in new P1 Growth section). Then alternate content and growth tasks. Rationale: the SEO foundation takes ~2 hours total and multiplies the value of everything else.
+- **B) Continue content-first:** Keep building content depth (you already chose content-first last session). Add growth tasks whenever content work is done. Rationale: the game needs more content before it's worth promoting.
+- **C) Interleave:** Developer does one content task, then one growth task, alternating. Steady progress on both fronts.
+
+My recommendation: **Option A** (growth sprint, then content). The growth tasks are tiny (metadata is 30 min, sitemap is 5 min, robots.txt is 5 min, OG image is 45 min, SEO paragraph is 15 min). Total: ~2 hours. This one-time investment makes every future content addition more visible. After the sprint, resume content-first development. The game already has more content than Rogule (which sustains 2K daily players with far less).
+
+#### Decision 3: CrazyGames / Poki Submission
+
+CrazyGames (35M monthly players) and Poki (65-100M monthly players) are major web game platforms. However:
+- Both require ad SDK integration (banner, interstitial, rewarded ads)
+- Their audiences skew casual — a turn-based roguelike may underperform
+- CrazyGames offers a 2-month exclusivity option for 50% revenue boost
+- Poki is very selective and requires mobile compatibility
+
+This may conflict with the "no predatory monetization" ethic depending on how ads are implemented (interstitial ads between runs are mildly annoying but ethical; forced video ads before every run are not).
+
+- **A) Submit to CrazyGames** (lower bar, worth testing)
+- **B) Skip both** (focus on itch.io, Newgrounds, direct traffic)
+- **C) Evaluate later** (wait until the game has mobile support and more content)
+
+My recommendation: **Option B** (skip both for now). The ad SDK requirement adds complexity and doesn't align with Voidcrawl's ethos. itch.io + direct traffic + Newgrounds are better fits. Revisit if player numbers justify the effort.
+
+#### What I Added to the Task Board
+
+- **8 new P1 tasks** (Growth & Discoverability): OG metadata, dynamic OG image, sitemap/robots, JSON-LD, fix play page server component, SEO landing page text, itch.io page, RogueBasin page
+- **8 new P2 tasks** (Growth & Community): Google Search Console, press kit, r/WebGames post, r/roguelikes post, Sharing Saturday participation, Hacker News post, dev.to blog post, Newgrounds submission
+- **6 new P3 tasks** (expanded Growth): social sharing channels, additional directories, 7DRL jam, remove Phaser dependency, Discord timing, bundle analyzer
+
+All recommendations are zero-cost. No money spent.
+
+---

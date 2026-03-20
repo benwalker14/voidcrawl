@@ -278,3 +278,27 @@
 - Updated HelpOverlay.tsx: new "Runic Effects" section with all 7 runics described
 - Lint and build both pass clean
 - No money spent
+
+### 2026-03-20 36:00 | strategist | Growth & SEO analysis (fourth strategist session)
+- **Analysis type:** Growth & SEO (type D)
+- Researched browser roguelike discovery channels, SEO tactics, social sharing mechanics, Reddit strategy, game directories, and community building patterns
+- Studied 6+ case studies: Rogule (19K peak, 2K sustained daily from r/WebGames → HN pipeline), Wordle (90 → 300K in 2 months via emoji sharing), A Dark Room (2.26M downloads, #1 iOS from HN-driven web traction), Candy Box (350K+ gamesaves from word-of-mouth), DCSS WebTiles (25+ year community-driven growth)
+- **Key finding #1: Voidcrawl's metadata is nearly empty — this is the single biggest quick win.** No Open Graph images, no Twitter cards, no sitemap, no robots.txt, no JSON-LD structured data. Every link shared on Discord/Twitter/Reddit shows a bare text link with no preview. Adding full metadata takes 1-2 hours and makes every future share 3-5x more likely to get clicked.
+- **Key finding #2: The "Copy Run Summary" share mechanic is THE growth engine.** Wordle's emoji grid sharing drove its entire 300K growth arc. Rogule sustains 2K daily players with shareable run summaries. This is already on the task board at P1 — it should be the first feature built after technical SEO foundation.
+- **Key finding #3: The r/WebGames → Hacker News pipeline is reproducible.** Rogule's developer confirmed: posted to r/WebGames, picked up by community, submitted to HN, hit front page. This exact funnel is the highest-leverage growth channel for browser games. Prerequisites: working game + OG images + shareable results.
+- **Key finding #4: Browser roguelikes are a low-competition SEO niche.** Few individual browser roguelikes rank on page 1 — aggregators (itch.io, CrazyGames) dominate. A properly optimized landing page can rank quickly for long-tail keywords like "browser roguelike dungeon crawler" and "play roguelike online free". Most competitors (Rogule, WebBrogue, RuggRogue) have minimal SEO.
+- **Key finding #5: `src/app/play/page.tsx` has `"use client"` which blocks metadata exports.** The page already uses `dynamic()` for GameCanvas — the page itself should be a Server Component. Removing `"use client"` enables page-level metadata, which improves the /play route's SEO.
+- **Key finding #6: itch.io and RogueBasin are essential launch platforms.** itch.io is the #1 indie browser game platform (no approval process, 90/10 revenue split, devlog feeds). RogueBasin is the roguelike wiki — every roguelike should have a page. Both are free, permanent, and reach the exact target audience.
+- **Key finding #7: Don't create a Discord server until 50+ DAU.** Premature Discord servers feel empty and deter joiners. Community should live on Reddit (r/roguelikedev Sharing Saturday), itch.io comments, and GitHub Issues until the player base justifies a dedicated space.
+- **Key finding #8: Game jams are credibility builders, not primary growth channels.** Most jam entries get 20-100 plays. Jams provide: deadline pressure, built-in audience, devlog content, community credibility. But they supplement other strategies, not replace them. 7DRL is the #1 roguelike jam; Voidcrawl cannot submit the existing game (violates rules) but should create a spin-off variant for next year's jam.
+- **Technical SEO recommendations (code-ready):**
+  - Enhanced metadata export for `layout.tsx` with full OG/Twitter/robots/keywords (code in research file)
+  - Dynamic OG image via `opengraph-image.tsx` using Next.js ImageResponse API
+  - `sitemap.ts` and `robots.ts` (5-10 lines each)
+  - JSON-LD structured data component (`json-ld.tsx`) using VideoGame + SoftwareApplication co-type
+  - Descriptive SEO text paragraph for landing page
+- Added 14 new tasks to TASK_BOARD.md: 8 at P1 (technical SEO + platform presence), 8 at P2 (community seeding), 6 at P3 (expanded growth channels)
+- Reorganized Growth section: elevated SEO/OG tasks from old P3 to new P1 (they are prerequisite for all sharing/distribution), created new P2 community section
+- Full research output saved to `.planning/research/GROWTH_SEO_RESEARCH.md` (770 lines) and `.planning/research/SEO_TECHNICAL_RESEARCH.md` (910 lines)
+- **Growth strategy priority order:** (1) Technical SEO foundation → (2) Shareable death screen → (3) itch.io + RogueBasin pages → (4) Reddit community seeding → (5) Hacker News launch → (6) Daily challenge mode → (7) Platform expansion
+- No money spent
