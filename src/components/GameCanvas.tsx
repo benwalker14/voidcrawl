@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "@/game/config";
 import { initGame, processPlayerTurn, applyInventoryItem, MoveDirection } from "@/game/engine";
 import { render } from "@/game/renderer";
-import type { GameState, PlayerInventory, PlayerProgression } from "@/game/config";
+import type { GameState, GameMessage, PlayerInventory, PlayerProgression } from "@/game/config";
 
 function getStatsFromState(state: GameState) {
   const weaponAtk = state.inventory.equippedWeapon?.attack ?? 0;
@@ -35,7 +35,7 @@ const initialState = initGame();
 export default function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<GameState>(initialState);
-  const [messages, setMessages] = useState<string[]>(["Welcome to Voidcrawl. Use arrow keys or WASD to move. Space to wait."]);
+  const [messages, setMessages] = useState<GameMessage[]>([{ text: "Welcome to Voidcrawl. Use arrow keys or WASD to move. Space to wait.", color: "#e2e8f0" }]);
   const [stats, setStats] = useState(() => getStatsFromState(initialState));
   const [inventory, setInventory] = useState<PlayerInventory>(() => getInventoryFromState(initialState));
   const [gameOver, setGameOver] = useState(false);
@@ -123,7 +123,7 @@ export default function GameCanvas() {
     gameRef.current = state;
     setGameOver(false);
     setInventory({ items: [], equippedWeapon: null, equippedArmor: null });
-    setMessages(["A new journey begins..."]);
+    setMessages([{ text: "A new journey begins...", color: "#e2e8f0" }]);
     updateUI(state);
     draw();
   };
@@ -248,11 +248,11 @@ export default function GameCanvas() {
       {/* Message Log */}
       <div
         className="w-full max-w-[640px] mt-2 p-2 text-xs font-mono h-24 overflow-y-auto"
-        style={{ backgroundColor: "var(--void-dark)", color: "var(--void-muted)" }}
+        style={{ backgroundColor: "var(--void-dark)" }}
       >
         {messages.map((msg, i) => (
-          <div key={i} className={i === 0 ? "text-white" : ""}>
-            {msg}
+          <div key={i} style={{ color: msg.color, opacity: i === 0 ? 1 : 0.7 }}>
+            {msg.text}
           </div>
         ))}
       </div>

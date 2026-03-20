@@ -1,6 +1,7 @@
 import {
   GameState,
   GameEntity,
+  GameMessage,
   EntityType,
   TileType,
   Position,
@@ -13,6 +14,7 @@ import {
   PlayerProgression,
   MAX_INVENTORY_SIZE,
   AIBehavior,
+  MSG_COLORS,
 } from "./config";
 import { generateDungeon } from "./generation/dungeon";
 import { spawnEnemies } from "./generation/enemies";
@@ -52,7 +54,7 @@ function awardXp(
   xp: number,
 ): void {
   state.progression.xp += xp;
-  state.messages.push(`+${xp} XP`);
+  state.messages.push({ text: `+${xp} XP`, color: MSG_COLORS.XP });
 
   while (state.progression.xp >= state.progression.xpToNext) {
     state.progression.xp -= state.progression.xpToNext;
@@ -65,9 +67,10 @@ function awardXp(
     state.player.attack += 1;
     state.player.defense += 1;
 
-    state.messages.push(
-      `LEVEL UP! You are now level ${state.progression.level}! (+5 HP, +1 ATK, +1 DEF)`
-    );
+    state.messages.push({
+      text: `LEVEL UP! You are now level ${state.progression.level}! (+5 HP, +1 ATK, +1 DEF)`,
+      color: MSG_COLORS.LEVEL_UP,
+    });
   }
 }
 
@@ -121,7 +124,7 @@ export function generateFloor(
     items: [],
     inventory: prevInventory ?? createInventory(),
     progression: prevProgression ?? createProgression(),
-    messages: [`You descend to floor ${floor} of the void.`],
+    messages: [{ text: `You descend to floor ${floor} of the void.`, color: MSG_COLORS.INFO }],
     turnCount: 0,
     gameOver: false,
     fov,
@@ -143,7 +146,7 @@ function getEntityAt(state: GameState, x: number, y: number): GameEntity | undef
 function combat(
   attacker: GameEntity,
   defender: GameEntity,
-  messages: string[],
+  messages: GameMessage[],
   attackBonus: number = 0,
   defenseBonus: number = 0,
 ): boolean {
@@ -151,10 +154,17 @@ function combat(
   const def = defender.defense + defenseBonus;
   const damage = Math.max(1, atk - def + Math.floor(Math.random() * 3) - 1);
   defender.hp -= damage;
-  messages.push(`${attacker.name} hits ${defender.name} for ${damage} damage!`);
+  const isPlayerAttacking = attacker.type === EntityType.PLAYER;
+  messages.push({
+    text: `${attacker.name} hits ${defender.name} for ${damage} damage!`,
+    color: isPlayerAttacking ? MSG_COLORS.PLAYER_ATK : MSG_COLORS.ENEMY_ATK,
+  });
 
   if (defender.hp <= 0) {
-    messages.push(`${defender.name} is destroyed!`);
+    messages.push({
+      text: `${defender.name} is destroyed!`,
+      color: MSG_COLORS.KILL,
+    });
     return true;
   }
   return false;
@@ -182,21 +192,21 @@ function pickupItem(state: GameState): void {
       if (current) {
         if (state.inventory.items.length < MAX_INVENTORY_SIZE) {
           state.inventory.items.push(current);
-          state.messages.push(`Unequipped ${current.name}.`);
+          state.messages.push({ text: `Unequipped ${current.name}.`, color: MSG_COLORS.EQUIP });
         } else {
-          state.messages.push("Inventory full! Can't pick up item.");
+          state.messages.push({ text: "Inventory full! Can't pick up item.", color: MSG_COLORS.WARNING });
           return;
         }
       }
       state.inventory.equippedWeapon = item;
-      state.messages.push(`Equipped ${item.name}! (+${item.attack} ATK)`);
+      state.messages.push({ text: `Equipped ${item.name}! (+${item.attack} ATK)`, color: MSG_COLORS.EQUIP });
     } else {
       if (state.inventory.items.length >= MAX_INVENTORY_SIZE) {
-        state.messages.push("Inventory full! Can't pick up item.");
+        state.messages.push({ text: "Inventory full! Can't pick up item.", color: MSG_COLORS.WARNING });
         return;
       }
       state.inventory.items.push(item);
-      state.messages.push(`Picked up ${item.name}.`);
+      state.messages.push({ text: `Picked up ${item.name}.`, color: MSG_COLORS.LOOT });
     }
   }
   // Auto-equip armor if better or empty slot
@@ -206,31 +216,31 @@ function pickupItem(state: GameState): void {
       if (current) {
         if (state.inventory.items.length < MAX_INVENTORY_SIZE) {
           state.inventory.items.push(current);
-          state.messages.push(`Unequipped ${current.name}.`);
+          state.messages.push({ text: `Unequipped ${current.name}.`, color: MSG_COLORS.EQUIP });
         } else {
-          state.messages.push("Inventory full! Can't pick up item.");
+          state.messages.push({ text: "Inventory full! Can't pick up item.", color: MSG_COLORS.WARNING });
           return;
         }
       }
       state.inventory.equippedArmor = item;
-      state.messages.push(`Equipped ${item.name}! (+${item.defense} DEF)`);
+      state.messages.push({ text: `Equipped ${item.name}! (+${item.defense} DEF)`, color: MSG_COLORS.EQUIP });
     } else {
       if (state.inventory.items.length >= MAX_INVENTORY_SIZE) {
-        state.messages.push("Inventory full! Can't pick up item.");
+        state.messages.push({ text: "Inventory full! Can't pick up item.", color: MSG_COLORS.WARNING });
         return;
       }
       state.inventory.items.push(item);
-      state.messages.push(`Picked up ${item.name}.`);
+      state.messages.push({ text: `Picked up ${item.name}.`, color: MSG_COLORS.LOOT });
     }
   }
   // Potions go to inventory
   else {
     if (state.inventory.items.length >= MAX_INVENTORY_SIZE) {
-      state.messages.push("Inventory full! Can't pick up item.");
+      state.messages.push({ text: "Inventory full! Can't pick up item.", color: MSG_COLORS.WARNING });
       return;
     }
     state.inventory.items.push(item);
-    state.messages.push(`Picked up ${item.name}.`);
+    state.messages.push({ text: `Picked up ${item.name}.`, color: MSG_COLORS.LOOT });
   }
 
   // Remove from ground
@@ -240,30 +250,30 @@ function pickupItem(state: GameState): void {
 export function applyInventoryItem(state: GameState, index: number): GameState {
   if (index < 0 || index >= state.inventory.items.length) return state;
 
-  const newState = { ...state, messages: [] as string[], inventory: { ...state.inventory, items: [...state.inventory.items] } };
+  const newState = { ...state, messages: [] as GameMessage[], inventory: { ...state.inventory, items: [...state.inventory.items] } };
   const item = newState.inventory.items[index];
 
   if (item.category === ItemCategory.POTION) {
     if (newState.player.hp >= newState.player.maxHp) {
-      newState.messages.push("You're already at full health.");
+      newState.messages.push({ text: "You're already at full health.", color: MSG_COLORS.WARNING });
       return newState;
     }
     const healed = Math.min(item.healAmount ?? 0, newState.player.maxHp - newState.player.hp);
     newState.player = { ...newState.player, hp: newState.player.hp + healed };
     newState.inventory.items.splice(index, 1);
-    newState.messages.push(`Used ${item.name}. Restored ${healed} HP.`);
+    newState.messages.push({ text: `Used ${item.name}. Restored ${healed} HP.`, color: MSG_COLORS.HEAL });
   } else if (item.category === ItemCategory.WEAPON) {
     const old = newState.inventory.equippedWeapon;
     newState.inventory.equippedWeapon = item;
     newState.inventory.items.splice(index, 1);
     if (old) newState.inventory.items.push(old);
-    newState.messages.push(`Equipped ${item.name}! (+${item.attack} ATK)`);
+    newState.messages.push({ text: `Equipped ${item.name}! (+${item.attack} ATK)`, color: MSG_COLORS.EQUIP });
   } else if (item.category === ItemCategory.ARMOR) {
     const old = newState.inventory.equippedArmor;
     newState.inventory.equippedArmor = item;
     newState.inventory.items.splice(index, 1);
     if (old) newState.inventory.items.push(old);
-    newState.messages.push(`Equipped ${item.name}! (+${item.defense} DEF)`);
+    newState.messages.push({ text: `Equipped ${item.name}! (+${item.defense} DEF)`, color: MSG_COLORS.EQUIP });
   }
 
   return newState;
@@ -321,7 +331,7 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
       combat(enemy, state.player, state.messages, 0, playerDefenseBonus);
       if (state.player.hp <= 0) {
         state.gameOver = true;
-        state.messages.push("You have been consumed by the void...");
+        state.messages.push({ text: "You have been consumed by the void...", color: MSG_COLORS.DEATH });
       }
       continue;
     }
@@ -401,7 +411,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
 
   const newState = {
     ...state,
-    messages: [] as string[],
+    messages: [] as GameMessage[],
     items: [...state.items],
     inventory: {
       ...state.inventory,
@@ -436,7 +446,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
         const loot = generateLootDrop(newState.floor, enemy.pos);
         if (loot) {
           newState.items.push(loot);
-          newState.messages.push(`${enemy.name} dropped ${loot.item.name}!`);
+          newState.messages.push({ text: `${enemy.name} dropped ${loot.item.name}!`, color: MSG_COLORS.LOOT });
         }
         newState.entities = newState.entities.filter((e) => e.id !== enemy.id);
       }
@@ -448,7 +458,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
 
       // Check for stairs
       if (newState.map[newY][newX] === TileType.STAIRS_DOWN) {
-        newState.messages.push("You descend deeper into the void...");
+        newState.messages.push({ text: "You descend deeper into the void...", color: MSG_COLORS.INFO });
         return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression);
       }
     }

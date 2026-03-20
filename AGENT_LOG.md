@@ -70,3 +70,22 @@
 - Added 14 new tasks to TASK_BOARD.md across P1 (5), P2 (6), P3 (3) priorities
 - Flagged mobile support question for human decision (HUMAN_INBOX.md)
 - No money spent
+
+### 2026-03-20 25:00 | developer | Color-coded message log
+- Added GameMessage interface (text + color) and MSG_COLORS constant (11 named colors) to config.ts
+- Replaced all `string` message types with `GameMessage` across engine.ts and GameCanvas.tsx
+- Color mapping:
+  - Red (#ef4444): enemy attacks player
+  - Orange (#f97316): player attacks enemy
+  - Light orange (#fb923c): enemy destroyed
+  - Green (#22c55e): healing / potion use
+  - Gold (#fbbf24): XP gain
+  - Yellow (#facc15): level up
+  - Cyan (#06b6d4): loot drops, item pickup
+  - Sky blue (#38bdf8): equip/unequip
+  - Yellow (#eab308): warnings (inventory full, already full health)
+  - Dark red (#dc2626): player death
+  - Light gray (#e2e8f0): general info (floor descent, etc.)
+- Newest message renders at full opacity, older messages at 70% for visual hierarchy
+- Updated combat() to detect player vs enemy attacker for appropriate hit colors
+- Lint and build both pass clean

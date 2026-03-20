@@ -116,6 +116,26 @@ export interface PlayerProgression {
   xpToNext: number;
 }
 
+// Message colors for the log
+export const MSG_COLORS = {
+  INFO: "#e2e8f0",      // general info (floor descent, etc.)
+  PLAYER_ATK: "#f97316", // player hits enemy
+  ENEMY_ATK: "#ef4444",  // enemy hits player / damage taken
+  KILL: "#fb923c",       // enemy destroyed
+  HEAL: "#22c55e",       // healing / potion use
+  XP: "#fbbf24",         // XP gain
+  LEVEL_UP: "#facc15",   // level up
+  LOOT: "#06b6d4",       // loot drops, item pickup
+  EQUIP: "#38bdf8",      // equip/unequip
+  WARNING: "#eab308",    // inventory full, already full health
+  DEATH: "#dc2626",      // player death
+} as const;
+
+export interface GameMessage {
+  text: string;
+  color: string;
+}
+
 export interface GameState {
   floor: number;
   map: TileType[][];
@@ -124,7 +144,7 @@ export interface GameState {
   items: GroundItem[];
   inventory: PlayerInventory;
   progression: PlayerProgression;
-  messages: string[];
+  messages: GameMessage[];
   turnCount: number;
   gameOver: boolean;
   fov: boolean[][];

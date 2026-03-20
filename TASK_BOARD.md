@@ -22,7 +22,7 @@
 
 ### P1 - Player Experience (NEW — strategist analysis 2026-03-20)
 - [ ] Add help overlay (press ? or H) showing controls, mechanics, and enemy/item legends — players currently have no way to learn game systems beyond the tiny footer hint
-- [ ] Add color-coded message log (red for damage taken, green for heals/pickups, gold for level-ups, white for info) — currently all messages are same color, easy to miss critical events
+
 - [ ] Add run stats to death screen (enemies killed, items found, damage dealt/taken, deepest floor, time played) — gives players a reason to care about each run
 - [ ] Pause menu (Escape key) with Resume, Help, Restart, Quit to Menu — currently no way to pause or access help mid-game
 - [ ] Add floating damage numbers on canvas (brief "+5 HP", "-3 DMG" over entities) — combat currently has zero visual feedback beyond message log
@@ -94,3 +94,4 @@
 - [x] ESLint lint passes clean
 - [x] Experience points and leveling system
 - [x] Improved enemy AI (A* pathfinding, 4 behavior types, per-enemy detection ranges)
+- [x] Color-coded message log (11 color categories for combat, loot, XP, healing, warnings, etc.)
