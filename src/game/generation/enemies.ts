@@ -1,4 +1,4 @@
-import { GameEntity, EntityType, Position, AIBehavior, SpecialAbility } from "../config";
+import { GameEntity, EntityType, Position, AIBehavior, SpecialAbility, MAP_WIDTH, MAP_HEIGHT, TileType } from "../config";
 
 interface EnemyTemplate {
   name: string;
@@ -71,4 +71,62 @@ export function spawnEnemies(floor: number, floorTiles: Position[]): GameEntity[
   }
 
   return enemies;
+}
+
+export function spawnBoss(floor: number, map: TileType[][]): GameEntity {
+  // Boss spawns at top-center of the boss room
+  // Find the center of the room (it's a single large room)
+  let centerX = Math.floor(MAP_WIDTH / 2);
+  let centerY = 0;
+
+  // Find the topmost floor row and center the boss there
+  for (let y = 0; y < MAP_HEIGHT; y++) {
+    if (map[y][centerX] === TileType.FLOOR) {
+      centerY = y + 2; // A couple tiles down from the top wall
+      break;
+    }
+  }
+
+  const scaling = 1 + (floor - 1) * 0.15;
+
+  return {
+    id: `boss_nucleus_${nextEnemyId++}`,
+    type: EntityType.ENEMY,
+    pos: { x: centerX, y: centerY },
+    name: "Void Nucleus",
+    hp: Math.floor(60 * scaling),
+    maxHp: Math.floor(60 * scaling),
+    attack: Math.floor(8 * scaling),
+    defense: Math.floor(3 * scaling),
+    color: "#06b6d4",
+    symbol: "O",
+    xpReward: Math.floor(150 * scaling),
+    behavior: AIBehavior.AMBUSH,
+    detectRange: 20,
+    specialAbility: SpecialAbility.BOSS_NUCLEUS,
+    isBoss: true,
+    bossPhase: 0,         // Start in spawn phase
+    bossTurnCounter: 0,   // Spawn adds immediately on first turn
+    bossTelegraphed: false,
+  };
+}
+
+export function spawnBossAdd(floor: number, pos: Position): GameEntity {
+  const scaling = 1 + (floor - 1) * 0.15;
+
+  return {
+    id: `boss_add_${nextEnemyId++}`,
+    type: EntityType.ENEMY,
+    pos: { ...pos },
+    name: "Void Fragment",
+    hp: Math.floor(6 * scaling),
+    maxHp: Math.floor(6 * scaling),
+    attack: Math.floor(3 * scaling),
+    defense: Math.floor(1 * scaling),
+    color: "#67e8f9",
+    symbol: "o",
+    xpReward: Math.floor(8 * scaling),
+    behavior: AIBehavior.CHASE,
+    detectRange: 20,
+  };
 }

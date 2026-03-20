@@ -6,7 +6,7 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT } from "@/game/config";
 import { initGame, processPlayerTurn, applyInventoryItem, MoveDirection } from "@/game/engine";
 import { render, renderFloatingTexts, FLOAT_DURATION } from "@/game/renderer";
 import type { ActiveFloatingText } from "@/game/renderer";
-import type { GameState, GameMessage, PlayerInventory, RunStats, StatusEffect } from "@/game/config";
+import type { GameState, GameMessage, PlayerInventory, RunStats, StatusEffect, GameEntity } from "@/game/config";
 import HelpOverlay from "./HelpOverlay";
 import PauseMenu from "./PauseMenu";
 
@@ -54,6 +54,7 @@ export default function GameCanvas() {
   const [gameOver, setGameOver] = useState(false);
   const [runStats, setRunStats] = useState<RunStats>(initialState.runStats);
   const [statusEffects, setStatusEffects] = useState<StatusEffect[]>([]);
+  const [bossInfo, setBossInfo] = useState<GameEntity | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const showHelpRef = useRef(false);
   const [showPause, setShowPause] = useState(false);
@@ -76,6 +77,8 @@ export default function GameCanvas() {
     setInventory(getInventoryFromState(state));
     setRunStats(state.runStats);
     setStatusEffects(state.statusEffects ?? []);
+    const boss = state.entities.find((e) => e.isBoss && e.hp > 0);
+    setBossInfo(boss ?? null);
     if (state.messages.length > 0) {
       setMessages((prev) => [...state.messages, ...prev].slice(0, 50));
     }
@@ -310,6 +313,28 @@ export default function GameCanvas() {
               </span>
             );
           })}
+        </div>
+      )}
+
+      {/* Boss HP Bar */}
+      {bossInfo && (
+        <div className="w-full max-w-[640px] mb-1 px-2">
+          <div className="flex items-center gap-2 text-xs font-mono">
+            <span style={{ color: "#06b6d4" }} className="font-bold">{bossInfo.name}</span>
+            <div className="flex-1 h-3 rounded-sm overflow-hidden" style={{ backgroundColor: "#1a1a2e", border: "1px solid #333" }}>
+              <div
+                className="h-full rounded-sm transition-all duration-300"
+                style={{
+                  width: `${(bossInfo.hp / bossInfo.maxHp) * 100}%`,
+                  backgroundColor: bossInfo.hp / bossInfo.maxHp > 0.5 ? "#06b6d4" : bossInfo.hp / bossInfo.maxHp > 0.25 ? "#eab308" : "#ef4444",
+                }}
+              />
+            </div>
+            <span style={{ color: "var(--void-muted)" }}>{bossInfo.hp}/{bossInfo.maxHp}</span>
+            <span style={{ color: bossInfo.bossPhase === 1 ? "#22c55e" : "#ef4444" }} className="font-bold">
+              {bossInfo.bossPhase === 1 ? "VULNERABLE" : "ACTIVE"}
+            </span>
+          </div>
         </div>
       )}
 

@@ -68,7 +68,67 @@ export interface DungeonResult {
   stairsPos: Position;
 }
 
+function isBossFloor(floor: number): boolean {
+  return floor === 5;
+}
+
+function generateBossRoom(): DungeonResult {
+  const map: TileType[][] = Array.from({ length: MAP_HEIGHT }, () =>
+    Array(MAP_WIDTH).fill(TileType.WALL)
+  );
+
+  // Single large room centered on the map (16x12)
+  const roomWidth = 16;
+  const roomHeight = 12;
+  const roomX = Math.floor((MAP_WIDTH - roomWidth) / 2);
+  const roomY = Math.floor((MAP_HEIGHT - roomHeight) / 2);
+  const bossRoom: Room = { x: roomX, y: roomY, width: roomWidth, height: roomHeight };
+  carveRoom(map, bossRoom);
+
+  // Player starts at the bottom-center of the room
+  const playerStart = {
+    x: Math.floor(roomX + roomWidth / 2),
+    y: roomY + roomHeight - 2,
+  };
+
+  // Stairs hidden behind boss position (top-center), only accessible after boss dies
+  const stairsPos = {
+    x: Math.floor(roomX + roomWidth / 2),
+    y: roomY + 1,
+  };
+  map[stairsPos.y][stairsPos.x] = TileType.STAIRS_DOWN;
+
+  // Add walls around floors
+  for (let y = 0; y < MAP_HEIGHT; y++) {
+    for (let x = 0; x < MAP_WIDTH; x++) {
+      if (map[y][x] === TileType.WALL) {
+        let adjacentToFloor = false;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const ny = y + dy;
+            const nx = x + dx;
+            if (ny >= 0 && ny < MAP_HEIGHT && nx >= 0 && nx < MAP_WIDTH) {
+              if (map[ny][nx] === TileType.FLOOR || map[ny][nx] === TileType.STAIRS_DOWN) {
+                adjacentToFloor = true;
+              }
+            }
+          }
+        }
+        if (!adjacentToFloor) {
+          map[y][x] = TileType.VOID;
+        }
+      }
+    }
+  }
+
+  return { map, rooms: [bossRoom], playerStart, stairsPos };
+}
+
 export function generateDungeon(floor: number): DungeonResult {
+  if (isBossFloor(floor)) {
+    return generateBossRoom();
+  }
+
   // Initialize with walls
   const map: TileType[][] = Array.from({ length: MAP_HEIGHT }, () =>
     Array(MAP_WIDTH).fill(TileType.WALL)

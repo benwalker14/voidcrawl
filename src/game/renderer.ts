@@ -103,6 +103,28 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState) {
 
     if (screenX < 0 || screenX >= CANVAS_WIDTH || screenY < 0 || screenY >= CANVAS_HEIGHT) continue;
 
+    // Boss: draw pulsing glow behind symbol
+    if (entity.isBoss) {
+      const pulse = 0.4 + 0.3 * Math.sin(Date.now() / 300);
+      ctx.fillStyle = entity.bossPhase === 1
+        ? `rgba(34, 197, 94, ${pulse})`  // Green glow when vulnerable
+        : `rgba(6, 182, 212, ${pulse})`;  // Cyan glow normally
+      ctx.beginPath();
+      ctx.arc(screenX + SCALED_TILE / 2, screenY + SCALED_TILE / 2, SCALED_TILE * 0.6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Boss HP bar below symbol
+      const barWidth = SCALED_TILE * 1.5;
+      const barHeight = 4;
+      const barX = screenX + SCALED_TILE / 2 - barWidth / 2;
+      const barY = screenY + SCALED_TILE + 2;
+      const hpRatio = entity.hp / entity.maxHp;
+      ctx.fillStyle = "#1a1a2e";
+      ctx.fillRect(barX, barY, barWidth, barHeight);
+      ctx.fillStyle = hpRatio > 0.5 ? "#06b6d4" : hpRatio > 0.25 ? "#eab308" : "#ef4444";
+      ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
+    }
+
     ctx.fillStyle = entity.color;
     ctx.font = `bold ${SCALED_TILE - 4}px monospace`;
     ctx.textAlign = "center";

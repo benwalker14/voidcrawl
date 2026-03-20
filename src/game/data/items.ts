@@ -102,6 +102,69 @@ export function generateLootDrop(floor: number, pos: Position): GroundItem | nul
   return { item, pos: { ...pos } };
 }
 
+export function generateBossLoot(floor: number, pos: Position): GroundItem[] {
+  const loot: GroundItem[] = [];
+
+  // Guaranteed rare weapon or armor
+  const rareEquipment = ITEM_TEMPLATES.filter(
+    (t) =>
+      t.rarity === ItemRarity.RARE &&
+      (t.category === ItemCategory.WEAPON || t.category === ItemCategory.ARMOR)
+  );
+  if (rareEquipment.length > 0) {
+    const template = rareEquipment[Math.floor(Math.random() * rareEquipment.length)];
+    loot.push({
+      item: {
+        id: `item_${nextItemId++}`,
+        name: template.name,
+        category: template.category,
+        rarity: template.rarity,
+        symbol: template.symbol,
+        color: RARITY_COLORS[template.rarity],
+        attack: template.attack,
+        defense: template.defense,
+        healAmount: template.healAmount,
+        effect: template.effect,
+        effectValue: template.effectValue,
+        minFloor: template.minFloor,
+        description: template.description,
+      },
+      pos: { x: pos.x, y: pos.y },
+    });
+  }
+
+  // Guaranteed rare consumable
+  const rareConsumables = ITEM_TEMPLATES.filter(
+    (t) =>
+      t.rarity === ItemRarity.RARE &&
+      (t.category === ItemCategory.POTION || t.category === ItemCategory.SCROLL) &&
+      t.minFloor <= floor
+  );
+  if (rareConsumables.length > 0) {
+    const template = rareConsumables[Math.floor(Math.random() * rareConsumables.length)];
+    loot.push({
+      item: {
+        id: `item_${nextItemId++}`,
+        name: template.name,
+        category: template.category,
+        rarity: template.rarity,
+        symbol: template.symbol,
+        color: RARITY_COLORS[template.rarity],
+        attack: template.attack,
+        defense: template.defense,
+        healAmount: template.healAmount,
+        effect: template.effect,
+        effectValue: template.effectValue,
+        minFloor: template.minFloor,
+        description: template.description,
+      },
+      pos: { x: pos.x + 1, y: pos.y },
+    });
+  }
+
+  return loot;
+}
+
 export function resetItemIds() {
   nextItemId = 0;
 }

@@ -239,3 +239,20 @@
 - Updated HelpOverlay enemy descriptions to include special ability summaries
 - Lint and build both pass clean
 - No money spent
+
+### 2026-03-20 34:00 | developer | Floor 5 boss encounter: Void Nucleus
+- Added BOSS_NUCLEUS to SpecialAbility enum + boss fields on GameEntity (isBoss, bossPhase, bossTurnCounter, bossTelegraphed) in config.ts
+- Created generateBossRoom() in dungeon.ts: single large 16x12 arena centered on map, player starts at bottom, stairs at top behind boss. No corridors or escape routes
+- Added isBossFloor() check — floor 5 triggers boss room generation instead of normal dungeon
+- Created spawnBoss() in enemies.ts: "Void Nucleus" (symbol O, cyan), 60 base HP scaled by floor, 8 ATK, 3 DEF, 150 base XP. Stationary (skipped in moveEnemies)
+- Created spawnBossAdd() in enemies.ts: "Void Fragment" (symbol o, light cyan), 6 base HP, chase behavior, spawned by boss during active phase
+- Implemented processBossAI() in engine.ts with two-phase cycle:
+  - **Phase 0 (ACTIVE):** Boss spawns 2 Void Fragments every 4 turns near itself. After 8 turns, telegraphs AoE 1 turn in advance ("a massive discharge is imminent!"), then executes 6-damage AoE to player within range 3. Transitions to vulnerable phase
+  - **Phase 1 (VULNERABLE):** Boss is dimmed, spawns nothing for 5 turns. Player can DPS freely. Then cycles back to active phase
+- Added boss-specific kill handling: victory message "The Void Nucleus shatters!", "BOSS SLAIN!" floating text, guaranteed rare weapon/armor + rare consumable drop via new generateBossLoot() function in items.ts
+- Enhanced renderer: boss entity gets pulsing glow (cyan when active, green when vulnerable) + HP bar drawn below symbol on canvas
+- Added boss HP bar to HUD in GameCanvas.tsx: shows boss name, HP bar with color thresholds, HP numbers, and phase indicator (ACTIVE/VULNERABLE)
+- Added Void Nucleus and Void Fragment to HelpOverlay enemy bestiary
+- Boss floor entry shows dramatic message: "A massive Void Nucleus pulses at the far end of the chamber!"
+- Lint and build both pass clean
+- No money spent

@@ -134,6 +134,7 @@ export enum SpecialAbility {
   TELEPORT = "teleport",       // Void Walker: teleports to random tile when hit
   HOWL = "howl",               // Abyssal Hound: alerts all hounds when spotting player
   ETHEREAL = "ethereal",       // Rift Wraith: moves through walls, vulnerable only on floor tiles
+  BOSS_NUCLEUS = "boss_nucleus", // Void Nucleus: stationary, spawns adds, telegraphed attacks
 }
 
 export interface GameEntity {
@@ -156,6 +157,10 @@ export interface GameEntity {
   summonTurns?: number;
   specialAbility?: SpecialAbility;
   howled?: boolean; // Abyssal Hound: already howled this floor
+  isBoss?: boolean;
+  bossPhase?: number;        // Current boss phase (0 = spawning adds, 1 = vulnerable/paused)
+  bossTurnCounter?: number;  // Turns until next phase transition
+  bossTelegraphed?: boolean; // Whether the boss has telegraphed its next special attack
 }
 
 export interface PlayerProgression {

@@ -10,6 +10,8 @@ const ENEMIES = [
   { symbol: "H", color: "#c084fc", name: "Abyssal Hound", behavior: "Pursues · Howl alerts all other hounds", floors: "5+" },
   { symbol: "R", color: "#e9d5ff", name: "Rift Wraith", behavior: "Moves through walls · Vulnerable only on floor tiles", floors: "7+" },
   { symbol: "V", color: "#f5f3ff", name: "Void Lord", behavior: "Pursues from very far away", floors: "10+" },
+  { symbol: "O", color: "#06b6d4", name: "BOSS: Void Nucleus", behavior: "Stationary · Spawns adds · Telegraphs AoE · Alternates active/vulnerable phases", floors: "5" },
+  { symbol: "o", color: "#67e8f9", name: "Void Fragment", behavior: "Boss add · Pursues player", floors: "5" },
 ];
 
 const ITEMS = [

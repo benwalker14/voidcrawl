@@ -23,9 +23,9 @@ import {
   MSG_COLORS,
 } from "./config";
 import { generateDungeon } from "./generation/dungeon";
-import { spawnEnemies } from "./generation/enemies";
+import { spawnEnemies, spawnBoss, spawnBossAdd } from "./generation/enemies";
 import { computeFov } from "./generation/fov";
-import { generateLootDrop } from "./data/items";
+import { generateLootDrop, generateBossLoot } from "./data/items";
 import { findPath, findFleeStep } from "./pathfinding";
 
 function createPlayer(pos: Position): GameEntity {
@@ -128,7 +128,10 @@ export function generateFloor(
     ? { ...prevPlayer, pos: { ...dungeon.playerStart } }
     : createPlayer(dungeon.playerStart);
 
-  const enemies = spawnEnemies(floor, floorTiles);
+  const isBossFloor = floor === 5;
+  const enemies = isBossFloor
+    ? [spawnBoss(floor, dungeon.map)]
+    : spawnEnemies(floor, floorTiles);
   const fov = computeFov(dungeon.map, player.pos.x, player.pos.y);
   const explored: boolean[][] = Array.from({ length: MAP_HEIGHT }, () =>
     Array(MAP_WIDTH).fill(false)
@@ -153,7 +156,12 @@ export function generateFloor(
     items: [],
     inventory: prevInventory ?? createInventory(),
     progression: prevProgression ?? createProgression(),
-    messages: [{ text: `You descend to floor ${floor} of the void.`, color: MSG_COLORS.INFO }],
+    messages: isBossFloor
+      ? [
+          { text: `You descend to floor ${floor} of the void.`, color: MSG_COLORS.INFO },
+          { text: "The air crackles with energy. A massive Void Nucleus pulses at the far end of the chamber!", color: MSG_COLORS.WARNING },
+        ]
+      : [{ text: `You descend to floor ${floor} of the void.`, color: MSG_COLORS.INFO }],
     turnCount: 0,
     gameOver: false,
     fov,
@@ -624,11 +632,109 @@ function wanderStep(
   return null;
 }
 
+// Boss AI constants
+const BOSS_SPAWN_INTERVAL = 4;    // Turns between add spawns during spawn phase
+const BOSS_SPAWN_PHASE_TURNS = 8; // How long the spawn phase lasts
+const BOSS_PAUSE_TURNS = 5;       // How long the vulnerable/pause phase lasts
+const BOSS_ADDS_PER_WAVE = 2;     // Number of adds spawned per wave
+const BOSS_TELEGRAPH_DAMAGE = 6;  // Damage dealt by the telegraphed AoE attack
+
+function processBossAI(state: GameState): void {
+  for (const boss of state.entities) {
+    if (!boss.isBoss || boss.hp <= 0 || boss.specialAbility !== SpecialAbility.BOSS_NUCLEUS) continue;
+
+    boss.bossTurnCounter = (boss.bossTurnCounter ?? 0) + 1;
+
+    if (boss.bossPhase === 0) {
+      // SPAWN PHASE: summon adds periodically
+
+      // Spawn adds every BOSS_SPAWN_INTERVAL turns
+      if ((boss.bossTurnCounter ?? 0) % BOSS_SPAWN_INTERVAL === 0) {
+        let spawned = 0;
+        for (let i = 0; i < BOSS_ADDS_PER_WAVE; i++) {
+          const spawnPos = getRandomFloorTileNearBoss(state, boss.pos);
+          if (spawnPos) {
+            state.entities.push(spawnBossAdd(state.floor, spawnPos));
+            state.pendingFloatingTexts.push({ text: "SPAWN", color: "#67e8f9", x: spawnPos.x, y: spawnPos.y });
+            spawned++;
+          }
+        }
+        if (spawned > 0) {
+          state.messages.push({ text: `The Void Nucleus shudders and spawns ${spawned} Void Fragment${spawned > 1 ? "s" : ""}!`, color: MSG_COLORS.WARNING });
+        }
+      }
+
+      // Telegraph AoE attack 1 turn before phase transition
+      if ((boss.bossTurnCounter ?? 0) === BOSS_SPAWN_PHASE_TURNS - 1 && !boss.bossTelegraphed) {
+        boss.bossTelegraphed = true;
+        state.messages.push({ text: "The Void Nucleus gathers energy... a massive discharge is imminent!", color: MSG_COLORS.DEATH });
+        state.pendingFloatingTexts.push({ text: "CHARGING!", color: "#ef4444", x: boss.pos.x, y: boss.pos.y });
+      }
+
+      // Transition to pause phase after BOSS_SPAWN_PHASE_TURNS
+      if ((boss.bossTurnCounter ?? 0) >= BOSS_SPAWN_PHASE_TURNS) {
+        // Execute the telegraphed AoE attack
+        const px = state.player.pos.x;
+        const py = state.player.pos.y;
+        const distToPlayer = Math.abs(px - boss.pos.x) + Math.abs(py - boss.pos.y);
+        if (distToPlayer <= 3) {
+          const dmg = BOSS_TELEGRAPH_DAMAGE;
+          state.player = { ...state.player, hp: state.player.hp - dmg };
+          state.runStats.damageTaken += dmg;
+          state.messages.push({ text: `The Void Nucleus discharges! You take ${dmg} damage!`, color: MSG_COLORS.ENEMY_ATK });
+          state.pendingFloatingTexts.push({ text: `-${dmg}`, color: MSG_COLORS.ENEMY_ATK, x: px, y: py });
+          if (state.player.hp <= 0) {
+            state.gameOver = true;
+            state.messages.push({ text: "You have been consumed by the void...", color: MSG_COLORS.DEATH });
+          }
+        } else {
+          state.messages.push({ text: "The Void Nucleus discharges a wave of energy! You dodge it at range!", color: MSG_COLORS.INFO });
+        }
+
+        boss.bossPhase = 1;
+        boss.bossTurnCounter = 0;
+        boss.bossTelegraphed = false;
+        state.messages.push({ text: "The Void Nucleus dims... it's vulnerable! Strike now!", color: MSG_COLORS.HEAL });
+        state.pendingFloatingTexts.push({ text: "VULNERABLE", color: "#22c55e", x: boss.pos.x, y: boss.pos.y });
+      }
+    } else if (boss.bossPhase === 1) {
+      // PAUSE PHASE: boss is vulnerable, no spawns
+
+      // Transition back to spawn phase after BOSS_PAUSE_TURNS
+      if ((boss.bossTurnCounter ?? 0) >= BOSS_PAUSE_TURNS) {
+        boss.bossPhase = 0;
+        boss.bossTurnCounter = 0;
+        state.messages.push({ text: "The Void Nucleus pulses with renewed energy! It begins spawning again!", color: MSG_COLORS.WARNING });
+        state.pendingFloatingTexts.push({ text: "ACTIVE", color: "#ef4444", x: boss.pos.x, y: boss.pos.y });
+      }
+    }
+  }
+}
+
+function getRandomFloorTileNearBoss(state: GameState, bossPos: Position): Position | null {
+  const tiles: Position[] = [];
+  for (let y = 0; y < MAP_HEIGHT; y++) {
+    for (let x = 0; x < MAP_WIDTH; x++) {
+      if (state.map[y][x] !== TileType.FLOOR) continue;
+      const dist = Math.abs(x - bossPos.x) + Math.abs(y - bossPos.y);
+      if (dist < 2 || dist > 6) continue; // Spawn near boss but not on top of it
+      if (x === state.player.pos.x && y === state.player.pos.y) continue;
+      if (state.entities.some((e) => e.hp > 0 && e.pos.x === x && e.pos.y === y)) continue;
+      tiles.push({ x, y });
+    }
+  }
+  if (tiles.length === 0) return null;
+  return tiles[Math.floor(Math.random() * tiles.length)];
+}
+
 function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
   const isInvisible = hasStatusEffect(state, StatusEffectType.INVISIBLE);
 
   for (const enemy of state.entities) {
     if (enemy.hp <= 0 || enemy.friendly) continue;
+
+    // Boss is stationary — handled by processBossAI
+    if (enemy.isBoss) continue;
 
     const dx = state.player.pos.x - enemy.pos.x;
     const dy = state.player.pos.y - enemy.pos.y;
@@ -979,10 +1085,22 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
           spawnSplitSlimes(newState, enemy);
           newState.runStats.enemiesKilled++;
           awardXp(newState, enemy.xpReward ?? 5);
-          const loot = generateLootDrop(newState.floor, enemy.pos);
-          if (loot) {
-            newState.items.push(loot);
-            newState.messages.push({ text: `${enemy.name} dropped ${loot.item.name}!`, color: MSG_COLORS.LOOT });
+
+          if (enemy.isBoss) {
+            // Boss kill: guaranteed rare+ loot, victory message
+            newState.messages.push({ text: "The Void Nucleus shatters! The chamber falls silent.", color: MSG_COLORS.LEVEL_UP });
+            newState.pendingFloatingTexts.push({ text: "BOSS SLAIN!", color: "#facc15", x: enemy.pos.x, y: enemy.pos.y });
+            const bossLoot = generateBossLoot(newState.floor, enemy.pos);
+            for (const loot of bossLoot) {
+              newState.items.push(loot);
+              newState.messages.push({ text: `The Nucleus dropped ${loot.item.name}!`, color: MSG_COLORS.LOOT });
+            }
+          } else {
+            const loot = generateLootDrop(newState.floor, enemy.pos);
+            if (loot) {
+              newState.items.push(loot);
+              newState.messages.push({ text: `${enemy.name} dropped ${loot.item.name}!`, color: MSG_COLORS.LOOT });
+            }
           }
           newState.entities = newState.entities.filter((e) => e.id !== enemy.id);
         }
@@ -1062,6 +1180,9 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
   if (!skipEnemyMove) {
     moveEnemies(newState, bonuses.defense);
   }
+
+  // Boss AI — spawns adds, telegraphs attacks, phase transitions
+  processBossAI(newState);
 
   // Friendly entity (summon) AI — chase and attack nearest enemy
   moveFriendlies(newState);
