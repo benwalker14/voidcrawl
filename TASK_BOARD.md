@@ -31,7 +31,7 @@
 - [ ] Add mini-map showing explored areas
 
 ### P1 - Content Depth (NEW — strategist content audit 2026-03-20)
-- [ ] Consumable variety: add 6 potion types beyond healing (Haste, Invisibility, Teleport, Fire, Poison, Strength) + new Scroll item category with 4 types (Magic Mapping, Enchanting, Fear, Summon Ally) — only healing potions exist; zero tactical consumable decisions. Symbol `?` for scrolls. This is the single highest-impact content addition per effort.
+- [x] Consumable variety: add 6 potion types beyond healing (Haste, Invisibility, Teleport, Fire, Poison, Strength) + new Scroll item category with 4 types (Magic Mapping, Enchanting, Fear, Summon Ally) — only healing potions exist; zero tactical consumable decisions. Symbol `?` for scrolls. This is the single highest-impact content addition per effort.
 - [ ] Enemy special abilities: retrofit existing 9 enemies with unique mechanics (Void Beetle: armored -1 dmg; Shadow Wisp: 30% phase/dodge; Dark Slime: splits into 2 Mini Slimes on death; Shade: life drain heals 50% of damage; Void Walker: teleports when hit; Abyssal Hound: howl alerts other hounds; Rift Wraith: moves through walls, only vulnerable on floor tiles) — enemies are currently pure stat blocks, combat has no tactical variety
 - [ ] Floor 5 boss encounter: "Void Nucleus" (symbol `O`, cyan) — stationary, spawns add waves, players must manage spawns then DPS during pause. Boss room is a single large generated room with no corridor escape. Boss telegraphs special attack 1 turn before via message. Guaranteed rare+ loot drop on kill.
 - [ ] Weapon/armor runic effects: add `runic` property to Item interface. Weapon runics: Vampiric (heal 1 HP on kill), Flaming (25% burn DoT), Stunning (20% skip enemy turn), Vorpal (2x dmg below 30% HP). Armor runics: Reflective (15% reflect damage), Regenerating (1 HP per 10 turns), Thorned (1 dmg to melee attackers). Uncommon items get 25% runic chance, Rare get 60%. Makes loot decisions interesting beyond "bigger number."
@@ -105,3 +105,4 @@
 - [x] Run stats on death screen (enemies killed, items found, damage dealt/taken, deepest floor, time played)
 - [x] Pause menu (Escape key) with Resume, Help, Restart, Quit to Menu
 - [x] Floating damage numbers on canvas (+HP, -DMG, LEVEL UP!) with animated float-up and fade
+- [x] Consumable variety: 6 new potion types (Haste, Invisibility, Teleport, Fire, Poison, Strength) + 4 scroll types (Mapping, Enchanting, Fear, Summoning) with full status effect system

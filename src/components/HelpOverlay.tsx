@@ -19,9 +19,11 @@ const ITEMS = [
   { symbol: "[", color: "#9ca3af", label: "Armor (Common)", example: "Tattered Cloak, Leather Vest" },
   { symbol: "[", color: "#22c55e", label: "Armor (Uncommon)", example: "Void Mail, Shadow Plate" },
   { symbol: "[", color: "#3b82f6", label: "Armor (Rare)", example: "Abyssal Ward" },
-  { symbol: "!", color: "#9ca3af", label: "Potion (Common)", example: "Minor Health Potion" },
-  { symbol: "!", color: "#22c55e", label: "Potion (Uncommon)", example: "Health Potion" },
-  { symbol: "!", color: "#3b82f6", label: "Potion (Rare)", example: "Major Health Potion" },
+  { symbol: "!", color: "#9ca3af", label: "Potion (Common)", example: "Health, Teleport" },
+  { symbol: "!", color: "#22c55e", label: "Potion (Uncommon)", example: "Haste, Fire, Poison" },
+  { symbol: "!", color: "#3b82f6", label: "Potion (Rare)", example: "Invisibility, Strength" },
+  { symbol: "?", color: "#22c55e", label: "Scroll (Uncommon)", example: "Mapping, Fear" },
+  { symbol: "?", color: "#3b82f6", label: "Scroll (Rare)", example: "Enchanting, Summoning" },
 ];
 
 const MAP_SYMBOLS = [
@@ -68,7 +70,7 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
             <Hl>Combat:</Hl> Walk into an enemy to attack. Damage = ATK - DEF + random(-1 to 1), minimum 1.
           </p>
           <p className="mb-1">
-            <Hl>Items:</Hl> Walk over items to auto-pickup. Better weapons/armor auto-equip. Potions go to inventory.
+            <Hl>Items:</Hl> Walk over items to auto-pickup. Better weapons/armor auto-equip. Potions and scrolls go to inventory — press 1-8 to use.
           </p>
           <p className="mb-1">
             <Hl>Leveling:</Hl> Kill enemies for XP. Each level grants +5 max HP, +1 ATK, +1 DEF and a full heal.
@@ -122,6 +124,27 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
                 <span style={{ color: "var(--void-muted)" }}>{item.example}</span>
               </div>
             ))}
+          </div>
+        </Section>
+
+        {/* Consumables Guide */}
+        <Section title="Consumable Effects">
+          <p className="mb-1" style={{ color: "#06b6d4" }}>Potions (!)</p>
+          <div className="space-y-0.5 mb-2 ml-2">
+            <div><span style={{ color: "#22c55e" }}>Health</span> — Restores HP (won&apos;t use at full health)</div>
+            <div><span style={{ color: "#22c55e" }}>Haste</span> — Enemies move at half speed for 8 turns</div>
+            <div><span style={{ color: "#22c55e" }}>Invisibility</span> — Enemies can&apos;t see you for 10 turns (broken by attacking)</div>
+            <div><span style={{ color: "#22c55e" }}>Teleport</span> — Randomly teleport to another spot on the floor</div>
+            <div><span style={{ color: "#22c55e" }}>Fire</span> — Deal 8 damage to all enemies within 2 tiles</div>
+            <div><span style={{ color: "#22c55e" }}>Poison</span> — Poison enemies within 2 tiles (2 dmg/turn for 5 turns)</div>
+            <div><span style={{ color: "#22c55e" }}>Strength</span> — +3 ATK for 10 turns</div>
+          </div>
+          <p className="mb-1" style={{ color: "#06b6d4" }}>Scrolls (?)</p>
+          <div className="space-y-0.5 ml-2">
+            <div><span style={{ color: "#22c55e" }}>Mapping</span> — Reveals the entire floor layout</div>
+            <div><span style={{ color: "#22c55e" }}>Enchanting</span> — +2 to equipped weapon ATK or armor DEF</div>
+            <div><span style={{ color: "#22c55e" }}>Fear</span> — All visible enemies flee for 6 turns</div>
+            <div><span style={{ color: "#22c55e" }}>Summoning</span> — Summons a Void Spirit ally for 15 turns</div>
           </div>
         </Section>
       </div>

@@ -9,6 +9,9 @@ import {
   MAP_HEIGHT,
   Item,
   ItemCategory,
+  ConsumableEffect,
+  StatusEffect,
+  StatusEffectType,
   GroundItem,
   PlayerInventory,
   PlayerProgression,
@@ -103,6 +106,7 @@ export function generateFloor(
   prevInventory: PlayerInventory | null,
   prevProgression: PlayerProgression | null,
   prevRunStats: RunStats | null,
+  prevStatusEffects: StatusEffect[] | null = null,
 ): GameState {
   const dungeon = generateDungeon(floor);
 
@@ -154,6 +158,7 @@ export function generateFloor(
     fov,
     explored,
     runStats,
+    statusEffects: prevStatusEffects ?? [],
     pendingFloatingTexts: [],
   };
 }
@@ -259,7 +264,7 @@ function pickupItem(state: GameState): void {
       state.messages.push({ text: `Picked up ${item.name}.`, color: MSG_COLORS.LOOT });
     }
   }
-  // Potions go to inventory
+  // Potions and scrolls go to inventory
   else {
     if (state.inventory.items.length >= MAX_INVENTORY_SIZE) {
       state.messages.push({ text: "Inventory full! Can't pick up item.", color: MSG_COLORS.WARNING });
@@ -274,27 +279,259 @@ function pickupItem(state: GameState): void {
   state.runStats.itemsFound++;
 }
 
+function hasStatusEffect(state: GameState, type: StatusEffectType): boolean {
+  return state.statusEffects.some((e) => e.type === type);
+}
+
+function addStatusEffect(state: GameState, type: StatusEffectType, turns: number, value: number = 0): void {
+  // Refresh duration if already active
+  const existing = state.statusEffects.find((e) => e.type === type);
+  if (existing) {
+    existing.turnsRemaining = Math.max(existing.turnsRemaining, turns);
+    if (value) existing.value = value;
+  } else {
+    state.statusEffects.push({ type, turnsRemaining: turns, value });
+  }
+}
+
+function getRandomFloorTile(state: GameState): Position | null {
+  const tiles: Position[] = [];
+  for (let y = 0; y < MAP_HEIGHT; y++) {
+    for (let x = 0; x < MAP_WIDTH; x++) {
+      if (state.map[y][x] !== TileType.FLOOR) continue;
+      if (x === state.player.pos.x && y === state.player.pos.y) continue;
+      // Avoid occupied tiles
+      if (state.entities.some((e) => e.hp > 0 && e.pos.x === x && e.pos.y === y)) continue;
+      tiles.push({ x, y });
+    }
+  }
+  if (tiles.length === 0) return null;
+  return tiles[Math.floor(Math.random() * tiles.length)];
+}
+
+let nextSummonId = 0;
+
+function applyConsumableEffect(state: GameState, item: Item): boolean {
+  const effect = item.effect ?? ConsumableEffect.HEAL;
+
+  switch (effect) {
+    case ConsumableEffect.HEAL: {
+      if (state.player.hp >= state.player.maxHp) {
+        state.messages.push({ text: "You're already at full health.", color: MSG_COLORS.WARNING });
+        return false;
+      }
+      const healed = Math.min(item.healAmount ?? 0, state.player.maxHp - state.player.hp);
+      state.player = { ...state.player, hp: state.player.hp + healed };
+      state.messages.push({ text: `Used ${item.name}. Restored ${healed} HP.`, color: MSG_COLORS.HEAL });
+      state.pendingFloatingTexts.push({ text: `+${healed} HP`, color: MSG_COLORS.HEAL, x: state.player.pos.x, y: state.player.pos.y });
+      return true;
+    }
+
+    case ConsumableEffect.HASTE: {
+      const turns = item.effectValue ?? 8;
+      addStatusEffect(state, StatusEffectType.HASTE, turns);
+      state.messages.push({ text: `Used ${item.name}. You feel incredibly fast! (${turns} turns)`, color: MSG_COLORS.HEAL });
+      state.pendingFloatingTexts.push({ text: "HASTE", color: "#22c55e", x: state.player.pos.x, y: state.player.pos.y });
+      return true;
+    }
+
+    case ConsumableEffect.INVISIBILITY: {
+      const turns = item.effectValue ?? 10;
+      addStatusEffect(state, StatusEffectType.INVISIBLE, turns);
+      state.messages.push({ text: `Used ${item.name}. You fade from sight! (${turns} turns)`, color: MSG_COLORS.HEAL });
+      state.pendingFloatingTexts.push({ text: "INVISIBLE", color: "#a78bfa", x: state.player.pos.x, y: state.player.pos.y });
+      return true;
+    }
+
+    case ConsumableEffect.TELEPORT: {
+      const dest = getRandomFloorTile(state);
+      if (!dest) {
+        state.messages.push({ text: "The potion fizzles... nowhere to teleport.", color: MSG_COLORS.WARNING });
+        return false;
+      }
+      state.player = { ...state.player, pos: { ...dest } };
+      state.messages.push({ text: `Used ${item.name}. You teleport to a new location!`, color: MSG_COLORS.INFO });
+      state.pendingFloatingTexts.push({ text: "TELEPORT", color: "#06b6d4", x: dest.x, y: dest.y });
+      // Update FOV immediately
+      state.fov = computeFov(state.map, state.player.pos.x, state.player.pos.y);
+      state.explored = state.explored.map((row) => [...row]);
+      for (let y = 0; y < MAP_HEIGHT; y++) {
+        for (let x = 0; x < MAP_WIDTH; x++) {
+          if (state.fov[y][x]) state.explored[y][x] = true;
+        }
+      }
+      return true;
+    }
+
+    case ConsumableEffect.FIRE: {
+      const damage = item.effectValue ?? 8;
+      let hitCount = 0;
+      for (const enemy of state.entities) {
+        if (enemy.hp <= 0 || enemy.friendly) continue;
+        const dist = Math.abs(enemy.pos.x - state.player.pos.x) + Math.abs(enemy.pos.y - state.player.pos.y);
+        if (dist <= 2) {
+          enemy.hp -= damage;
+          hitCount++;
+          state.pendingFloatingTexts.push({ text: `-${damage}`, color: "#f97316", x: enemy.pos.x, y: enemy.pos.y });
+          if (enemy.hp <= 0) {
+            state.messages.push({ text: `${enemy.name} is incinerated!`, color: MSG_COLORS.KILL });
+            state.runStats.enemiesKilled++;
+            awardXp(state, enemy.xpReward ?? 5);
+          }
+        }
+      }
+      state.entities = state.entities.filter((e) => e.hp > 0 || e.friendly);
+      state.runStats.damageDealt += damage * hitCount;
+      state.messages.push({ text: `Used ${item.name}. Flames engulf ${hitCount} nearby ${hitCount === 1 ? "enemy" : "enemies"}!`, color: MSG_COLORS.PLAYER_ATK });
+      state.pendingFloatingTexts.push({ text: "FIRE", color: "#f97316", x: state.player.pos.x, y: state.player.pos.y });
+      return true;
+    }
+
+    case ConsumableEffect.POISON: {
+      const turns = item.effectValue ?? 5;
+      let hitCount = 0;
+      for (const enemy of state.entities) {
+        if (enemy.hp <= 0 || enemy.friendly) continue;
+        const dist = Math.abs(enemy.pos.x - state.player.pos.x) + Math.abs(enemy.pos.y - state.player.pos.y);
+        if (dist <= 2) {
+          enemy.poisonTurns = Math.max(enemy.poisonTurns ?? 0, turns);
+          hitCount++;
+          state.pendingFloatingTexts.push({ text: "POISON", color: "#22c55e", x: enemy.pos.x, y: enemy.pos.y });
+        }
+      }
+      state.messages.push({ text: `Used ${item.name}. Poisoned ${hitCount} nearby ${hitCount === 1 ? "enemy" : "enemies"} for ${turns} turns!`, color: MSG_COLORS.HEAL });
+      return true;
+    }
+
+    case ConsumableEffect.STRENGTH: {
+      const turns = item.effectValue ?? 10;
+      addStatusEffect(state, StatusEffectType.STRENGTH, turns, 3);
+      state.messages.push({ text: `Used ${item.name}. Your attacks grow powerful! (+3 ATK for ${turns} turns)`, color: MSG_COLORS.HEAL });
+      state.pendingFloatingTexts.push({ text: "+3 ATK", color: "#f97316", x: state.player.pos.x, y: state.player.pos.y });
+      return true;
+    }
+
+    case ConsumableEffect.MAGIC_MAPPING: {
+      state.explored = state.explored.map((row) => [...row]);
+      for (let y = 0; y < MAP_HEIGHT; y++) {
+        for (let x = 0; x < MAP_WIDTH; x++) {
+          if (state.map[y][x] !== TileType.VOID) {
+            state.explored[y][x] = true;
+          }
+        }
+      }
+      state.messages.push({ text: `Used ${item.name}. The entire floor is revealed!`, color: MSG_COLORS.INFO });
+      state.pendingFloatingTexts.push({ text: "MAPPED", color: "#06b6d4", x: state.player.pos.x, y: state.player.pos.y });
+      return true;
+    }
+
+    case ConsumableEffect.ENCHANT: {
+      const bonus = item.effectValue ?? 2;
+      const weapon = state.inventory.equippedWeapon;
+      const armor = state.inventory.equippedArmor;
+      if (weapon && armor) {
+        // Enchant whichever has lower stats
+        if ((weapon.attack ?? 0) <= (armor.defense ?? 0)) {
+          state.inventory.equippedWeapon = { ...weapon, attack: (weapon.attack ?? 0) + bonus };
+          state.messages.push({ text: `Used ${item.name}. ${weapon.name} glows with power! (+${bonus} ATK)`, color: MSG_COLORS.EQUIP });
+        } else {
+          state.inventory.equippedArmor = { ...armor, defense: (armor.defense ?? 0) + bonus };
+          state.messages.push({ text: `Used ${item.name}. ${armor.name} hardens! (+${bonus} DEF)`, color: MSG_COLORS.EQUIP });
+        }
+      } else if (weapon) {
+        state.inventory.equippedWeapon = { ...weapon, attack: (weapon.attack ?? 0) + bonus };
+        state.messages.push({ text: `Used ${item.name}. ${weapon.name} glows with power! (+${bonus} ATK)`, color: MSG_COLORS.EQUIP });
+      } else if (armor) {
+        state.inventory.equippedArmor = { ...armor, defense: (armor.defense ?? 0) + bonus };
+        state.messages.push({ text: `Used ${item.name}. ${armor.name} hardens! (+${bonus} DEF)`, color: MSG_COLORS.EQUIP });
+      } else {
+        state.messages.push({ text: "You have nothing equipped to enchant.", color: MSG_COLORS.WARNING });
+        return false;
+      }
+      state.pendingFloatingTexts.push({ text: "ENCHANTED", color: "#3b82f6", x: state.player.pos.x, y: state.player.pos.y });
+      return true;
+    }
+
+    case ConsumableEffect.FEAR: {
+      const turns = item.effectValue ?? 6;
+      let hitCount = 0;
+      for (const enemy of state.entities) {
+        if (enemy.hp <= 0 || enemy.friendly) continue;
+        if (state.fov[enemy.pos.y]?.[enemy.pos.x]) {
+          enemy.fearTurns = Math.max(enemy.fearTurns ?? 0, turns);
+          hitCount++;
+        }
+      }
+      state.messages.push({ text: `Used ${item.name}. ${hitCount} ${hitCount === 1 ? "enemy flees" : "enemies flee"} in terror!`, color: MSG_COLORS.INFO });
+      state.pendingFloatingTexts.push({ text: "FEAR", color: "#eab308", x: state.player.pos.x, y: state.player.pos.y });
+      return true;
+    }
+
+    case ConsumableEffect.SUMMON: {
+      const turns = item.effectValue ?? 15;
+      // Find an adjacent floor tile for the summon
+      const dirs = [{ x: 0, y: -1 }, { x: 0, y: 1 }, { x: -1, y: 0 }, { x: 1, y: 0 }];
+      let spawnPos: Position | null = null;
+      for (const d of dirs) {
+        const nx = state.player.pos.x + d.x;
+        const ny = state.player.pos.y + d.y;
+        if (nx < 0 || nx >= MAP_WIDTH || ny < 0 || ny >= MAP_HEIGHT) continue;
+        if (state.map[ny][nx] === TileType.WALL || state.map[ny][nx] === TileType.VOID) continue;
+        if (state.entities.some((e) => e.hp > 0 && e.pos.x === nx && e.pos.y === ny)) continue;
+        spawnPos = { x: nx, y: ny };
+        break;
+      }
+      if (!spawnPos) {
+        spawnPos = getRandomFloorTile(state);
+      }
+      if (!spawnPos) {
+        state.messages.push({ text: "The scroll fizzles... no room for a summon.", color: MSG_COLORS.WARNING });
+        return false;
+      }
+      const summon: GameEntity = {
+        id: `summon_${nextSummonId++}`,
+        type: EntityType.ENEMY, // reuse enemy rendering
+        pos: { ...spawnPos },
+        name: "Void Spirit",
+        hp: 20,
+        maxHp: 20,
+        attack: state.player.attack,
+        defense: 2,
+        color: "#06b6d4",
+        symbol: "s",
+        behavior: AIBehavior.CHASE,
+        detectRange: 10,
+        friendly: true,
+        summonTurns: turns,
+      };
+      state.entities.push(summon);
+      state.messages.push({ text: `Used ${item.name}. A Void Spirit materializes to fight for you! (${turns} turns)`, color: MSG_COLORS.LOOT });
+      state.pendingFloatingTexts.push({ text: "SUMMONED", color: "#06b6d4", x: spawnPos.x, y: spawnPos.y });
+      return true;
+    }
+
+    default:
+      return false;
+  }
+}
+
 export function applyInventoryItem(state: GameState, index: number): GameState {
   if (index < 0 || index >= state.inventory.items.length) return state;
 
-  const newState = { ...state, messages: [] as GameMessage[], inventory: { ...state.inventory, items: [...state.inventory.items] }, pendingFloatingTexts: [] as FloatingText[] };
+  const newState = {
+    ...state,
+    messages: [] as GameMessage[],
+    inventory: { ...state.inventory, items: [...state.inventory.items] },
+    statusEffects: [...state.statusEffects],
+    pendingFloatingTexts: [] as FloatingText[],
+  };
   const item = newState.inventory.items[index];
 
-  if (item.category === ItemCategory.POTION) {
-    if (newState.player.hp >= newState.player.maxHp) {
-      newState.messages.push({ text: "You're already at full health.", color: MSG_COLORS.WARNING });
-      return newState;
+  if (item.category === ItemCategory.POTION || item.category === ItemCategory.SCROLL) {
+    const consumed = applyConsumableEffect(newState, item);
+    if (consumed) {
+      newState.inventory.items.splice(index, 1);
     }
-    const healed = Math.min(item.healAmount ?? 0, newState.player.maxHp - newState.player.hp);
-    newState.player = { ...newState.player, hp: newState.player.hp + healed };
-    newState.inventory.items.splice(index, 1);
-    newState.messages.push({ text: `Used ${item.name}. Restored ${healed} HP.`, color: MSG_COLORS.HEAL });
-    newState.pendingFloatingTexts.push({
-      text: `+${healed} HP`,
-      color: MSG_COLORS.HEAL,
-      x: newState.player.pos.x,
-      y: newState.player.pos.y,
-    });
   } else if (item.category === ItemCategory.WEAPON) {
     const old = newState.inventory.equippedWeapon;
     newState.inventory.equippedWeapon = item;
@@ -350,14 +587,41 @@ function wanderStep(
 }
 
 function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
+  const isInvisible = hasStatusEffect(state, StatusEffectType.INVISIBLE);
+
   for (const enemy of state.entities) {
-    if (enemy.hp <= 0) continue;
+    if (enemy.hp <= 0 || enemy.friendly) continue;
 
     const dx = state.player.pos.x - enemy.pos.x;
     const dy = state.player.pos.y - enemy.pos.y;
     const dist = Math.abs(dx) + Math.abs(dy);
     const detectRange = enemy.detectRange ?? 8;
     const behavior = enemy.behavior ?? AIBehavior.CHASE;
+
+    // If enemy is feared, override behavior to flee
+    if (enemy.fearTurns && enemy.fearTurns > 0) {
+      const blocked = getBlockedPositions(state, enemy.id);
+      const step = findFleeStep(state.map, enemy.pos, state.player.pos, blocked);
+      if (step) {
+        enemy.pos.x = step.x;
+        enemy.pos.y = step.y;
+      }
+      continue;
+    }
+
+    // Invisible — enemies can't detect or attack player (unless already adjacent and bumping)
+    if (isInvisible) {
+      // Wander randomly instead
+      const blocked = getBlockedPositions(state, enemy.id);
+      if (Math.random() < 0.3) {
+        const step = wanderStep(state.map, enemy.pos, blocked);
+        if (step) {
+          enemy.pos.x = step.x;
+          enemy.pos.y = step.y;
+        }
+      }
+      continue;
+    }
 
     // Adjacent — always attack regardless of behavior
     if (dist === 1) {
@@ -444,6 +708,54 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
   }
 }
 
+function moveFriendlies(state: GameState) {
+  for (const ally of state.entities) {
+    if (!ally.friendly || ally.hp <= 0) continue;
+
+    // Find nearest enemy
+    let nearestEnemy: GameEntity | null = null;
+    let nearestDist = Infinity;
+    for (const enemy of state.entities) {
+      if (enemy.hp <= 0 || enemy.friendly) continue;
+      const d = Math.abs(enemy.pos.x - ally.pos.x) + Math.abs(enemy.pos.y - ally.pos.y);
+      if (d < nearestDist) {
+        nearestDist = d;
+        nearestEnemy = enemy;
+      }
+    }
+
+    if (!nearestEnemy) continue;
+
+    // Adjacent to enemy — attack
+    if (nearestDist === 1) {
+      const result = combat(ally, nearestEnemy, state.messages);
+      state.runStats.damageDealt += result.damage;
+      state.pendingFloatingTexts.push({ text: `-${result.damage}`, color: "#06b6d4", x: nearestEnemy.pos.x, y: nearestEnemy.pos.y });
+      if (result.killed) {
+        state.runStats.enemiesKilled++;
+        awardXp(state, nearestEnemy.xpReward ?? 5);
+        const loot = generateLootDrop(state.floor, nearestEnemy.pos);
+        if (loot) {
+          state.items.push(loot);
+          state.messages.push({ text: `${nearestEnemy.name} dropped ${loot.item.name}!`, color: MSG_COLORS.LOOT });
+        }
+        state.entities = state.entities.filter((e) => e.id !== nearestEnemy!.id);
+      }
+      continue;
+    }
+
+    // Chase nearest enemy
+    if (nearestDist <= 10) {
+      const blocked = getBlockedPositions(state, ally.id);
+      const step = findPath(state.map, ally.pos, nearestEnemy.pos, blocked);
+      if (step) {
+        ally.pos.x = step.x;
+        ally.pos.y = step.y;
+      }
+    }
+  }
+}
+
 export type MoveDirection = "up" | "down" | "left" | "right" | "wait";
 
 export function processPlayerTurn(state: GameState, direction: MoveDirection): GameState {
@@ -459,6 +771,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
     },
     progression: { ...state.progression },
     runStats: { ...state.runStats },
+    statusEffects: state.statusEffects.map((e) => ({ ...e })),
     pendingFloatingTexts: [] as FloatingText[],
   };
   let dx = 0;
@@ -475,11 +788,22 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
   const newX = newState.player.pos.x + dx;
   const newY = newState.player.pos.y + dy;
   const bonuses = getEquipmentBonuses(newState.inventory);
+  // Add strength potion bonus
+  const strengthEffect = newState.statusEffects.find((e) => e.type === StatusEffectType.STRENGTH);
+  if (strengthEffect) bonuses.attack += strengthEffect.value;
 
   if (direction !== "wait") {
-    // Check for enemy at target
+    // Check for enemy at target (skip friendly entities for bump-attack)
     const enemy = getEntityAt(newState, newX, newY);
-    if (enemy) {
+    if (enemy && !enemy.friendly) {
+      // Attacking breaks invisibility
+      newState.statusEffects = newState.statusEffects.filter((e) => {
+        if (e.type === StatusEffectType.INVISIBLE) {
+          newState.messages.push({ text: "You shimmer back into view!", color: MSG_COLORS.WARNING });
+          return false;
+        }
+        return true;
+      });
       const result = combat(newState.player, enemy, newState.messages, bonuses.attack, 0);
       newState.runStats.damageDealt += result.damage;
       newState.pendingFloatingTexts.push({
@@ -500,6 +824,16 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
         }
         newState.entities = newState.entities.filter((e) => e.id !== enemy.id);
       }
+    } else if (enemy && enemy.friendly) {
+      // Swap positions with friendly entity
+      const oldPos = { ...newState.player.pos };
+      newState.player = { ...newState.player, pos: { x: newX, y: newY } };
+      enemy.pos = oldPos;
+      pickupItem(newState);
+      if (newState.map[newY][newX] === TileType.STAIRS_DOWN) {
+        newState.messages.push({ text: "You descend deeper into the void...", color: MSG_COLORS.INFO });
+        return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression, newState.runStats, newState.statusEffects);
+      }
     } else if (!isBlocked(newState, newX, newY)) {
       newState.player = { ...newState.player, pos: { x: newX, y: newY } };
 
@@ -509,13 +843,76 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       // Check for stairs
       if (newState.map[newY][newX] === TileType.STAIRS_DOWN) {
         newState.messages.push({ text: "You descend deeper into the void...", color: MSG_COLORS.INFO });
-        return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression, newState.runStats);
+        return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression, newState.runStats, newState.statusEffects);
       }
     }
   }
 
+  // Process poison damage on enemies
+  for (const enemy of newState.entities) {
+    if (enemy.hp <= 0 || enemy.friendly) continue;
+    if (enemy.poisonTurns && enemy.poisonTurns > 0) {
+      const poisonDmg = 2;
+      enemy.hp -= poisonDmg;
+      enemy.poisonTurns--;
+      newState.pendingFloatingTexts.push({ text: `-${poisonDmg}`, color: "#22c55e", x: enemy.pos.x, y: enemy.pos.y });
+      if (enemy.hp <= 0) {
+        newState.messages.push({ text: `${enemy.name} dies from poison!`, color: MSG_COLORS.KILL });
+        newState.runStats.enemiesKilled++;
+        newState.runStats.damageDealt += poisonDmg;
+        awardXp(newState, enemy.xpReward ?? 5);
+        const loot = generateLootDrop(newState.floor, enemy.pos);
+        if (loot) {
+          newState.items.push(loot);
+          newState.messages.push({ text: `${enemy.name} dropped ${loot.item.name}!`, color: MSG_COLORS.LOOT });
+        }
+      }
+    }
+  }
+  newState.entities = newState.entities.filter((e) => e.hp > 0);
+
+  // Process summon lifetimes
+  for (const entity of newState.entities) {
+    if (entity.friendly && entity.summonTurns != null) {
+      entity.summonTurns--;
+      if (entity.summonTurns <= 0) {
+        entity.hp = 0;
+        newState.messages.push({ text: `${entity.name} fades back into the void.`, color: MSG_COLORS.INFO });
+      }
+    }
+  }
+  newState.entities = newState.entities.filter((e) => e.hp > 0);
+
+  // Fear tick on enemies
+  for (const enemy of newState.entities) {
+    if (enemy.fearTurns && enemy.fearTurns > 0) {
+      enemy.fearTurns--;
+    }
+  }
+
+  // Haste: enemies skip movement on odd turns
+  const isHasted = hasStatusEffect(newState, StatusEffectType.HASTE);
+  const skipEnemyMove = isHasted && newState.turnCount % 2 === 1;
+
   // Enemy turn
-  moveEnemies(newState, bonuses.defense);
+  if (!skipEnemyMove) {
+    moveEnemies(newState, bonuses.defense);
+  }
+
+  // Friendly entity (summon) AI — chase and attack nearest enemy
+  moveFriendlies(newState);
+
+  // Tick status effects
+  newState.statusEffects = newState.statusEffects
+    .map((e) => ({ ...e, turnsRemaining: e.turnsRemaining - 1 }))
+    .filter((e) => {
+      if (e.turnsRemaining <= 0) {
+        const label = e.type === StatusEffectType.HASTE ? "Haste" : e.type === StatusEffectType.INVISIBLE ? "Invisibility" : "Strength";
+        newState.messages.push({ text: `${label} wears off.`, color: MSG_COLORS.WARNING });
+        return false;
+      }
+      return true;
+    });
 
   // Update FOV
   newState.fov = computeFov(newState.map, newState.player.pos.x, newState.player.pos.y);

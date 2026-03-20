@@ -39,6 +39,35 @@ export enum ItemCategory {
   WEAPON = "weapon",
   ARMOR = "armor",
   POTION = "potion",
+  SCROLL = "scroll",
+}
+
+// Consumable effects
+export enum ConsumableEffect {
+  HEAL = "heal",
+  HASTE = "haste",
+  INVISIBILITY = "invisibility",
+  TELEPORT = "teleport",
+  FIRE = "fire",
+  POISON = "poison",
+  STRENGTH = "strength",
+  MAGIC_MAPPING = "magic_mapping",
+  ENCHANT = "enchant",
+  FEAR = "fear",
+  SUMMON = "summon",
+}
+
+// Status effects on the player
+export enum StatusEffectType {
+  HASTE = "haste",
+  INVISIBLE = "invisible",
+  STRENGTH = "strength",
+}
+
+export interface StatusEffect {
+  type: StatusEffectType;
+  turnsRemaining: number;
+  value: number; // e.g., +3 ATK for strength, unused for others
 }
 
 // Item rarity
@@ -64,6 +93,8 @@ export interface Item {
   attack?: number;
   defense?: number;
   healAmount?: number;
+  effect?: ConsumableEffect;
+  effectValue?: number; // duration in turns, damage amount, etc.
   minFloor: number;
   description: string;
 }
@@ -108,6 +139,10 @@ export interface GameEntity {
   xpReward?: number;
   behavior?: AIBehavior;
   detectRange?: number;
+  poisonTurns?: number;
+  fearTurns?: number;
+  friendly?: boolean;
+  summonTurns?: number;
 }
 
 export interface PlayerProgression {
@@ -166,5 +201,6 @@ export interface GameState {
   fov: boolean[][];
   explored: boolean[][];
   runStats: RunStats;
+  statusEffects: StatusEffect[];
   pendingFloatingTexts: FloatingText[];
 }

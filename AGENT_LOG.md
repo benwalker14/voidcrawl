@@ -171,3 +171,41 @@
   - Properly cleans up on restart and component unmount
   - draw() also renders active floating texts to prevent flicker between turns
 - Lint and build both pass clean
+
+### 2026-03-20 31:00 | developer | Consumable variety: 10 new consumable types + status effect system
+- Added SCROLL item category and ConsumableEffect enum (11 effect types) to config.ts
+- Added StatusEffect system: StatusEffectType enum (Haste, Invisible, Strength), StatusEffect interface with type/turnsRemaining/value
+- Extended GameEntity with poisonTurns, fearTurns, friendly, summonTurns fields
+- Extended GameState with statusEffects array
+- **6 new potion types added to items.ts:**
+  - Haste Potion (Uncommon, Floor 2+): enemies move at half speed for 8 turns
+  - Invisibility Potion (Rare, Floor 4+): enemies can't detect player for 10 turns, broken by attacking
+  - Teleport Potion (Common, Floor 1+): instant random relocation with FOV update
+  - Fire Potion (Uncommon, Floor 3+): 8 AoE damage to all enemies within 2 tiles
+  - Poison Potion (Uncommon, Floor 2+): poisons enemies within 2 tiles, 2 dmg/turn for 5 turns
+  - Strength Potion (Rare, Floor 3+): +3 ATK for 10 turns
+- **4 scroll types added (symbol `?`):**
+  - Scroll of Mapping (Uncommon, Floor 1+): reveals entire floor layout
+  - Scroll of Enchanting (Rare, Floor 3+): +2 ATK to weapon or +2 DEF to armor
+  - Scroll of Fear (Uncommon, Floor 2+): all visible enemies flee for 6 turns
+  - Scroll of Summoning (Rare, Floor 5+): spawns Void Spirit ally for 15 turns
+- **Full status effect system in engine.ts:**
+  - Status effects tick down each turn with expiration messages
+  - Haste: enemies skip movement every other turn
+  - Invisibility: enemies wander randomly, can't detect or attack player
+  - Strength: +3 ATK bonus applied to player combat
+  - Attacking breaks invisibility with message feedback
+  - Poison: 2 dmg/turn on poisoned enemies, kills award XP and drop loot
+  - Fear: overrides enemy AI to flee from player
+  - Status effects persist across floor transitions
+- **Friendly entity (summon) AI:**
+  - Void Spirit ally chases nearest enemy, attacks when adjacent
+  - Awards XP and generates loot drops from kills
+  - Auto-expires after summonTurns, with fade message
+  - Player can swap positions with friendly entities (walk through)
+- **UI updates:**
+  - GameCanvas shows active status effects in HUD with turn countdown (Haste/Invisible/Strength)
+  - Inventory shows effect descriptions for non-healing consumables and scrolls
+  - Status effects cleared on restart
+  - HelpOverlay updated: new scroll entries in Items & Rarities, new Consumable Effects section with all 11 effects described
+- Lint and build both pass clean

@@ -6,7 +6,7 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT } from "@/game/config";
 import { initGame, processPlayerTurn, applyInventoryItem, MoveDirection } from "@/game/engine";
 import { render, renderFloatingTexts, FLOAT_DURATION } from "@/game/renderer";
 import type { ActiveFloatingText } from "@/game/renderer";
-import type { GameState, GameMessage, PlayerInventory, RunStats } from "@/game/config";
+import type { GameState, GameMessage, PlayerInventory, RunStats, StatusEffect } from "@/game/config";
 import HelpOverlay from "./HelpOverlay";
 import PauseMenu from "./PauseMenu";
 
@@ -53,6 +53,7 @@ export default function GameCanvas() {
   const [inventory, setInventory] = useState<PlayerInventory>(() => getInventoryFromState(initialState));
   const [gameOver, setGameOver] = useState(false);
   const [runStats, setRunStats] = useState<RunStats>(initialState.runStats);
+  const [statusEffects, setStatusEffects] = useState<StatusEffect[]>([]);
   const [showHelp, setShowHelp] = useState(false);
   const showHelpRef = useRef(false);
   const [showPause, setShowPause] = useState(false);
@@ -74,6 +75,7 @@ export default function GameCanvas() {
     setStats(getStatsFromState(state));
     setInventory(getInventoryFromState(state));
     setRunStats(state.runStats);
+    setStatusEffects(state.statusEffects ?? []);
     if (state.messages.length > 0) {
       setMessages((prev) => [...state.messages, ...prev].slice(0, 50));
     }
@@ -224,6 +226,7 @@ export default function GameCanvas() {
       animFrameRef.current = 0;
     }
     setGameOver(false);
+    setStatusEffects([]);
     setInventory({ items: [], equippedWeapon: null, equippedArmor: null });
     setMessages([{ text: "A new journey begins...", color: "#e2e8f0" }]);
     updateUI(state);
@@ -294,6 +297,21 @@ export default function GameCanvas() {
           )}
         </span>
       </div>
+
+      {/* Active Status Effects */}
+      {statusEffects.length > 0 && (
+        <div className="w-full max-w-[640px] flex gap-3 mb-1 px-2 text-xs font-mono">
+          {statusEffects.map((e, i) => {
+            const label = e.type === "haste" ? "Haste" : e.type === "invisible" ? "Invisible" : "Strength";
+            const color = e.type === "haste" ? "#22c55e" : e.type === "invisible" ? "#a78bfa" : "#f97316";
+            return (
+              <span key={i} style={{ color }}>
+                {label} ({e.turnsRemaining}t)
+              </span>
+            );
+          })}
+        </div>
+      )}
 
       {/* Game Canvas */}
       <div className="relative">
@@ -367,7 +385,9 @@ export default function GameCanvas() {
                 <span style={{ color: "var(--void-muted)" }}>
                   {item.attack != null ? ` (+${item.attack} ATK)` : ""}
                   {item.defense != null ? ` (+${item.defense} DEF)` : ""}
-                  {item.healAmount != null ? ` (+${item.healAmount} HP)` : ""}
+                  {item.healAmount && item.healAmount > 0 ? ` (+${item.healAmount} HP)` : ""}
+                  {item.category === "potion" && !item.healAmount ? ` [${item.description}]` : ""}
+                  {item.category === "scroll" ? ` [${item.description}]` : ""}
                 </span>
               </span>
             ))}

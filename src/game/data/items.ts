@@ -1,4 +1,4 @@
-import { Item, ItemCategory, ItemRarity, RARITY_COLORS, GroundItem, Position } from "../config";
+import { Item, ItemCategory, ItemRarity, ConsumableEffect, RARITY_COLORS, GroundItem, Position } from "../config";
 
 let nextItemId = 0;
 
@@ -10,6 +10,8 @@ interface ItemTemplate {
   attack?: number;
   defense?: number;
   healAmount?: number;
+  effect?: ConsumableEffect;
+  effectValue?: number;
   minFloor: number;
   description: string;
 }
@@ -29,10 +31,24 @@ const ITEM_TEMPLATES: ItemTemplate[] = [
   { name: "Shadow Plate", category: ItemCategory.ARMOR, rarity: ItemRarity.UNCOMMON, symbol: "[", defense: 4, minFloor: 4, description: "Heavy armor made of crystallized shadow." },
   { name: "Abyssal Ward", category: ItemCategory.ARMOR, rarity: ItemRarity.RARE, symbol: "[", defense: 6, minFloor: 6, description: "Warps space to deflect blows." },
 
-  // Potions
-  { name: "Minor Health Potion", category: ItemCategory.POTION, rarity: ItemRarity.COMMON, symbol: "!", healAmount: 10, minFloor: 1, description: "Restores a small amount of health." },
-  { name: "Health Potion", category: ItemCategory.POTION, rarity: ItemRarity.UNCOMMON, symbol: "!", healAmount: 20, minFloor: 3, description: "Restores a moderate amount of health." },
-  { name: "Major Health Potion", category: ItemCategory.POTION, rarity: ItemRarity.RARE, symbol: "!", healAmount: 40, minFloor: 6, description: "Restores a large amount of health." },
+  // Health Potions
+  { name: "Minor Health Potion", category: ItemCategory.POTION, rarity: ItemRarity.COMMON, symbol: "!", healAmount: 10, effect: ConsumableEffect.HEAL, minFloor: 1, description: "Restores a small amount of health." },
+  { name: "Health Potion", category: ItemCategory.POTION, rarity: ItemRarity.UNCOMMON, symbol: "!", healAmount: 20, effect: ConsumableEffect.HEAL, minFloor: 3, description: "Restores a moderate amount of health." },
+  { name: "Major Health Potion", category: ItemCategory.POTION, rarity: ItemRarity.RARE, symbol: "!", healAmount: 40, effect: ConsumableEffect.HEAL, minFloor: 6, description: "Restores a large amount of health." },
+
+  // Tactical Potions
+  { name: "Haste Potion", category: ItemCategory.POTION, rarity: ItemRarity.UNCOMMON, symbol: "!", effect: ConsumableEffect.HASTE, effectValue: 8, minFloor: 2, description: "Enemies move at half speed for 8 turns." },
+  { name: "Invisibility Potion", category: ItemCategory.POTION, rarity: ItemRarity.RARE, symbol: "!", effect: ConsumableEffect.INVISIBILITY, effectValue: 10, minFloor: 4, description: "Enemies cannot detect you for 10 turns." },
+  { name: "Teleport Potion", category: ItemCategory.POTION, rarity: ItemRarity.COMMON, symbol: "!", effect: ConsumableEffect.TELEPORT, minFloor: 1, description: "Instantly teleport to a random location." },
+  { name: "Fire Potion", category: ItemCategory.POTION, rarity: ItemRarity.UNCOMMON, symbol: "!", effect: ConsumableEffect.FIRE, effectValue: 8, minFloor: 3, description: "Explodes, dealing 8 damage to nearby enemies." },
+  { name: "Poison Potion", category: ItemCategory.POTION, rarity: ItemRarity.UNCOMMON, symbol: "!", effect: ConsumableEffect.POISON, effectValue: 5, minFloor: 2, description: "Poisons nearby enemies for 5 turns." },
+  { name: "Strength Potion", category: ItemCategory.POTION, rarity: ItemRarity.RARE, symbol: "!", effect: ConsumableEffect.STRENGTH, effectValue: 10, minFloor: 3, description: "+3 ATK for 10 turns." },
+
+  // Scrolls
+  { name: "Scroll of Mapping", category: ItemCategory.SCROLL, rarity: ItemRarity.UNCOMMON, symbol: "?", effect: ConsumableEffect.MAGIC_MAPPING, minFloor: 1, description: "Reveals the entire floor layout." },
+  { name: "Scroll of Enchanting", category: ItemCategory.SCROLL, rarity: ItemRarity.RARE, symbol: "?", effect: ConsumableEffect.ENCHANT, effectValue: 2, minFloor: 3, description: "Enchants equipped weapon or armor (+2)." },
+  { name: "Scroll of Fear", category: ItemCategory.SCROLL, rarity: ItemRarity.UNCOMMON, symbol: "?", effect: ConsumableEffect.FEAR, effectValue: 6, minFloor: 2, description: "All visible enemies flee for 6 turns." },
+  { name: "Scroll of Summoning", category: ItemCategory.SCROLL, rarity: ItemRarity.RARE, symbol: "?", effect: ConsumableEffect.SUMMON, effectValue: 15, minFloor: 5, description: "Summons a void spirit ally for 15 turns." },
 ];
 
 function rollRarity(floor: number): ItemRarity {
@@ -77,6 +93,8 @@ export function generateLootDrop(floor: number, pos: Position): GroundItem | nul
     attack: template.attack,
     defense: template.defense,
     healAmount: template.healAmount,
+    effect: template.effect,
+    effectValue: template.effectValue,
     minFloor: template.minFloor,
     description: template.description,
   };
