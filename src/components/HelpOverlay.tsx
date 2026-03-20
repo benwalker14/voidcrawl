@@ -149,6 +149,27 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
             <div><span style={{ color: "#22c55e" }}>Summoning</span> — Summons a Void Spirit ally for 15 turns</div>
           </div>
         </Section>
+
+        {/* Runic Effects */}
+        <Section title="Runic Effects">
+          <p className="mb-1" style={{ color: "var(--void-muted)" }}>
+            Uncommon items have a 25% chance and Rare items a 60% chance to have a runic effect.
+            Shown as <span style={{ color: "#c084fc" }}>[Runic Name]</span> on the item.
+          </p>
+          <p className="mb-1" style={{ color: "#06b6d4" }}>Weapon Runics</p>
+          <div className="space-y-0.5 mb-2 ml-2">
+            <div><span style={{ color: "#c084fc" }}>Vampiric</span> — Heal 1 HP on kill</div>
+            <div><span style={{ color: "#c084fc" }}>Flaming</span> — 25% chance to burn enemies (2 dmg/turn for 3 turns)</div>
+            <div><span style={{ color: "#c084fc" }}>Stunning</span> — 20% chance to stun enemies (skip their next turn)</div>
+            <div><span style={{ color: "#c084fc" }}>Vorpal</span> — Deal 2x damage when enemy is below 30% HP</div>
+          </div>
+          <p className="mb-1" style={{ color: "#06b6d4" }}>Armor Runics</p>
+          <div className="space-y-0.5 ml-2">
+            <div><span style={{ color: "#c084fc" }}>Reflective</span> — 15% chance to reflect full damage back to attacker</div>
+            <div><span style={{ color: "#c084fc" }}>Regenerating</span> — Heal 1 HP every 10 turns</div>
+            <div><span style={{ color: "#c084fc" }}>Thorned</span> — Deal 1 damage to any enemy that hits you in melee</div>
+          </div>
+        </Section>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { Item, ItemCategory, ItemRarity, ConsumableEffect, RARITY_COLORS, GroundItem, Position } from "../config";
+import { Item, ItemCategory, ItemRarity, ConsumableEffect, RARITY_COLORS, GroundItem, Position, RunicEffect, WEAPON_RUNICS, ARMOR_RUNICS, RUNIC_NAMES } from "../config";
 
 let nextItemId = 0;
 
@@ -68,6 +68,20 @@ function rollRarity(floor: number): ItemRarity {
   }
 }
 
+function rollRunic(category: ItemCategory, rarity: ItemRarity): RunicEffect | undefined {
+  if (category !== ItemCategory.WEAPON && category !== ItemCategory.ARMOR) return undefined;
+  const chance = rarity === ItemRarity.RARE ? 0.60 : rarity === ItemRarity.UNCOMMON ? 0.25 : 0;
+  if (chance === 0 || Math.random() > chance) return undefined;
+  const pool = category === ItemCategory.WEAPON ? WEAPON_RUNICS : ARMOR_RUNICS;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function applyRunicToItem(item: Item): Item {
+  const runic = rollRunic(item.category, item.rarity);
+  if (!runic) return item;
+  return { ...item, runic, name: `${item.name} of ${RUNIC_NAMES[runic]}` };
+}
+
 export function generateLootDrop(floor: number, pos: Position): GroundItem | null {
   // Drop chance: 35% base + 3% per floor, capped at 60%
   const dropChance = Math.min(0.60, 0.35 + floor * 0.03);
@@ -83,7 +97,7 @@ export function generateLootDrop(floor: number, pos: Position): GroundItem | nul
 
   const template = eligible[Math.floor(Math.random() * eligible.length)];
 
-  const item: Item = {
+  const item = applyRunicToItem({
     id: `item_${nextItemId++}`,
     name: template.name,
     category: template.category,
@@ -97,7 +111,7 @@ export function generateLootDrop(floor: number, pos: Position): GroundItem | nul
     effectValue: template.effectValue,
     minFloor: template.minFloor,
     description: template.description,
-  };
+  });
 
   return { item, pos: { ...pos } };
 }
@@ -114,7 +128,7 @@ export function generateBossLoot(floor: number, pos: Position): GroundItem[] {
   if (rareEquipment.length > 0) {
     const template = rareEquipment[Math.floor(Math.random() * rareEquipment.length)];
     loot.push({
-      item: {
+      item: applyRunicToItem({
         id: `item_${nextItemId++}`,
         name: template.name,
         category: template.category,
@@ -128,7 +142,7 @@ export function generateBossLoot(floor: number, pos: Position): GroundItem[] {
         effectValue: template.effectValue,
         minFloor: template.minFloor,
         description: template.description,
-      },
+      }),
       pos: { x: pos.x, y: pos.y },
     });
   }

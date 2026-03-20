@@ -20,6 +20,7 @@ import {
   MAX_INVENTORY_SIZE,
   AIBehavior,
   SpecialAbility,
+  RunicEffect,
   MSG_COLORS,
 } from "./config";
 import { generateDungeon } from "./generation/dungeon";
@@ -190,6 +191,7 @@ function combat(
   attackBonus: number = 0,
   defenseBonus: number = 0,
   floatingTexts?: FloatingText[],
+  damageMultiplier: number = 1,
 ): { killed: boolean; damage: number; dodged: boolean } {
   const isPlayerAttacking = attacker.type === EntityType.PLAYER;
 
@@ -216,7 +218,8 @@ function combat(
   // ETHEREAL ability: only vulnerable on floor tiles (invulnerable on wall/void)
   // This is checked by the caller who has access to the map — handled in processPlayerTurn
 
-  const damage = Math.max(1, atk - def + Math.floor(Math.random() * 3) - 1);
+  const baseDamage = Math.max(1, atk - def + Math.floor(Math.random() * 3) - 1);
+  const damage = Math.max(1, Math.floor(baseDamage * damageMultiplier));
   defender.hp -= damage;
   messages.push({
     text: `${attacker.name} hits ${defender.name} for ${damage} damage!`,
@@ -736,6 +739,12 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
     // Boss is stationary — handled by processBossAI
     if (enemy.isBoss) continue;
 
+    // Stunned enemies skip their turn (Stunning runic)
+    if (enemy.stunnedNextTurn) {
+      enemy.stunnedNextTurn = false;
+      continue;
+    }
+
     const dx = state.player.pos.x - enemy.pos.x;
     const dy = state.player.pos.y - enemy.pos.y;
     const dist = Math.abs(dx) + Math.abs(dy);
@@ -778,6 +787,26 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
           x: state.player.pos.x,
           y: state.player.pos.y,
         });
+
+        // Armor runic effects trigger when player takes damage
+        const armorRunic = state.inventory.equippedArmor?.runic;
+        if (armorRunic === RunicEffect.THORNED && enemy.hp > 0) {
+          enemy.hp -= 1;
+          state.messages.push({ text: `Thorns pierce ${enemy.name} for 1 damage!`, color: MSG_COLORS.PLAYER_ATK });
+          state.pendingFloatingTexts.push({ text: "-1", color: "#f97316", x: enemy.pos.x, y: enemy.pos.y });
+          if (enemy.hp <= 0) {
+            state.messages.push({ text: `${enemy.name} is destroyed by thorns!`, color: MSG_COLORS.KILL });
+          }
+        }
+        if (armorRunic === RunicEffect.REFLECTIVE && Math.random() < 0.15 && enemy.hp > 0) {
+          const reflectDmg = result.damage;
+          enemy.hp -= reflectDmg;
+          state.messages.push({ text: `Your armor reflects ${reflectDmg} damage back at ${enemy.name}!`, color: MSG_COLORS.PLAYER_ATK });
+          state.pendingFloatingTexts.push({ text: `-${reflectDmg}`, color: "#38bdf8", x: enemy.pos.x, y: enemy.pos.y });
+          if (enemy.hp <= 0) {
+            state.messages.push({ text: `${enemy.name} is destroyed by reflected damage!`, color: MSG_COLORS.KILL });
+          }
+        }
       }
       if (state.player.hp <= 0) {
         state.gameOver = true;
@@ -1060,7 +1089,15 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
         newState.messages.push({ text: `Your attack passes through ${enemy.name}! It's only vulnerable on solid ground.`, color: MSG_COLORS.WARNING });
         newState.pendingFloatingTexts.push({ text: "IMMUNE", color: "#e9d5ff", x: newX, y: newY });
       } else {
-        const result = combat(newState.player, enemy, newState.messages, bonuses.attack, 0, newState.pendingFloatingTexts);
+        // VORPAL runic: 2x damage when enemy below 30% HP
+        const weaponRunic = newState.inventory.equippedWeapon?.runic;
+        const vorpalMultiplier = (weaponRunic === RunicEffect.VORPAL && enemy.hp < enemy.maxHp * 0.3) ? 2 : 1;
+        if (vorpalMultiplier > 1) {
+          newState.messages.push({ text: `Your blade senses weakness — VORPAL STRIKE!`, color: MSG_COLORS.PLAYER_ATK });
+          newState.pendingFloatingTexts.push({ text: "VORPAL!", color: "#dc2626", x: newX, y: newY });
+        }
+
+        const result = combat(newState.player, enemy, newState.messages, bonuses.attack, 0, newState.pendingFloatingTexts, vorpalMultiplier);
         newState.runStats.damageDealt += result.damage;
         if (!result.dodged) {
           newState.pendingFloatingTexts.push({
@@ -1069,6 +1106,20 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
             x: newX,
             y: newY,
           });
+
+          // FLAMING runic: 25% chance to apply burn (2 dmg/turn for 3 turns)
+          if (weaponRunic === RunicEffect.FLAMING && Math.random() < 0.25) {
+            enemy.burnTurns = Math.max(enemy.burnTurns ?? 0, 3);
+            newState.messages.push({ text: `${enemy.name} catches fire!`, color: MSG_COLORS.PLAYER_ATK });
+            newState.pendingFloatingTexts.push({ text: "BURN!", color: "#f97316", x: newX, y: newY });
+          }
+
+          // STUNNING runic: 20% chance to stun (skip enemy's next turn)
+          if (weaponRunic === RunicEffect.STUNNING && Math.random() < 0.20) {
+            enemy.stunnedNextTurn = true;
+            newState.messages.push({ text: `${enemy.name} is stunned!`, color: MSG_COLORS.PLAYER_ATK });
+            newState.pendingFloatingTexts.push({ text: "STUNNED!", color: "#fbbf24", x: newX, y: newY });
+          }
         }
 
         // TELEPORT: Void Walker teleports to random tile when hit (and survived)
@@ -1085,6 +1136,16 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
           spawnSplitSlimes(newState, enemy);
           newState.runStats.enemiesKilled++;
           awardXp(newState, enemy.xpReward ?? 5);
+
+          // VAMPIRIC runic: heal 1 HP on kill
+          if (weaponRunic === RunicEffect.VAMPIRIC) {
+            const healAmt = Math.min(1, newState.player.maxHp - newState.player.hp);
+            if (healAmt > 0) {
+              newState.player = { ...newState.player, hp: newState.player.hp + 1 };
+              newState.messages.push({ text: `Your weapon drains life! +1 HP`, color: MSG_COLORS.HEAL });
+              newState.pendingFloatingTexts.push({ text: "+1 HP", color: MSG_COLORS.HEAL, x: newState.player.pos.x, y: newState.player.pos.y });
+            }
+          }
 
           if (enemy.isBoss) {
             // Boss kill: guaranteed rare+ loot, victory message
@@ -1151,6 +1212,30 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       }
     }
   }
+
+  // Process burn damage on enemies (Flaming runic)
+  for (const enemy of newState.entities) {
+    if (enemy.hp <= 0 || enemy.friendly) continue;
+    if (enemy.burnTurns && enemy.burnTurns > 0) {
+      const burnDmg = 2;
+      enemy.hp -= burnDmg;
+      enemy.burnTurns--;
+      newState.pendingFloatingTexts.push({ text: `-${burnDmg}`, color: "#f97316", x: enemy.pos.x, y: enemy.pos.y });
+      if (enemy.hp <= 0) {
+        newState.messages.push({ text: `${enemy.name} burns to death!`, color: MSG_COLORS.KILL });
+        spawnSplitSlimes(newState, enemy);
+        newState.runStats.enemiesKilled++;
+        newState.runStats.damageDealt += burnDmg;
+        awardXp(newState, enemy.xpReward ?? 5);
+        const loot = generateLootDrop(newState.floor, enemy.pos);
+        if (loot) {
+          newState.items.push(loot);
+          newState.messages.push({ text: `${enemy.name} dropped ${loot.item.name}!`, color: MSG_COLORS.LOOT });
+        }
+      }
+    }
+  }
+
   newState.entities = newState.entities.filter((e) => e.hp > 0);
 
   // Process summon lifetimes
@@ -1206,6 +1291,15 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
   for (let y = 0; y < MAP_HEIGHT; y++) {
     for (let x = 0; x < MAP_WIDTH; x++) {
       if (newState.fov[y][x]) newState.explored[y][x] = true;
+    }
+  }
+
+  // Regenerating armor runic: heal 1 HP every 10 turns
+  if (newState.inventory.equippedArmor?.runic === RunicEffect.REGENERATING && newState.turnCount % 10 === 9) {
+    if (newState.player.hp < newState.player.maxHp) {
+      newState.player = { ...newState.player, hp: newState.player.hp + 1 };
+      newState.messages.push({ text: "Your armor pulses — you regenerate 1 HP.", color: MSG_COLORS.HEAL });
+      newState.pendingFloatingTexts.push({ text: "+1 HP", color: MSG_COLORS.HEAL, x: newState.player.pos.x, y: newState.player.pos.y });
     }
   }
 

@@ -70,6 +70,32 @@ export interface StatusEffect {
   value: number; // e.g., +3 ATK for strength, unused for others
 }
 
+// Runic effects for weapons and armor
+export enum RunicEffect {
+  // Weapon runics
+  VAMPIRIC = "vampiric",       // Heal 1 HP on kill
+  FLAMING = "flaming",         // 25% chance to apply 2 dmg/turn burn for 3 turns
+  STUNNING = "stunning",       // 20% chance to skip enemy's next turn
+  VORPAL = "vorpal",           // 2x damage when enemy below 30% HP
+  // Armor runics
+  REFLECTIVE = "reflective",   // 15% chance to reflect damage back to attacker
+  REGENERATING = "regenerating", // Heal 1 HP every 10 turns
+  THORNED = "thorned",         // Deal 1 damage to melee attackers
+}
+
+export const WEAPON_RUNICS = [RunicEffect.VAMPIRIC, RunicEffect.FLAMING, RunicEffect.STUNNING, RunicEffect.VORPAL];
+export const ARMOR_RUNICS = [RunicEffect.REFLECTIVE, RunicEffect.REGENERATING, RunicEffect.THORNED];
+
+export const RUNIC_NAMES: Record<RunicEffect, string> = {
+  [RunicEffect.VAMPIRIC]: "Vampiric",
+  [RunicEffect.FLAMING]: "Flaming",
+  [RunicEffect.STUNNING]: "Stunning",
+  [RunicEffect.VORPAL]: "Vorpal",
+  [RunicEffect.REFLECTIVE]: "Reflective",
+  [RunicEffect.REGENERATING]: "Regenerating",
+  [RunicEffect.THORNED]: "Thorned",
+};
+
 // Item rarity
 export enum ItemRarity {
   COMMON = "common",
@@ -95,6 +121,7 @@ export interface Item {
   healAmount?: number;
   effect?: ConsumableEffect;
   effectValue?: number; // duration in turns, damage amount, etc.
+  runic?: RunicEffect;
   minFloor: number;
   description: string;
 }
@@ -156,6 +183,8 @@ export interface GameEntity {
   friendly?: boolean;
   summonTurns?: number;
   specialAbility?: SpecialAbility;
+  burnTurns?: number;     // Flaming runic: 2 dmg/turn
+  stunnedNextTurn?: boolean; // Stunning runic: skip next turn
   howled?: boolean; // Abyssal Hound: already howled this floor
   isBoss?: boolean;
   bossPhase?: number;        // Current boss phase (0 = spawning adds, 1 = vulnerable/paused)

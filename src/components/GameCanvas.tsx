@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CANVAS_WIDTH, CANVAS_HEIGHT } from "@/game/config";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES } from "@/game/config";
 import { initGame, processPlayerTurn, applyInventoryItem, MoveDirection } from "@/game/engine";
 import { render, renderFloatingTexts, FLOAT_DURATION } from "@/game/renderer";
 import type { ActiveFloatingText } from "@/game/renderer";
@@ -286,7 +286,12 @@ export default function GameCanvas() {
         <span>
           Weapon:{" "}
           {inventory.equippedWeapon ? (
-            <span style={{ color: inventory.equippedWeapon.color }}>{inventory.equippedWeapon.name}</span>
+            <>
+              <span style={{ color: inventory.equippedWeapon.color }}>{inventory.equippedWeapon.name}</span>
+              {inventory.equippedWeapon.runic && (
+                <span style={{ color: "#c084fc" }}> [{RUNIC_NAMES[inventory.equippedWeapon.runic]}]</span>
+              )}
+            </>
           ) : (
             <span>None</span>
           )}
@@ -294,7 +299,12 @@ export default function GameCanvas() {
         <span>
           Armor:{" "}
           {inventory.equippedArmor ? (
-            <span style={{ color: inventory.equippedArmor.color }}>{inventory.equippedArmor.name}</span>
+            <>
+              <span style={{ color: inventory.equippedArmor.color }}>{inventory.equippedArmor.name}</span>
+              {inventory.equippedArmor.runic && (
+                <span style={{ color: "#c084fc" }}> [{RUNIC_NAMES[inventory.equippedArmor.runic]}]</span>
+              )}
+            </>
           ) : (
             <span>None</span>
           )}
@@ -414,6 +424,9 @@ export default function GameCanvas() {
                   {item.category === "potion" && !item.healAmount ? ` [${item.description}]` : ""}
                   {item.category === "scroll" ? ` [${item.description}]` : ""}
                 </span>
+                {item.runic && (
+                  <span style={{ color: "#c084fc" }}> [{RUNIC_NAMES[item.runic]}]</span>
+                )}
               </span>
             ))}
           </div>

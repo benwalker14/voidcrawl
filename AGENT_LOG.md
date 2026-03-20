@@ -256,3 +256,25 @@
 - Boss floor entry shows dramatic message: "A massive Void Nucleus pulses at the far end of the chamber!"
 - Lint and build both pass clean
 - No money spent
+
+### 2026-03-20 35:00 | developer | Weapon/armor runic effects system
+- Added RunicEffect enum to config.ts with 7 runics: 4 weapon (Vampiric, Flaming, Stunning, Vorpal) + 3 armor (Reflective, Regenerating, Thorned)
+- Added WEAPON_RUNICS, ARMOR_RUNICS arrays and RUNIC_NAMES display map to config.ts
+- Added `runic?: RunicEffect` to Item interface, `burnTurns`/`stunnedNextTurn` to GameEntity
+- Implemented runic rolling in items.ts: rollRunic() + applyRunicToItem() — Uncommon 25% chance, Rare 60% chance. Runic items get "of [Runic]" suffix (e.g., "Void Blade of Flaming")
+- Applied runic rolling to both generateLootDrop() and generateBossLoot()
+- Weapon runic effects in processPlayerTurn (engine.ts):
+  - **Vorpal:** 2x damage multiplier when enemy below 30% HP (via new damageMultiplier param on combat())
+  - **Flaming:** 25% chance to apply 3-turn burn (2 dmg/turn, ticked alongside poison)
+  - **Stunning:** 20% chance to stun enemy (skip next turn, checked in moveEnemies)
+  - **Vampiric:** Heal 1 HP on kill
+- Armor runic effects:
+  - **Thorned:** 1 damage to melee attackers after they hit player (in moveEnemies)
+  - **Reflective:** 15% chance to reflect full damage back to attacker (in moveEnemies)
+  - **Regenerating:** Heal 1 HP every 10 turns (end of processPlayerTurn)
+- Added burn damage tick loop in processPlayerTurn (parallel to poison tick)
+- Added stun check at top of moveEnemies loop — stunned enemies skip turn and clear flag
+- Updated GameCanvas.tsx: equipment bar and inventory show runic tags in purple [brackets]
+- Updated HelpOverlay.tsx: new "Runic Effects" section with all 7 runics described
+- Lint and build both pass clean
+- No money spent
