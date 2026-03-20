@@ -12,6 +12,7 @@
 
 ---
 
+
 ## Up Next
 
 ### P0 - Foundation
@@ -20,9 +21,6 @@
 - [ ] Add ESLint config
 
 ### P1 - Core Gameplay
-- [ ] Add item/loot system (weapons, armor, potions)
-- [ ] Add inventory UI
-- [ ] Add health potions that drop from enemies
 - [ ] Add experience points and leveling
 - [ ] Improve enemy AI (pathfinding, varied behaviors)
 - [ ] Add more enemy variety per floor tier
@@ -72,3 +70,7 @@
 - [x] Message log
 - [x] Death/restart flow
 - [x] Floor progression via stairs
+- [x] Item/loot system (weapons, armor, potions)
+- [x] Inventory UI with equipment display
+- [x] Health potions that drop from enemies
+- [x] ESLint lint passes clean

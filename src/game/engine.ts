@@ -6,10 +6,16 @@ import {
   Position,
   MAP_WIDTH,
   MAP_HEIGHT,
+  Item,
+  ItemCategory,
+  GroundItem,
+  PlayerInventory,
+  MAX_INVENTORY_SIZE,
 } from "./config";
 import { generateDungeon } from "./generation/dungeon";
 import { spawnEnemies } from "./generation/enemies";
 import { computeFov } from "./generation/fov";
+import { generateLootDrop } from "./data/items";
 
 function createPlayer(pos: Position): GameEntity {
   return {
@@ -26,11 +32,19 @@ function createPlayer(pos: Position): GameEntity {
   };
 }
 
-export function initGame(): GameState {
-  return generateFloor(1, null);
+function createInventory(): PlayerInventory {
+  return { items: [], equippedWeapon: null, equippedArmor: null };
 }
 
-export function generateFloor(floor: number, prevPlayer: GameEntity | null): GameState {
+export function initGame(): GameState {
+  return generateFloor(1, null, null);
+}
+
+export function generateFloor(
+  floor: number,
+  prevPlayer: GameEntity | null,
+  prevInventory: PlayerInventory | null,
+): GameState {
   const dungeon = generateDungeon(floor);
 
   // Get all floor tiles for enemy placement (exclude player start and stairs)
@@ -68,6 +82,8 @@ export function generateFloor(floor: number, prevPlayer: GameEntity | null): Gam
     map: dungeon.map,
     player,
     entities: enemies,
+    items: [],
+    inventory: prevInventory ?? createInventory(),
     messages: [`You descend to floor ${floor} of the void.`],
     turnCount: 0,
     gameOver: false,
@@ -87,8 +103,16 @@ function getEntityAt(state: GameState, x: number, y: number): GameEntity | undef
   return state.entities.find((e) => e.pos.x === x && e.pos.y === y && e.hp > 0);
 }
 
-function combat(attacker: GameEntity, defender: GameEntity, messages: string[]): boolean {
-  const damage = Math.max(1, attacker.attack - defender.defense + Math.floor(Math.random() * 3) - 1);
+function combat(
+  attacker: GameEntity,
+  defender: GameEntity,
+  messages: string[],
+  attackBonus: number = 0,
+  defenseBonus: number = 0,
+): boolean {
+  const atk = attacker.attack + attackBonus;
+  const def = defender.defense + defenseBonus;
+  const damage = Math.max(1, atk - def + Math.floor(Math.random() * 3) - 1);
   defender.hp -= damage;
   messages.push(`${attacker.name} hits ${defender.name} for ${damage} damage!`);
 
@@ -99,7 +123,116 @@ function combat(attacker: GameEntity, defender: GameEntity, messages: string[]):
   return false;
 }
 
-function moveEnemies(state: GameState) {
+function getEquipmentBonuses(inventory: PlayerInventory): { attack: number; defense: number } {
+  return {
+    attack: inventory.equippedWeapon?.attack ?? 0,
+    defense: inventory.equippedArmor?.defense ?? 0,
+  };
+}
+
+function pickupItem(state: GameState): void {
+  const groundItem = state.items.find(
+    (gi) => gi.pos.x === state.player.pos.x && gi.pos.y === state.player.pos.y
+  );
+  if (!groundItem) return;
+
+  const { item } = groundItem;
+
+  // Auto-equip weapons if better or empty slot
+  if (item.category === ItemCategory.WEAPON) {
+    const current = state.inventory.equippedWeapon;
+    if (!current || (item.attack ?? 0) > (current.attack ?? 0)) {
+      if (current) {
+        if (state.inventory.items.length < MAX_INVENTORY_SIZE) {
+          state.inventory.items.push(current);
+          state.messages.push(`Unequipped ${current.name}.`);
+        } else {
+          state.messages.push("Inventory full! Can't pick up item.");
+          return;
+        }
+      }
+      state.inventory.equippedWeapon = item;
+      state.messages.push(`Equipped ${item.name}! (+${item.attack} ATK)`);
+    } else {
+      if (state.inventory.items.length >= MAX_INVENTORY_SIZE) {
+        state.messages.push("Inventory full! Can't pick up item.");
+        return;
+      }
+      state.inventory.items.push(item);
+      state.messages.push(`Picked up ${item.name}.`);
+    }
+  }
+  // Auto-equip armor if better or empty slot
+  else if (item.category === ItemCategory.ARMOR) {
+    const current = state.inventory.equippedArmor;
+    if (!current || (item.defense ?? 0) > (current.defense ?? 0)) {
+      if (current) {
+        if (state.inventory.items.length < MAX_INVENTORY_SIZE) {
+          state.inventory.items.push(current);
+          state.messages.push(`Unequipped ${current.name}.`);
+        } else {
+          state.messages.push("Inventory full! Can't pick up item.");
+          return;
+        }
+      }
+      state.inventory.equippedArmor = item;
+      state.messages.push(`Equipped ${item.name}! (+${item.defense} DEF)`);
+    } else {
+      if (state.inventory.items.length >= MAX_INVENTORY_SIZE) {
+        state.messages.push("Inventory full! Can't pick up item.");
+        return;
+      }
+      state.inventory.items.push(item);
+      state.messages.push(`Picked up ${item.name}.`);
+    }
+  }
+  // Potions go to inventory
+  else {
+    if (state.inventory.items.length >= MAX_INVENTORY_SIZE) {
+      state.messages.push("Inventory full! Can't pick up item.");
+      return;
+    }
+    state.inventory.items.push(item);
+    state.messages.push(`Picked up ${item.name}.`);
+  }
+
+  // Remove from ground
+  state.items = state.items.filter((gi) => gi !== groundItem);
+}
+
+export function applyInventoryItem(state: GameState, index: number): GameState {
+  if (index < 0 || index >= state.inventory.items.length) return state;
+
+  const newState = { ...state, messages: [] as string[], inventory: { ...state.inventory, items: [...state.inventory.items] } };
+  const item = newState.inventory.items[index];
+
+  if (item.category === ItemCategory.POTION) {
+    if (newState.player.hp >= newState.player.maxHp) {
+      newState.messages.push("You're already at full health.");
+      return newState;
+    }
+    const healed = Math.min(item.healAmount ?? 0, newState.player.maxHp - newState.player.hp);
+    newState.player = { ...newState.player, hp: newState.player.hp + healed };
+    newState.inventory.items.splice(index, 1);
+    newState.messages.push(`Used ${item.name}. Restored ${healed} HP.`);
+  } else if (item.category === ItemCategory.WEAPON) {
+    const old = newState.inventory.equippedWeapon;
+    newState.inventory.equippedWeapon = item;
+    newState.inventory.items.splice(index, 1);
+    if (old) newState.inventory.items.push(old);
+    newState.messages.push(`Equipped ${item.name}! (+${item.attack} ATK)`);
+  } else if (item.category === ItemCategory.ARMOR) {
+    const old = newState.inventory.equippedArmor;
+    newState.inventory.equippedArmor = item;
+    newState.inventory.items.splice(index, 1);
+    if (old) newState.inventory.items.push(old);
+    newState.messages.push(`Equipped ${item.name}! (+${item.defense} DEF)`);
+  }
+
+  return newState;
+}
+
+function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
   for (const enemy of state.entities) {
     if (enemy.hp <= 0) continue;
 
@@ -112,7 +245,7 @@ function moveEnemies(state: GameState) {
 
     // Adjacent — attack
     if (dist === 1) {
-      combat(enemy, state.player, state.messages);
+      combat(enemy, state.player, state.messages, 0, playerDefenseBonus);
       if (state.player.hp <= 0) {
         state.gameOver = true;
         state.messages.push("You have been consumed by the void...");
@@ -141,7 +274,15 @@ export type MoveDirection = "up" | "down" | "left" | "right" | "wait";
 export function processPlayerTurn(state: GameState, direction: MoveDirection): GameState {
   if (state.gameOver) return state;
 
-  const newState = { ...state, messages: [] as string[] };
+  const newState = {
+    ...state,
+    messages: [] as string[],
+    items: [...state.items],
+    inventory: {
+      ...state.inventory,
+      items: [...state.inventory.items],
+    },
+  };
   let dx = 0;
   let dy = 0;
 
@@ -155,28 +296,38 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
 
   const newX = newState.player.pos.x + dx;
   const newY = newState.player.pos.y + dy;
+  const bonuses = getEquipmentBonuses(newState.inventory);
 
   if (direction !== "wait") {
     // Check for enemy at target
     const enemy = getEntityAt(newState, newX, newY);
     if (enemy) {
-      const killed = combat(newState.player, enemy, newState.messages);
+      const killed = combat(newState.player, enemy, newState.messages, bonuses.attack, 0);
       if (killed) {
+        // Try to drop loot at enemy position
+        const loot = generateLootDrop(newState.floor, enemy.pos);
+        if (loot) {
+          newState.items.push(loot);
+          newState.messages.push(`${enemy.name} dropped ${loot.item.name}!`);
+        }
         newState.entities = newState.entities.filter((e) => e.id !== enemy.id);
       }
     } else if (!isBlocked(newState, newX, newY)) {
       newState.player = { ...newState.player, pos: { x: newX, y: newY } };
 
+      // Check for item pickup
+      pickupItem(newState);
+
       // Check for stairs
       if (newState.map[newY][newX] === TileType.STAIRS_DOWN) {
         newState.messages.push("You descend deeper into the void...");
-        return generateFloor(newState.floor + 1, newState.player);
+        return generateFloor(newState.floor + 1, newState.player, newState.inventory);
       }
     }
   }
 
   // Enemy turn
-  moveEnemies(newState);
+  moveEnemies(newState, bonuses.defense);
 
   // Update FOV
   newState.fov = computeFov(newState.map, newState.player.pos.x, newState.player.pos.y);

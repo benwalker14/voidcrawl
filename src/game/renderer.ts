@@ -66,6 +66,23 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState) {
     }
   }
 
+  // Draw ground items (only visible ones)
+  for (const groundItem of state.items) {
+    const { item, pos } = groundItem;
+    if (!state.fov[pos.y][pos.x]) continue;
+
+    const screenX = (pos.x - camX) * SCALED_TILE;
+    const screenY = (pos.y - camY) * SCALED_TILE;
+
+    if (screenX < 0 || screenX >= CANVAS_WIDTH || screenY < 0 || screenY >= CANVAS_HEIGHT) continue;
+
+    ctx.fillStyle = item.color;
+    ctx.font = `bold ${SCALED_TILE - 6}px monospace`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(item.symbol, screenX + SCALED_TILE / 2, screenY + SCALED_TILE / 2);
+  }
+
   // Draw entities (only visible ones)
   for (const entity of state.entities) {
     if (entity.hp <= 0) continue;
