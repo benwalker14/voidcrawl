@@ -10,6 +10,7 @@ import {
   ItemCategory,
   GroundItem,
   PlayerInventory,
+  PlayerProgression,
   MAX_INVENTORY_SIZE,
 } from "./config";
 import { generateDungeon } from "./generation/dungeon";
@@ -36,14 +37,47 @@ function createInventory(): PlayerInventory {
   return { items: [], equippedWeapon: null, equippedArmor: null };
 }
 
+function xpForLevel(level: number): number {
+  return 10 + level * 15;
+}
+
+function createProgression(): PlayerProgression {
+  return { level: 1, xp: 0, xpToNext: xpForLevel(1) };
+}
+
+function awardXp(
+  state: GameState,
+  xp: number,
+): void {
+  state.progression.xp += xp;
+  state.messages.push(`+${xp} XP`);
+
+  while (state.progression.xp >= state.progression.xpToNext) {
+    state.progression.xp -= state.progression.xpToNext;
+    state.progression.level++;
+    state.progression.xpToNext = xpForLevel(state.progression.level);
+
+    // Level up bonuses: +5 maxHP, +1 ATK, +1 DEF, heal to full
+    state.player.maxHp += 5;
+    state.player.hp = state.player.maxHp;
+    state.player.attack += 1;
+    state.player.defense += 1;
+
+    state.messages.push(
+      `LEVEL UP! You are now level ${state.progression.level}! (+5 HP, +1 ATK, +1 DEF)`
+    );
+  }
+}
+
 export function initGame(): GameState {
-  return generateFloor(1, null, null);
+  return generateFloor(1, null, null, null);
 }
 
 export function generateFloor(
   floor: number,
   prevPlayer: GameEntity | null,
   prevInventory: PlayerInventory | null,
+  prevProgression: PlayerProgression | null,
 ): GameState {
   const dungeon = generateDungeon(floor);
 
@@ -84,6 +118,7 @@ export function generateFloor(
     entities: enemies,
     items: [],
     inventory: prevInventory ?? createInventory(),
+    progression: prevProgression ?? createProgression(),
     messages: [`You descend to floor ${floor} of the void.`],
     turnCount: 0,
     gameOver: false,
@@ -282,6 +317,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       ...state.inventory,
       items: [...state.inventory.items],
     },
+    progression: { ...state.progression },
   };
   let dx = 0;
   let dy = 0;
@@ -304,6 +340,8 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
     if (enemy) {
       const killed = combat(newState.player, enemy, newState.messages, bonuses.attack, 0);
       if (killed) {
+        // Award XP
+        awardXp(newState, enemy.xpReward ?? 5);
         // Try to drop loot at enemy position
         const loot = generateLootDrop(newState.floor, enemy.pos);
         if (loot) {
@@ -321,7 +359,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       // Check for stairs
       if (newState.map[newY][newX] === TileType.STAIRS_DOWN) {
         newState.messages.push("You descend deeper into the void...");
-        return generateFloor(newState.floor + 1, newState.player, newState.inventory);
+        return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression);
       }
     }
   }

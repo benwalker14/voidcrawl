@@ -25,3 +25,15 @@
 - Inventory panel appears below canvas when items are held
 - Fixed pre-existing ESLint issue (setState in useEffect) with eager initialization
 - Lint and build both pass clean
+
+### 2026-03-20 22:00 | developer | Experience points and leveling system
+- Added PlayerProgression type (level, xp, xpToNext) to GameState
+- Added xpReward field to GameEntity and enemy templates (5-75 base XP per enemy type)
+- XP scales with floor depth alongside enemy stats (×1.15 per floor)
+- XP to next level formula: 10 + level × 15 (level 2 = 25 XP, level 3 = 40 XP, etc.)
+- On level up: +5 max HP, +1 ATK, +1 DEF, full heal, celebratory message
+- XP awarded on enemy kill with message log feedback (+N XP)
+- HUD shows Level indicator and animated XP progress bar (gold/yellow theme)
+- Death screen now shows level reached alongside floor and turns
+- Progression persists across floor transitions
+- Lint and build both pass clean

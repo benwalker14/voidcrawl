@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "@/game/config";
 import { initGame, processPlayerTurn, applyInventoryItem, MoveDirection } from "@/game/engine";
 import { render } from "@/game/renderer";
-import type { GameState, PlayerInventory } from "@/game/config";
+import type { GameState, PlayerInventory, PlayerProgression } from "@/game/config";
 
 function getStatsFromState(state: GameState) {
   const weaponAtk = state.inventory.equippedWeapon?.attack ?? 0;
@@ -16,6 +16,9 @@ function getStatsFromState(state: GameState) {
     turns: state.turnCount,
     attack: state.player.attack + weaponAtk,
     defense: state.player.defense + armorDef,
+    level: state.progression.level,
+    xp: state.progression.xp,
+    xpToNext: state.progression.xpToNext,
   };
 }
 
@@ -128,7 +131,7 @@ export default function GameCanvas() {
   return (
     <div className="min-h-screen flex flex-col items-center py-4 px-2">
       {/* HUD */}
-      <div className="w-full max-w-[640px] flex justify-between items-center mb-1 px-2 text-sm font-mono">
+      <div className="w-full max-w-[640px] flex justify-between items-center mb-0.5 px-2 text-sm font-mono">
         <div>
           <span style={{ color: "var(--void-cyan)" }}>HP: </span>
           <span style={{ color: stats.hp < stats.maxHp * 0.3 ? "#ef4444" : "var(--void-text)" }}>
@@ -144,6 +147,10 @@ export default function GameCanvas() {
           <span>{stats.defense}</span>
         </div>
         <div>
+          <span style={{ color: "#fbbf24" }}>Lv: </span>
+          <span>{stats.level}</span>
+        </div>
+        <div>
           <span style={{ color: "var(--void-cyan)" }}>Floor: </span>
           <span>{stats.floor}</span>
         </div>
@@ -151,6 +158,20 @@ export default function GameCanvas() {
           <span style={{ color: "var(--void-cyan)" }}>Turns: </span>
           <span>{stats.turns}</span>
         </div>
+      </div>
+      {/* XP Bar */}
+      <div className="w-full max-w-[640px] flex items-center gap-2 mb-1 px-2 text-xs font-mono">
+        <span style={{ color: "#fbbf24" }}>XP</span>
+        <div className="flex-1 h-2 rounded-sm overflow-hidden" style={{ backgroundColor: "#1a1a2e" }}>
+          <div
+            className="h-full rounded-sm transition-all duration-300"
+            style={{
+              width: `${(stats.xp / stats.xpToNext) * 100}%`,
+              backgroundColor: "#fbbf24",
+            }}
+          />
+        </div>
+        <span style={{ color: "var(--void-muted)" }}>{stats.xp}/{stats.xpToNext}</span>
       </div>
       {/* Equipment bar */}
       <div className="w-full max-w-[640px] flex gap-4 mb-2 px-2 text-xs font-mono" style={{ color: "var(--void-muted)" }}>
@@ -188,7 +209,7 @@ export default function GameCanvas() {
               YOU DIED
             </p>
             <p className="text-sm mb-4" style={{ color: "var(--void-muted)" }}>
-              Reached floor {stats.floor} in {stats.turns} turns
+              Level {stats.level} &middot; Floor {stats.floor} &middot; {stats.turns} turns
             </p>
             <button
               onClick={restart}

@@ -7,19 +7,20 @@ interface EnemyTemplate {
   baseHp: number;
   baseAttack: number;
   baseDefense: number;
+  baseXp: number;
   minFloor: number;
 }
 
 const ENEMY_TEMPLATES: EnemyTemplate[] = [
-  { name: "Void Rat", symbol: "r", color: "#8b5cf6", baseHp: 4, baseAttack: 2, baseDefense: 0, minFloor: 1 },
-  { name: "Shadow Wisp", symbol: "w", color: "#a78bfa", baseHp: 3, baseAttack: 3, baseDefense: 0, minFloor: 1 },
-  { name: "Void Beetle", symbol: "b", color: "#7c3aed", baseHp: 6, baseAttack: 2, baseDefense: 1, minFloor: 1 },
-  { name: "Dark Slime", symbol: "s", color: "#4c1d95", baseHp: 8, baseAttack: 3, baseDefense: 1, minFloor: 2 },
-  { name: "Shade", symbol: "S", color: "#6d28d9", baseHp: 10, baseAttack: 4, baseDefense: 2, minFloor: 3 },
-  { name: "Void Walker", symbol: "W", color: "#5b21b6", baseHp: 14, baseAttack: 5, baseDefense: 2, minFloor: 4 },
-  { name: "Abyssal Hound", symbol: "H", color: "#c084fc", baseHp: 18, baseAttack: 6, baseDefense: 3, minFloor: 5 },
-  { name: "Rift Wraith", symbol: "R", color: "#e9d5ff", baseHp: 22, baseAttack: 7, baseDefense: 4, minFloor: 7 },
-  { name: "Void Lord", symbol: "V", color: "#f5f3ff", baseHp: 30, baseAttack: 9, baseDefense: 5, minFloor: 10 },
+  { name: "Void Rat", symbol: "r", color: "#8b5cf6", baseHp: 4, baseAttack: 2, baseDefense: 0, baseXp: 5, minFloor: 1 },
+  { name: "Shadow Wisp", symbol: "w", color: "#a78bfa", baseHp: 3, baseAttack: 3, baseDefense: 0, baseXp: 6, minFloor: 1 },
+  { name: "Void Beetle", symbol: "b", color: "#7c3aed", baseHp: 6, baseAttack: 2, baseDefense: 1, baseXp: 8, minFloor: 1 },
+  { name: "Dark Slime", symbol: "s", color: "#4c1d95", baseHp: 8, baseAttack: 3, baseDefense: 1, baseXp: 12, minFloor: 2 },
+  { name: "Shade", symbol: "S", color: "#6d28d9", baseHp: 10, baseAttack: 4, baseDefense: 2, baseXp: 18, minFloor: 3 },
+  { name: "Void Walker", symbol: "W", color: "#5b21b6", baseHp: 14, baseAttack: 5, baseDefense: 2, baseXp: 25, minFloor: 4 },
+  { name: "Abyssal Hound", symbol: "H", color: "#c084fc", baseHp: 18, baseAttack: 6, baseDefense: 3, baseXp: 35, minFloor: 5 },
+  { name: "Rift Wraith", symbol: "R", color: "#e9d5ff", baseHp: 22, baseAttack: 7, baseDefense: 4, baseXp: 50, minFloor: 7 },
+  { name: "Void Lord", symbol: "V", color: "#f5f3ff", baseHp: 30, baseAttack: 9, baseDefense: 5, baseXp: 75, minFloor: 10 },
 ];
 
 let nextEnemyId = 1;
@@ -59,6 +60,7 @@ export function spawnEnemies(floor: number, floorTiles: Position[]): GameEntity[
       defense: Math.floor(template.baseDefense * scaling),
       color: template.color,
       symbol: template.symbol,
+      xpReward: Math.floor(template.baseXp * scaling),
     });
   }
 

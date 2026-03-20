@@ -97,6 +97,13 @@ export interface GameEntity {
   defense: number;
   color: string;
   symbol: string;
+  xpReward?: number;
+}
+
+export interface PlayerProgression {
+  level: number;
+  xp: number;
+  xpToNext: number;
 }
 
 export interface GameState {
@@ -106,6 +113,7 @@ export interface GameState {
   entities: GameEntity[];
   items: GroundItem[];
   inventory: PlayerInventory;
+  progression: PlayerProgression;
   messages: string[];
   turnCount: number;
   gameOver: boolean;
