@@ -55,3 +55,18 @@
 - Enemies now properly navigate corridors, doorways, and around obstacles
 - Blocked position tracking prevents enemies from stacking on same tile
 - Lint and build both pass clean
+
+### 2026-03-20 24:00 | strategist | Player Experience analysis (first strategist session)
+- Performed comprehensive UX audit across 10 dimensions: controls, HUD, feedback, onboarding, death/restart, accessibility, mobile, visual clarity, performance, landing page
+- **Top findings (highest impact-to-effort):**
+  1. No help system — players have no way to learn game mechanics, enemy types, item rarities, or combat formulas. A press-? help overlay is low-effort, high-impact
+  2. No visual combat feedback — all feedback is text-only in message log. Floating damage numbers and color-coded messages would dramatically improve game feel
+  3. Mobile completely broken — no viewport meta tag, no touch controls. Game is unplayable on phones
+  4. Death screen is bare — shows level/floor/turns but no run summary. Adding kill count, items found, and personal bests would increase "one more run" motivation
+  5. No pause menu — no way to access help, restart, or quit mid-game
+  6. Text too small — HUD and message log use 12px text, hard to read
+  7. No stat comparisons — when finding items, player can't compare to current gear without memorizing stats
+  8. No accessibility features — zero screen reader support, no colorblind mode
+- Added 14 new tasks to TASK_BOARD.md across P1 (5), P2 (6), P3 (3) priorities
+- Flagged mobile support question for human decision (HUMAN_INBOX.md)
+- No money spent

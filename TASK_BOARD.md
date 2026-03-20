@@ -20,6 +20,13 @@
 - [ ] Set up GitHub repo and push initial code
 - [ ] Add ESLint config
 
+### P1 - Player Experience (NEW — strategist analysis 2026-03-20)
+- [ ] Add help overlay (press ? or H) showing controls, mechanics, and enemy/item legends — players currently have no way to learn game systems beyond the tiny footer hint
+- [ ] Add color-coded message log (red for damage taken, green for heals/pickups, gold for level-ups, white for info) — currently all messages are same color, easy to miss critical events
+- [ ] Add run stats to death screen (enemies killed, items found, damage dealt/taken, deepest floor, time played) — gives players a reason to care about each run
+- [ ] Pause menu (Escape key) with Resume, Help, Restart, Quit to Menu — currently no way to pause or access help mid-game
+- [ ] Add floating damage numbers on canvas (brief "+5 HP", "-3 DMG" over entities) — combat currently has zero visual feedback beyond message log
+
 ### P1 - Core Gameplay
 - [ ] Add more enemy variety per floor tier
 - [ ] Add mini-map showing explored areas
@@ -30,6 +37,14 @@
 - [ ] Add screen shake on big hits
 - [ ] Floor transition animation
 - [ ] Death screen with run stats
+
+### P2 - Player Experience (NEW — strategist analysis 2026-03-20)
+- [ ] Mobile touch controls: virtual D-pad overlay + tap-to-use inventory — game is unplayable on phones (large potential audience lost)
+- [ ] Add viewport meta tag to layout.tsx — currently missing, causes broken mobile rendering
+- [ ] Increase HUD/message log font size from text-xs (12px) to text-sm (14px) — current text is hard to read
+- [ ] Track and display personal best stats in localStorage (best floor, best level, total runs, total kills) — zero meta-progression makes runs feel disposable
+- [ ] Item stat comparison tooltip: when standing on an item, show current vs. new stats — players can't make informed loot decisions without memorizing their gear
+- [ ] Add simple movement animation (smooth tile-to-tile slide, ~100ms) — instant teleportation feels jarring
 
 ### P2 - Content Depth
 - [ ] Add multiple hero classes (Warrior, Mage, Rogue)
@@ -42,6 +57,11 @@
 - [ ] Persistent unlocks between runs (new hero classes, starting items)
 - [ ] Run history / stats tracking
 - [ ] Leaderboard (deepest floor reached)
+
+### P3 - Accessibility (NEW — strategist analysis 2026-03-20)
+- [ ] High-contrast mode / colorblind-safe palette toggle — rarity colors (gray/green/blue) may be indistinguishable for colorblind players
+- [ ] ARIA live region for message log so screen readers announce game events
+- [ ] Semantic HTML for HUD elements (use landmarks and roles)
 
 ### P3 - Monetization
 - [ ] Design premium content packs (cosmetic + content, NOT pay-to-win)
