@@ -5,6 +5,7 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT } from "@/game/config";
 import { initGame, processPlayerTurn, applyInventoryItem, MoveDirection } from "@/game/engine";
 import { render } from "@/game/renderer";
 import type { GameState, GameMessage, PlayerInventory, PlayerProgression } from "@/game/config";
+import HelpOverlay from "./HelpOverlay";
 
 function getStatsFromState(state: GameState) {
   const weaponAtk = state.inventory.equippedWeapon?.attack ?? 0;
@@ -39,6 +40,8 @@ export default function GameCanvas() {
   const [stats, setStats] = useState(() => getStatsFromState(initialState));
   const [inventory, setInventory] = useState<PlayerInventory>(() => getInventoryFromState(initialState));
   const [gameOver, setGameOver] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const showHelpRef = useRef(false);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -64,6 +67,23 @@ export default function GameCanvas() {
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      // Help toggle: ? or h/H to open/close, Escape to close
+      if (e.key === "?" || e.key === "h" || e.key === "H") {
+        e.preventDefault();
+        const next = !showHelpRef.current;
+        showHelpRef.current = next;
+        setShowHelp(next);
+        return;
+      }
+      if (e.key === "Escape") {
+        showHelpRef.current = false;
+        setShowHelp(false);
+        return;
+      }
+
+      // Block game input while help is open
+      if (showHelpRef.current) return;
+
       if (!gameRef.current || gameRef.current.gameOver) return;
 
       let dir: MoveDirection | null = null;
@@ -203,6 +223,8 @@ export default function GameCanvas() {
           tabIndex={0}
         />
 
+        {showHelp && <HelpOverlay onClose={() => { showHelpRef.current = false; setShowHelp(false); }} />}
+
         {gameOver && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80">
             <p className="text-3xl font-bold mb-4" style={{ color: "#ef4444" }}>
@@ -259,7 +281,7 @@ export default function GameCanvas() {
 
       {/* Controls hint */}
       <div className="mt-2 text-xs" style={{ color: "var(--void-muted)" }}>
-        Arrow keys / WASD to move &middot; Space to wait &middot; Walk into enemies to attack &middot; Find the stairs (&gt;) to descend &middot; 1-8 to use items
+        Arrow keys / WASD to move &middot; Space to wait &middot; Walk into enemies to attack &middot; Find the stairs (&gt;) to descend &middot; 1-8 to use items &middot; ? for help
       </div>
     </div>
   );

@@ -89,3 +89,17 @@
 - Newest message renders at full opacity, older messages at 70% for visual hierarchy
 - Updated combat() to detect player vs enemy attacker for appropriate hit colors
 - Lint and build both pass clean
+
+### 2026-03-20 26:00 | developer | Help overlay system
+- Created HelpOverlay component (src/components/HelpOverlay.tsx) with 5 sections:
+  - Controls: movement, wait, inventory, help toggle keys
+  - How to Play: combat formula, item pickup, leveling, stairs, permadeath
+  - Map Symbols: @, ., #, > with colors
+  - Enemies: all 9 enemy types with symbol, color, behavior description, floor range
+  - Items & Rarities: all weapon/armor/potion types with rarity color coding
+- Integrated into GameCanvas with ? or H key toggle, Escape to close
+- Used ref + state pattern to avoid stale closure in keydown handler
+- Game input blocked while help overlay is open (no accidental moves)
+- Click-to-close on overlay background
+- Updated footer hint to mention ? for help
+- Lint and build both pass clean
