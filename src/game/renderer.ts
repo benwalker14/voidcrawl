@@ -12,6 +12,16 @@ import {
   CANVAS_HEIGHT,
 } from "./config";
 
+export const FLOAT_DURATION = 800;
+
+export interface ActiveFloatingText {
+  text: string;
+  color: string;
+  x: number;
+  y: number;
+  startTime: number;
+}
+
 const SCALED_TILE = TILE_SIZE * SCALE;
 
 export function render(ctx: CanvasRenderingContext2D, state: GameState) {
@@ -109,4 +119,48 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState) {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("@", playerScreenX + SCALED_TILE / 2, playerScreenY + SCALED_TILE / 2);
+}
+
+export function renderFloatingTexts(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  texts: ActiveFloatingText[],
+  now: number,
+) {
+  const camX = Math.max(
+    0,
+    Math.min(state.player.pos.x - Math.floor(VIEWPORT_TILES_X / 2), MAP_WIDTH - VIEWPORT_TILES_X)
+  );
+  const camY = Math.max(
+    0,
+    Math.min(state.player.pos.y - Math.floor(VIEWPORT_TILES_Y / 2), MAP_HEIGHT - VIEWPORT_TILES_Y)
+  );
+
+  ctx.font = `bold 16px monospace`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "#000";
+
+  for (const ft of texts) {
+    const age = now - ft.startTime;
+    const progress = Math.min(age / FLOAT_DURATION, 1);
+
+    const screenX = (ft.x - camX) * SCALED_TILE + SCALED_TILE / 2;
+    const screenY = (ft.y - camY) * SCALED_TILE + SCALED_TILE / 2;
+
+    // Float upward by 1.5 tiles
+    const floatOffset = progress * SCALED_TILE * 1.5;
+    // Full opacity for first 40%, then fade out
+    const opacity = progress < 0.4 ? 1.0 : Math.max(0, 1.0 - (progress - 0.4) / 0.6);
+
+    const drawY = screenY - floatOffset;
+
+    ctx.globalAlpha = opacity;
+    ctx.strokeText(ft.text, screenX, drawY);
+    ctx.fillStyle = ft.color;
+    ctx.fillText(ft.text, screenX, drawY);
+  }
+
+  ctx.globalAlpha = 1.0;
 }

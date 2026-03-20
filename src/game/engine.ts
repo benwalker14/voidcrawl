@@ -13,6 +13,7 @@ import {
   PlayerInventory,
   PlayerProgression,
   RunStats,
+  FloatingText,
   MAX_INVENTORY_SIZE,
   AIBehavior,
   MSG_COLORS,
@@ -71,6 +72,12 @@ function awardXp(
     state.messages.push({
       text: `LEVEL UP! You are now level ${state.progression.level}! (+5 HP, +1 ATK, +1 DEF)`,
       color: MSG_COLORS.LEVEL_UP,
+    });
+    state.pendingFloatingTexts.push({
+      text: "LEVEL UP!",
+      color: MSG_COLORS.LEVEL_UP,
+      x: state.player.pos.x,
+      y: state.player.pos.y,
     });
   }
 }
@@ -147,6 +154,7 @@ export function generateFloor(
     fov,
     explored,
     runStats,
+    pendingFloatingTexts: [],
   };
 }
 
@@ -269,7 +277,7 @@ function pickupItem(state: GameState): void {
 export function applyInventoryItem(state: GameState, index: number): GameState {
   if (index < 0 || index >= state.inventory.items.length) return state;
 
-  const newState = { ...state, messages: [] as GameMessage[], inventory: { ...state.inventory, items: [...state.inventory.items] } };
+  const newState = { ...state, messages: [] as GameMessage[], inventory: { ...state.inventory, items: [...state.inventory.items] }, pendingFloatingTexts: [] as FloatingText[] };
   const item = newState.inventory.items[index];
 
   if (item.category === ItemCategory.POTION) {
@@ -281,6 +289,12 @@ export function applyInventoryItem(state: GameState, index: number): GameState {
     newState.player = { ...newState.player, hp: newState.player.hp + healed };
     newState.inventory.items.splice(index, 1);
     newState.messages.push({ text: `Used ${item.name}. Restored ${healed} HP.`, color: MSG_COLORS.HEAL });
+    newState.pendingFloatingTexts.push({
+      text: `+${healed} HP`,
+      color: MSG_COLORS.HEAL,
+      x: newState.player.pos.x,
+      y: newState.player.pos.y,
+    });
   } else if (item.category === ItemCategory.WEAPON) {
     const old = newState.inventory.equippedWeapon;
     newState.inventory.equippedWeapon = item;
@@ -349,6 +363,12 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
     if (dist === 1) {
       const result = combat(enemy, state.player, state.messages, 0, playerDefenseBonus);
       state.runStats.damageTaken += result.damage;
+      state.pendingFloatingTexts.push({
+        text: `-${result.damage}`,
+        color: MSG_COLORS.ENEMY_ATK,
+        x: state.player.pos.x,
+        y: state.player.pos.y,
+      });
       if (state.player.hp <= 0) {
         state.gameOver = true;
         state.messages.push({ text: "You have been consumed by the void...", color: MSG_COLORS.DEATH });
@@ -439,6 +459,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
     },
     progression: { ...state.progression },
     runStats: { ...state.runStats },
+    pendingFloatingTexts: [] as FloatingText[],
   };
   let dx = 0;
   let dy = 0;
@@ -461,6 +482,12 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
     if (enemy) {
       const result = combat(newState.player, enemy, newState.messages, bonuses.attack, 0);
       newState.runStats.damageDealt += result.damage;
+      newState.pendingFloatingTexts.push({
+        text: `-${result.damage}`,
+        color: MSG_COLORS.PLAYER_ATK,
+        x: newX,
+        y: newY,
+      });
       if (result.killed) {
         newState.runStats.enemiesKilled++;
         // Award XP

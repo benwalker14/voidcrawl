@@ -25,7 +25,7 @@
 
 - [x] Add run stats to death screen (enemies killed, items found, damage dealt/taken, deepest floor, time played) — gives players a reason to care about each run
 - [x] Pause menu (Escape key) with Resume, Help, Restart, Quit to Menu — currently no way to pause or access help mid-game
-- [ ] Add floating damage numbers on canvas (brief "+5 HP", "-3 DMG" over entities) — combat currently has zero visual feedback beyond message log
+- [x] Add floating damage numbers on canvas (brief "+5 HP", "-3 DMG" over entities) — combat currently has zero visual feedback beyond message log
 
 ### P1 - Core Gameplay
 - [ ] Add mini-map showing explored areas
@@ -104,3 +104,4 @@
 - [x] Help overlay (press ? or H) with controls, mechanics, enemy bestiary, and item legend
 - [x] Run stats on death screen (enemies killed, items found, damage dealt/taken, deepest floor, time played)
 - [x] Pause menu (Escape key) with Resume, Help, Restart, Quit to Menu
+- [x] Floating damage numbers on canvas (+HP, -DMG, LEVEL UP!) with animated float-up and fade

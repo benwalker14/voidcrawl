@@ -4,7 +4,8 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from "@/game/config";
 import { initGame, processPlayerTurn, applyInventoryItem, MoveDirection } from "@/game/engine";
-import { render } from "@/game/renderer";
+import { render, renderFloatingTexts, FLOAT_DURATION } from "@/game/renderer";
+import type { ActiveFloatingText } from "@/game/renderer";
 import type { GameState, GameMessage, PlayerInventory, RunStats } from "@/game/config";
 import HelpOverlay from "./HelpOverlay";
 import PauseMenu from "./PauseMenu";
@@ -56,12 +57,17 @@ export default function GameCanvas() {
   const showHelpRef = useRef(false);
   const [showPause, setShowPause] = useState(false);
   const showPauseRef = useRef(false);
+  const floatingTextsRef = useRef<ActiveFloatingText[]>([]);
+  const animFrameRef = useRef<number>(0);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!ctx || !gameRef.current) return;
     render(ctx, gameRef.current);
+    if (floatingTextsRef.current.length > 0) {
+      renderFloatingTexts(ctx, gameRef.current, floatingTextsRef.current, performance.now());
+    }
   }, []);
 
   const updateUI = useCallback((state: GameState) => {
@@ -76,9 +82,50 @@ export default function GameCanvas() {
     }
   }, []);
 
+  const startFloatingTexts = useCallback((state: GameState) => {
+    const pending = state.pendingFloatingTexts;
+    if (pending.length === 0) return;
+    const now = performance.now();
+    for (const ft of pending) {
+      floatingTextsRef.current.push({ ...ft, startTime: now });
+    }
+    if (animFrameRef.current) return; // animation already running
+
+    const animate = () => {
+      const now = performance.now();
+      const canvas = canvasRef.current;
+      const ctx = canvas?.getContext("2d");
+      if (!ctx || !gameRef.current) {
+        animFrameRef.current = 0;
+        return;
+      }
+
+      render(ctx, gameRef.current);
+
+      floatingTextsRef.current = floatingTextsRef.current.filter(
+        (ft) => now - ft.startTime < FLOAT_DURATION
+      );
+
+      if (floatingTextsRef.current.length > 0) {
+        renderFloatingTexts(ctx, gameRef.current, floatingTextsRef.current, now);
+        animFrameRef.current = requestAnimationFrame(animate);
+      } else {
+        animFrameRef.current = 0;
+      }
+    };
+
+    animFrameRef.current = requestAnimationFrame(animate);
+  }, []);
+
   useEffect(() => {
     draw();
   }, [draw]);
+
+  useEffect(() => {
+    return () => {
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -124,6 +171,7 @@ export default function GameCanvas() {
         gameRef.current = newState;
         updateUI(newState);
         draw();
+        startFloatingTexts(newState);
         return;
       }
 
@@ -160,15 +208,21 @@ export default function GameCanvas() {
       gameRef.current = newState;
       updateUI(newState);
       draw();
+      startFloatingTexts(newState);
     };
 
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [draw, updateUI]);
+  }, [draw, updateUI, startFloatingTexts]);
 
   const restart = () => {
     const state = initGame();
     gameRef.current = state;
+    floatingTextsRef.current = [];
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = 0;
+    }
     setGameOver(false);
     setInventory({ items: [], equippedWeapon: null, equippedArmor: null });
     setMessages([{ text: "A new journey begins...", color: "#e2e8f0" }]);

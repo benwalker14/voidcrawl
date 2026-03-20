@@ -152,3 +152,22 @@
 - Updated HelpOverlay close hint to include H key
 - Used ref + state pattern (consistent with existing help overlay) to avoid stale closures
 - Lint and build both pass clean
+
+### 2026-03-20 30:00 | developer | Floating damage numbers
+- Added FloatingText interface and pendingFloatingTexts array to GameState (config.ts)
+- Engine emits floating texts on 4 event types:
+  - Player attacks enemy: orange "-N" at enemy position
+  - Enemy attacks player: red "-N" at player position
+  - Potion healing: green "+N HP" at player position
+  - Level up: yellow "LEVEL UP!" at player position
+- Added renderFloatingTexts() to renderer.ts with:
+  - 800ms animation duration
+  - Float upward by 1.5 tiles
+  - Black text outline (strokeText) for readability against any background
+  - Smooth fade-out: full opacity for first 40%, then linear fade to 0
+- Integrated requestAnimationFrame loop in GameCanvas.tsx:
+  - Collects pending floating texts after each turn/inventory action
+  - Runs animation loop independently of turn-based game updates
+  - Properly cleans up on restart and component unmount
+  - draw() also renders active floating texts to prevent flicker between turns
+- Lint and build both pass clean

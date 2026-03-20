@@ -136,6 +136,13 @@ export interface GameMessage {
   color: string;
 }
 
+export interface FloatingText {
+  text: string;
+  color: string;
+  x: number;
+  y: number;
+}
+
 export interface RunStats {
   enemiesKilled: number;
   itemsFound: number;
@@ -159,4 +166,5 @@ export interface GameState {
   fov: boolean[][];
   explored: boolean[][];
   runStats: RunStats;
+  pendingFloatingTexts: FloatingText[];
 }
