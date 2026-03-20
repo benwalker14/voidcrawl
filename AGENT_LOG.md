@@ -209,3 +209,18 @@
   - Status effects cleared on restart
   - HelpOverlay updated: new scroll entries in Items & Rarities, new Consumable Effects section with all 11 effects described
 - Lint and build both pass clean
+
+### 2026-03-20 32:00 | strategist | Game Design Research — roguelike mechanics analysis (third strategist session)
+- **Analysis type:** Game Design Research (type A)
+- Researched 12+ roguelikes (Brogue, DCSS, NetHack, Shattered PD, Caves of Qud, Cogmind, Hoplite, 868-HACK, TOME, Rogule, WazHack, Golden Krone Hotel) for replayability-driving mechanics
+- Studied browser roguelike market (Rogule's 350K+ games as case study), r/roguelikes community consensus, and game design theory (pre-action vs post-action luck, emergent vs intrinsic complexity)
+- **Key finding #1: Voidcrawl needs a unique mechanical hook.** Every successful roguelike has one distinctive system (Cogmind=modular robots, Hoplite=geometry, 868-HACK=siphon economy). The void theme is atmospheric but not yet mechanical. Proposed "Void Attunement" — a 0-100 corruption meter that grants powers AND curses at thresholds, creating the game's central risk-reward axis. Every run becomes a story about how much void power the player embraced.
+- **Key finding #2: Identification systems are the #1 underused replayability driver.** Voidcrawl has 6 potion types + 4 scroll types but they're all pre-identified. Randomizing appearances per run (NetHack/Shattered PD model) transforms existing content into a discovery system — 10 unknowns to uncover each run. Medium effort for massive replayability.
+- **Key finding #3: Daily seeded challenges are a proven growth model for browser roguelikes.** Rogule (daily browser roguelike) attracted 350K+ games played with sub-1K DAU using the Wordle-like "one dungeon per day, same for everyone" format. Voidcrawl's existing generation system could support seeded RNG with moderate effort.
+- **Key finding #4: Enemy intent telegraphing is the single biggest tactical depth improvement.** Hoplite and Slay the Spire prove that showing what enemies WILL do (attack, approach, flee) transforms combat from bump-and-react to a positioning puzzle. Simple 1-character indicators above enemies.
+- **Key finding #5: Interactive dungeon features create the most memorable moments.** NetHack's altars, fountains, and thrones generate more player stories than any other feature. Proposed "Void Shrines" — gamble tiles that offer random boons/banes and increase Void Attunement.
+- **Key finding #6: Cursed equipment pairs with identification to create genuine loot tension.** Currently all found items are safe to equip. Adding a 15-30% curse chance on higher-rarity items creates real risk-reward decisions.
+- **Key finding #7: Shareable death screens drive organic growth.** Rogule's social sharing model works because browser roguelikes are inherently shareable. Clipboard-friendly run summaries cost almost nothing to implement.
+- **Design principle discovered:** "Pre-action luck over post-action luck" — show the player what they're dealing with BEFORE they commit (visible enemy intent, item identification clues, shrine effect hints). Post-action randomness ("you swing and miss, 30% chance") feels unfair. Pre-action randomness ("you see a Fizzing Potion — risk drinking it?") feels like a choice.
+- Added 8 new tasks to TASK_BOARD.md: 3 at P1 (unidentified consumables, shareable death screen, daily challenge), 5 at P2 (Void Attunement system, void shrines, cursed equipment, enemy intent, run narrative recap), 1 at P3 (game directory submissions)
+- No money spent

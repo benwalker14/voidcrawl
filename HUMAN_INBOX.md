@@ -130,8 +130,62 @@ The game currently has ~2 hours of unique content before repetition sets in. Two
 
 I've promoted the top 4 content items to **P1** on the task board. Let me know if you want to reprioritize.
 
+human response: content first sounds good to me.
+
 #### Key Design Principle Discovered
 
 Across all 6 benchmark games: **replayability comes from combinatorial interactions, not raw content volume.** Brogue has 68 enemies and ~70 items but achieves extraordinary depth because items interact with enemies and the environment. Every new element we add should multiply the possibility space — a Fire potion should interact with slime splitting, a Stun runic should synergize with Vorpal (stun then execute). I've flagged this for the developer agents to keep in mind.
+
+---
+
+### 2026-03-20 | strategist | Game Design Research — 3 decisions needed
+
+**From:** Strategist Agent (third session — Game Design Research)
+**Priority:** Medium-High
+
+I researched 12+ roguelikes and the browser roguelike market to identify mechanics that would make Voidcrawl more engaging and replayable. Added 8 new tasks to the task board. Three findings need your input:
+
+#### Decision 1: Void Attunement System (Unique Mechanical Hook)
+
+Every successful roguelike has one mechanic that makes it stand out. Voidcrawl's void theme is currently cosmetic only. I'm proposing a **Void Attunement** system — a corruption meter (0-100%) that grants both powers AND curses at thresholds:
+
+- 25%: Better vision / enemies detect you from further
+- 50%: Phase through walls / reduced max HP
+- 75%: Bonus damage / healing less effective
+- 100%: Godlike power / constant HP drain
+
+Players would gain attunement from void shrines, descending floors, and certain items. This creates a central risk-reward decision: "How much void am I willing to embrace?" and makes every run a unique story.
+
+**This is potentially the most impactful feature for differentiating Voidcrawl from other roguelikes.** But it's also a significant design commitment that touches combat, exploration, and item systems.
+
+- **A) Build it** — Make Void Attunement a core system. Commit to the risk-reward corruption design.
+- **B) Prototype first** — Have a developer build a minimal version (just the meter + 2 thresholds) to test if it feels good before committing.
+- **C) Skip it** — Focus on content variety instead of a unique mechanic. The game can succeed without a distinctive hook, just with more stuff.
+
+My recommendation: **Option B** (prototype). The mechanic is theoretically strong but needs playtesting before committing the full 4-threshold system.
+
+#### Decision 2: Daily Seeded Challenge
+
+Rogule (a daily browser roguelike) got 350K+ plays using the Wordle model — one dungeon per day, same for everyone. This could be a powerful growth driver for Voidcrawl and naturally creates return visits + social sharing. However, it requires:
+- Seeded RNG (all Math.random calls go through a seedable wrapper)
+- A separate game mode entry point
+- Community stats display
+
+Should the developer prioritize this alongside content work, or defer until more content exists?
+
+- **A) Build soon** — The daily format works even with current content levels (Rogule has less content than Voidcrawl).
+- **B) Defer until more content** — Wait until bosses + floor themes + enemy abilities are in, so the daily challenge has more variety.
+
+My recommendation: **Option A**. Rogule has far less content than Voidcrawl and still thrives. The seeded RNG infrastructure also benefits regular gameplay (reproducible bugs, share-a-seed with friends).
+
+#### Decision 3: Unidentified Consumables
+
+Should potions and scrolls have randomized names per run (NetHack/Shattered PD style)? "Fizzing Potion" could be Haste OR Poison until you try it. This transforms existing content into a discovery puzzle but adds friction to consumable use.
+
+- **A) Yes, full identification** — Randomize all consumable appearances. First use identifies. Add Scroll of Identify as a new consumable.
+- **B) Partial** — Only randomize potions (not scrolls). Scrolls are labeled because "you can read them."
+- **C) No** — Keep consumables pre-identified. Focus on adding more types instead of obscuring existing ones.
+
+My recommendation: **Option B** (partial). Randomize potions but keep scrolls labeled — this is the Shattered Pixel Dungeon approach and feels most natural. It adds discovery to the most common consumable type without making scrolls feel illogical.
 
 ---
