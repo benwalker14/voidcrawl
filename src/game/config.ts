@@ -125,6 +125,17 @@ export enum AIBehavior {
   COWARD = "coward",     // Chase but flee when low HP
 }
 
+// Enemy special abilities
+export enum SpecialAbility {
+  ARMORED = "armored",         // Void Beetle: takes 1 less damage from all attacks
+  PHASE = "phase",             // Shadow Wisp: 30% chance to dodge attacks
+  SPLIT = "split",             // Dark Slime: splits into 2 Mini Slimes on death
+  LIFE_DRAIN = "life_drain",   // Shade: heals 50% of damage dealt
+  TELEPORT = "teleport",       // Void Walker: teleports to random tile when hit
+  HOWL = "howl",               // Abyssal Hound: alerts all hounds when spotting player
+  ETHEREAL = "ethereal",       // Rift Wraith: moves through walls, vulnerable only on floor tiles
+}
+
 export interface GameEntity {
   id: string;
   type: EntityType;
@@ -143,6 +154,8 @@ export interface GameEntity {
   fearTurns?: number;
   friendly?: boolean;
   summonTurns?: number;
+  specialAbility?: SpecialAbility;
+  howled?: boolean; // Abyssal Hound: already howled this floor
 }
 
 export interface PlayerProgression {

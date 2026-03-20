@@ -19,6 +19,7 @@ import {
   FloatingText,
   MAX_INVENTORY_SIZE,
   AIBehavior,
+  SpecialAbility,
   MSG_COLORS,
 } from "./config";
 import { generateDungeon } from "./generation/dungeon";
@@ -180,25 +181,61 @@ function combat(
   messages: GameMessage[],
   attackBonus: number = 0,
   defenseBonus: number = 0,
-): { killed: boolean; damage: number } {
+  floatingTexts?: FloatingText[],
+): { killed: boolean; damage: number; dodged: boolean } {
+  const isPlayerAttacking = attacker.type === EntityType.PLAYER;
+
+  // PHASE ability: 30% dodge chance
+  if (defender.specialAbility === SpecialAbility.PHASE && Math.random() < 0.3) {
+    messages.push({
+      text: `${defender.name} phases out of existence! Attack passes through!`,
+      color: isPlayerAttacking ? MSG_COLORS.WARNING : MSG_COLORS.INFO,
+    });
+    if (floatingTexts) {
+      floatingTexts.push({ text: "DODGE", color: "#a78bfa", x: defender.pos.x, y: defender.pos.y });
+    }
+    return { killed: false, damage: 0, dodged: true };
+  }
+
   const atk = attacker.attack + attackBonus;
-  const def = defender.defense + defenseBonus;
+  let def = defender.defense + defenseBonus;
+
+  // ARMORED ability: +1 effective defense (reduces damage by 1)
+  if (defender.specialAbility === SpecialAbility.ARMORED) {
+    def += 1;
+  }
+
+  // ETHEREAL ability: only vulnerable on floor tiles (invulnerable on wall/void)
+  // This is checked by the caller who has access to the map — handled in processPlayerTurn
+
   const damage = Math.max(1, atk - def + Math.floor(Math.random() * 3) - 1);
   defender.hp -= damage;
-  const isPlayerAttacking = attacker.type === EntityType.PLAYER;
   messages.push({
     text: `${attacker.name} hits ${defender.name} for ${damage} damage!`,
     color: isPlayerAttacking ? MSG_COLORS.PLAYER_ATK : MSG_COLORS.ENEMY_ATK,
   });
+
+  // LIFE_DRAIN ability: attacker heals 50% of damage dealt
+  if (attacker.specialAbility === SpecialAbility.LIFE_DRAIN) {
+    const healAmount = Math.max(1, Math.floor(damage * 0.5));
+    attacker.hp = Math.min(attacker.maxHp, attacker.hp + healAmount);
+    messages.push({
+      text: `${attacker.name} drains ${healAmount} life!`,
+      color: MSG_COLORS.ENEMY_ATK,
+    });
+    if (floatingTexts) {
+      floatingTexts.push({ text: `+${healAmount}`, color: "#6d28d9", x: attacker.pos.x, y: attacker.pos.y });
+    }
+  }
 
   if (defender.hp <= 0) {
     messages.push({
       text: `${defender.name} is destroyed!`,
       color: MSG_COLORS.KILL,
     });
-    return { killed: true, damage };
+    return { killed: true, damage, dodged: false };
   }
-  return { killed: false, damage };
+  return { killed: false, damage, dodged: false };
 }
 
 function getEquipmentBonuses(inventory: PlayerInventory): { attack: number; defense: number } {
@@ -375,6 +412,7 @@ function applyConsumableEffect(state: GameState, item: Item): boolean {
           state.pendingFloatingTexts.push({ text: `-${damage}`, color: "#f97316", x: enemy.pos.x, y: enemy.pos.y });
           if (enemy.hp <= 0) {
             state.messages.push({ text: `${enemy.name} is incinerated!`, color: MSG_COLORS.KILL });
+            spawnSplitSlimes(state, enemy);
             state.runStats.enemiesKilled++;
             awardXp(state, enemy.xpReward ?? 5);
           }
@@ -625,14 +663,16 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
 
     // Adjacent — always attack regardless of behavior
     if (dist === 1) {
-      const result = combat(enemy, state.player, state.messages, 0, playerDefenseBonus);
+      const result = combat(enemy, state.player, state.messages, 0, playerDefenseBonus, state.pendingFloatingTexts);
       state.runStats.damageTaken += result.damage;
-      state.pendingFloatingTexts.push({
-        text: `-${result.damage}`,
-        color: MSG_COLORS.ENEMY_ATK,
-        x: state.player.pos.x,
-        y: state.player.pos.y,
-      });
+      if (!result.dodged) {
+        state.pendingFloatingTexts.push({
+          text: `-${result.damage}`,
+          color: MSG_COLORS.ENEMY_ATK,
+          x: state.player.pos.x,
+          y: state.player.pos.y,
+        });
+      }
       if (state.player.hp <= 0) {
         state.gameOver = true;
         state.messages.push({ text: "You have been consumed by the void...", color: MSG_COLORS.DEATH });
@@ -641,6 +681,58 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
     }
 
     const blocked = getBlockedPositions(state, enemy.id);
+
+    // HOWL: Abyssal Hound alerts all other hounds when it first spots the player
+    if (enemy.specialAbility === SpecialAbility.HOWL && !enemy.howled && dist <= detectRange) {
+      enemy.howled = true;
+      let alerted = 0;
+      for (const other of state.entities) {
+        if (other.id === enemy.id || other.hp <= 0 || other.friendly) continue;
+        if (other.specialAbility === SpecialAbility.HOWL && !other.howled) {
+          other.howled = true;
+          other.detectRange = 50; // Alert: detect from anywhere
+          alerted++;
+        }
+      }
+      if (alerted > 0) {
+        state.messages.push({ text: `${enemy.name} howls! ${alerted} other ${alerted === 1 ? "hound answers" : "hounds answer"}!`, color: MSG_COLORS.WARNING });
+        state.pendingFloatingTexts.push({ text: "HOWL!", color: "#c084fc", x: enemy.pos.x, y: enemy.pos.y });
+      }
+    }
+
+    // ETHEREAL: Rift Wraith moves through walls toward the player
+    if (enemy.specialAbility === SpecialAbility.ETHEREAL && dist <= detectRange) {
+      // Move directly toward player, ignoring walls
+      const stepX = dx === 0 ? 0 : dx > 0 ? 1 : -1;
+      const stepY = dy === 0 ? 0 : dy > 0 ? 1 : -1;
+      // Try primary axis (larger delta), then secondary
+      const candidates: Position[] = [];
+      if (Math.abs(dx) >= Math.abs(dy)) {
+        candidates.push({ x: enemy.pos.x + stepX, y: enemy.pos.y });
+        if (stepY !== 0) candidates.push({ x: enemy.pos.x, y: enemy.pos.y + stepY });
+      } else {
+        candidates.push({ x: enemy.pos.x, y: enemy.pos.y + stepY });
+        if (stepX !== 0) candidates.push({ x: enemy.pos.x + stepX, y: enemy.pos.y });
+      }
+      let moved = false;
+      for (const c of candidates) {
+        if (c.x < 0 || c.x >= MAP_WIDTH || c.y < 0 || c.y >= MAP_HEIGHT) continue;
+        if (blocked.has(`${c.x},${c.y}`)) continue;
+        enemy.pos.x = c.x;
+        enemy.pos.y = c.y;
+        moved = true;
+        break;
+      }
+      if (!moved) {
+        // Fallback to normal pathfinding
+        const step = findPath(state.map, enemy.pos, state.player.pos, blocked);
+        if (step) {
+          enemy.pos.x = step.x;
+          enemy.pos.y = step.y;
+        }
+      }
+      continue;
+    }
 
     switch (behavior) {
       case AIBehavior.CHASE: {
@@ -728,10 +820,13 @@ function moveFriendlies(state: GameState) {
 
     // Adjacent to enemy — attack
     if (nearestDist === 1) {
-      const result = combat(ally, nearestEnemy, state.messages);
+      const result = combat(ally, nearestEnemy, state.messages, 0, 0, state.pendingFloatingTexts);
       state.runStats.damageDealt += result.damage;
-      state.pendingFloatingTexts.push({ text: `-${result.damage}`, color: "#06b6d4", x: nearestEnemy.pos.x, y: nearestEnemy.pos.y });
+      if (!result.dodged) {
+        state.pendingFloatingTexts.push({ text: `-${result.damage}`, color: "#06b6d4", x: nearestEnemy.pos.x, y: nearestEnemy.pos.y });
+      }
       if (result.killed) {
+        spawnSplitSlimes(state, nearestEnemy);
         state.runStats.enemiesKilled++;
         awardXp(state, nearestEnemy.xpReward ?? 5);
         const loot = generateLootDrop(state.floor, nearestEnemy.pos);
@@ -754,6 +849,55 @@ function moveFriendlies(state: GameState) {
       }
     }
   }
+}
+
+let nextSplitId = 0;
+
+function spawnSplitSlimes(state: GameState, parent: GameEntity): void {
+  if (parent.specialAbility !== SpecialAbility.SPLIT) return;
+  const positions = getSplitPositions(state, parent.pos);
+  for (const sp of positions) {
+    const miniSlime: GameEntity = {
+      id: `enemy_split_${nextSplitId++}`,
+      type: EntityType.ENEMY,
+      pos: sp,
+      name: "Mini Slime",
+      hp: Math.max(2, Math.floor(parent.maxHp * 0.3)),
+      maxHp: Math.max(2, Math.floor(parent.maxHp * 0.3)),
+      attack: Math.max(1, Math.floor(parent.attack * 0.6)),
+      defense: 0,
+      color: "#7c3aed",
+      symbol: "s",
+      xpReward: Math.floor((parent.xpReward ?? 5) * 0.3),
+      behavior: AIBehavior.CHASE,
+      detectRange: 6,
+    };
+    state.entities.push(miniSlime);
+  }
+  if (positions.length > 0) {
+    state.messages.push({ text: `${parent.name} splits into Mini Slimes!`, color: MSG_COLORS.WARNING });
+    for (const sp of positions) {
+      state.pendingFloatingTexts.push({ text: "SPLIT", color: "#4c1d95", x: sp.x, y: sp.y });
+    }
+  }
+}
+
+function getSplitPositions(state: GameState, origin: Position): Position[] {
+  const dirs = [
+    { x: 0, y: -1 }, { x: 0, y: 1 }, { x: -1, y: 0 }, { x: 1, y: 0 },
+  ];
+  const positions: Position[] = [];
+  for (const d of dirs) {
+    if (positions.length >= 2) break;
+    const nx = origin.x + d.x;
+    const ny = origin.y + d.y;
+    if (nx < 0 || nx >= MAP_WIDTH || ny < 0 || ny >= MAP_HEIGHT) continue;
+    if (state.map[ny][nx] === TileType.WALL || state.map[ny][nx] === TileType.VOID) continue;
+    if (nx === state.player.pos.x && ny === state.player.pos.y) continue;
+    if (state.entities.some((e) => e.hp > 0 && e.pos.x === nx && e.pos.y === ny)) continue;
+    positions.push({ x: nx, y: ny });
+  }
+  return positions;
 }
 
 export type MoveDirection = "up" | "down" | "left" | "right" | "wait";
@@ -804,25 +948,44 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
         }
         return true;
       });
-      const result = combat(newState.player, enemy, newState.messages, bonuses.attack, 0);
-      newState.runStats.damageDealt += result.damage;
-      newState.pendingFloatingTexts.push({
-        text: `-${result.damage}`,
-        color: MSG_COLORS.PLAYER_ATK,
-        x: newX,
-        y: newY,
-      });
-      if (result.killed) {
-        newState.runStats.enemiesKilled++;
-        // Award XP
-        awardXp(newState, enemy.xpReward ?? 5);
-        // Try to drop loot at enemy position
-        const loot = generateLootDrop(newState.floor, enemy.pos);
-        if (loot) {
-          newState.items.push(loot);
-          newState.messages.push({ text: `${enemy.name} dropped ${loot.item.name}!`, color: MSG_COLORS.LOOT });
+
+      // ETHEREAL: Rift Wraith is invulnerable when not on a floor tile
+      if (enemy.specialAbility === SpecialAbility.ETHEREAL && newState.map[enemy.pos.y]?.[enemy.pos.x] !== TileType.FLOOR) {
+        newState.messages.push({ text: `Your attack passes through ${enemy.name}! It's only vulnerable on solid ground.`, color: MSG_COLORS.WARNING });
+        newState.pendingFloatingTexts.push({ text: "IMMUNE", color: "#e9d5ff", x: newX, y: newY });
+      } else {
+        const result = combat(newState.player, enemy, newState.messages, bonuses.attack, 0, newState.pendingFloatingTexts);
+        newState.runStats.damageDealt += result.damage;
+        if (!result.dodged) {
+          newState.pendingFloatingTexts.push({
+            text: `-${result.damage}`,
+            color: MSG_COLORS.PLAYER_ATK,
+            x: newX,
+            y: newY,
+          });
         }
-        newState.entities = newState.entities.filter((e) => e.id !== enemy.id);
+
+        // TELEPORT: Void Walker teleports to random tile when hit (and survived)
+        if (!result.killed && enemy.specialAbility === SpecialAbility.TELEPORT) {
+          const dest = getRandomFloorTile(newState);
+          if (dest) {
+            enemy.pos = { ...dest };
+            newState.messages.push({ text: `${enemy.name} teleports away!`, color: MSG_COLORS.WARNING });
+            newState.pendingFloatingTexts.push({ text: "TELEPORT", color: "#5b21b6", x: dest.x, y: dest.y });
+          }
+        }
+
+        if (result.killed) {
+          spawnSplitSlimes(newState, enemy);
+          newState.runStats.enemiesKilled++;
+          awardXp(newState, enemy.xpReward ?? 5);
+          const loot = generateLootDrop(newState.floor, enemy.pos);
+          if (loot) {
+            newState.items.push(loot);
+            newState.messages.push({ text: `${enemy.name} dropped ${loot.item.name}!`, color: MSG_COLORS.LOOT });
+          }
+          newState.entities = newState.entities.filter((e) => e.id !== enemy.id);
+        }
       }
     } else if (enemy && enemy.friendly) {
       // Swap positions with friendly entity
@@ -858,6 +1021,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       newState.pendingFloatingTexts.push({ text: `-${poisonDmg}`, color: "#22c55e", x: enemy.pos.x, y: enemy.pos.y });
       if (enemy.hp <= 0) {
         newState.messages.push({ text: `${enemy.name} dies from poison!`, color: MSG_COLORS.KILL });
+        spawnSplitSlimes(newState, enemy);
         newState.runStats.enemiesKilled++;
         newState.runStats.damageDealt += poisonDmg;
         awardXp(newState, enemy.xpReward ?? 5);

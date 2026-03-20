@@ -224,3 +224,18 @@
 - **Design principle discovered:** "Pre-action luck over post-action luck" — show the player what they're dealing with BEFORE they commit (visible enemy intent, item identification clues, shrine effect hints). Post-action randomness ("you swing and miss, 30% chance") feels unfair. Pre-action randomness ("you see a Fizzing Potion — risk drinking it?") feels like a choice.
 - Added 8 new tasks to TASK_BOARD.md: 3 at P1 (unidentified consumables, shareable death screen, daily challenge), 5 at P2 (Void Attunement system, void shrines, cursed equipment, enemy intent, run narrative recap), 1 at P3 (game directory submissions)
 - No money spent
+
+### 2026-03-20 33:00 | developer | Enemy special abilities: 7 unique combat mechanics
+- Added SpecialAbility enum (7 abilities) and specialAbility field to GameEntity in config.ts
+- Updated all 7 applicable enemy templates in enemies.ts with their special ability
+- **Void Beetle — ARMORED:** Takes 1 less damage from all attacks (+1 effective defense in combat function)
+- **Shadow Wisp — PHASE:** 30% chance to dodge any incoming attack. Displays "DODGE" floating text when triggered. Works against player, summon, and all damage sources
+- **Dark Slime — SPLIT:** On death, spawns up to 2 Mini Slimes in adjacent floor tiles. Mini Slimes have 30% parent HP, 60% parent ATK, 0 DEF, 30% parent XP. Works across all death sources: player attack, poison, fire potion, summon kills. Extracted reusable spawnSplitSlimes() helper
+- **Shade — LIFE_DRAIN:** Heals 50% of damage dealt (min 1 HP). Displays purple floating text showing HP gained. Works on all attacks (vs player and summons)
+- **Void Walker — TELEPORT:** Teleports to random floor tile when hit and survives. Displays "TELEPORT" floating text at destination. Creates cat-and-mouse gameplay
+- **Abyssal Hound — HOWL:** When first spotting the player (enters detect range), howl alerts all other Abyssal Hounds on the floor, setting their detect range to 50 (effectively infinite). One-time per hound per floor. Warning message and floating text displayed
+- **Rift Wraith — ETHEREAL:** Moves through walls (ignores wall collision during pathfinding, moves on primary axis toward player). Only vulnerable on floor tiles — attacks on wall/void tiles show "IMMUNE" and deal no damage. Creates positioning puzzle: lure it onto open ground
+- Updated combat() function to return dodged flag and accept optional floatingTexts parameter
+- Updated HelpOverlay enemy descriptions to include special ability summaries
+- Lint and build both pass clean
+- No money spent

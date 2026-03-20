@@ -2,13 +2,13 @@
 
 const ENEMIES = [
   { symbol: "r", color: "#8b5cf6", name: "Void Rat", behavior: "Wanders, chases when spotted", floors: "1+" },
-  { symbol: "w", color: "#a78bfa", name: "Shadow Wisp", behavior: "Flees when wounded", floors: "1+" },
-  { symbol: "b", color: "#7c3aed", name: "Void Beetle", behavior: "Wanders, chases when spotted", floors: "1+" },
-  { symbol: "s", color: "#4c1d95", name: "Dark Slime", behavior: "Ambushes at close range", floors: "2+" },
-  { symbol: "S", color: "#6d28d9", name: "Shade", behavior: "Ambushes at close range", floors: "3+" },
-  { symbol: "W", color: "#5b21b6", name: "Void Walker", behavior: "Pursues relentlessly", floors: "4+" },
-  { symbol: "H", color: "#c084fc", name: "Abyssal Hound", behavior: "Pursues from far away", floors: "5+" },
-  { symbol: "R", color: "#e9d5ff", name: "Rift Wraith", behavior: "Pursues from far away", floors: "7+" },
+  { symbol: "w", color: "#a78bfa", name: "Shadow Wisp", behavior: "Flees when wounded · 30% dodge chance", floors: "1+" },
+  { symbol: "b", color: "#7c3aed", name: "Void Beetle", behavior: "Wanders · Armored (takes 1 less damage)", floors: "1+" },
+  { symbol: "s", color: "#4c1d95", name: "Dark Slime", behavior: "Ambushes · Splits into 2 Mini Slimes on death", floors: "2+" },
+  { symbol: "S", color: "#6d28d9", name: "Shade", behavior: "Ambushes · Life drain (heals 50% of damage dealt)", floors: "3+" },
+  { symbol: "W", color: "#5b21b6", name: "Void Walker", behavior: "Pursues · Teleports away when hit", floors: "4+" },
+  { symbol: "H", color: "#c084fc", name: "Abyssal Hound", behavior: "Pursues · Howl alerts all other hounds", floors: "5+" },
+  { symbol: "R", color: "#e9d5ff", name: "Rift Wraith", behavior: "Moves through walls · Vulnerable only on floor tiles", floors: "7+" },
   { symbol: "V", color: "#f5f3ff", name: "Void Lord", behavior: "Pursues from very far away", floors: "10+" },
 ];
 
