@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+:root {
+  --void-black: #0a0a0f;
+  --void-dark: #12121a;
+  --void-purple: #6b21a8;
+  --void-blue: #1e40af;
+  --void-cyan: #06b6d4;
+  --void-text: #e2e8f0;
+  --void-muted: #94a3b8;
+}
+
+body {
+  background: var(--void-black);
+  color: var(--void-text);
+  font-family: 'Courier New', monospace;
+}
+
+/* Pixel-perfect rendering for the game canvas */
+canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
