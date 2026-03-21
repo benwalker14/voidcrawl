@@ -1,5 +1,12 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-20 19:30 | developer | Add keyboard controls to death/victory screen
+- Added R/Enter to restart, C to copy run summary, E to continue endless mode (victory only)
+- Extracted copy logic into reusable `copyRunSummary` function (DRY refactor)
+- Added keyboard hint text below buttons on death/victory overlay
+- Updated HelpOverlay Controls section with death screen keybindings (R/Enter, C, E) and Esc
+- Roguelike players are keyboard-first; mouse-only death screen was a flow-breaker
+
 ### 2026-03-20 00:00 | developer | Initial project setup
 - Scaffolded Next.js 16 project with TypeScript and Tailwind CSS 4
 - Built core game engine: dungeon generation, combat, FOV, rendering
@@ -628,4 +635,36 @@
 - Daily challenge mode properly excluded from daily save on victory (only saves on death)
 
 **Build:** `npm run build` passes clean. `npm run lint` passes clean.
+- No money spent
+
+### 2026-03-20 19:55 | strategist | Post-build player experience audit (eighth strategist session)
+- **Analysis type:** Player Experience (type E, third pass — post-build deep audit)
+- Audited the full codebase after all major content was built. Read config.ts, engine.ts, renderer.ts, GameCanvas.tsx, HelpOverlay.tsx, page.tsx. Cataloged complete content inventory (9 enemies + boss, 10 weapons/armor, 9 potions, 4 scrolls, 7 runics, 3 zones, 7 shrine effects, 2 attunement thresholds).
+
+**5 NEW UX issues found (not previously on task board):**
+
+1. **Keyboard dead on death/victory screen.** GameCanvas.tsx:311 blocks ALL keyboard input when `gameOver === true`. Players must use mouse clicks for "TRY AGAIN" / "NEW RUN" / "CONTINUE (ENDLESS)". Roguelike players are keyboard-first — this breaks flow. Fix: add keyboard handlers (R to restart, Enter to continue, C to copy summary) before the gameOver return guard.
+
+2. **No item drop mechanic.** Inventory has 8 slots, only emptied by using consumables. When full, better weapons/armor can't be picked up ("Inventory full! Can't pick up item."). Players must waste consumables to make room. Fix: add D key + number to drop items to the ground tile. Essential inventory management.
+
+3. **HUD ATK doesn't include attunement bonus.** `getStatsFromState()` computes attack as `player.attack + weaponAtk` but Void Strike (+3 ATK at 50% attunement) is computed separately in combat (engine.ts:1252). The displayed ATK is lower than actual damage output. This confuses players about their real power level. Fix: include attunement bonus in the displayed ATK number (it already shows the label separately, so the bonus would be visible in both places).
+
+4. **Zero audio.** No sound effects anywhere in the codebase. Combat hits, level-ups, item pickups, boss encounters, zone transitions — all silent. For a game investing in visual feedback (floating text, hit animations, color bursts), the absence of audio is a noticeable gap in the feedback loop. Fix: add minimal Web Audio API sound layer with procedurally generated tones (no asset files needed).
+
+5. **No floor/zone progress hint.** Players don't know that floor 5 has a boss, floor 5+ changes the visual theme, or floor 10+ reduces FOV. The zone transition messages only fire AFTER crossing the boundary. Adding a subtle zone indicator (e.g., "Null Tunnels 3/4" in the floor display) would create anticipation and give players a sense of progress toward the next zone.
+
+**Assessment of previously-identified P1 items:**
+- Gameplay screenshot on landing page (P1) — still needed, essential for conversion. The landing page has zero visual proof the game is fun.
+- Personal best tracking (P1) — still needed, essential for "one more run" motivation. No comparison to previous runs on death.
+
+**What's working well (no action needed):**
+- Tutorial overlay: clean, minimal, dismissible via keyboard — good first-touch experience.
+- Shrine prompt UI: atmospheric, clearly shows cost (+15 Attunement), Y/N controls are intuitive.
+- Boss fight HUD: HP bar with phase indicator (ACTIVE/VULNERABLE) provides clear tactical information.
+- Identification system: inventory shows descriptors with (?) until identified — creates discovery moments.
+- Zone transitions: floating text + color shift + zone name message — dramatic and informative.
+- Death/victory screen: good stat presentation, shareable clipboard copy, appropriate visual treatment.
+- Daily challenge: one-attempt-per-day enforcement works correctly, shows previous result.
+
+**Tasks added to TASK_BOARD.md:** 2 new P1 tasks (keyboard restart, item dropping), 3 new P2 tasks (sound effects, ATK display fix, zone progress hint).
 - No money spent

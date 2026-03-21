@@ -64,6 +64,11 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
           <Row left="1-8" right="Use inventory item by slot number" />
           <Row left="M" right="Toggle mini-map" />
           <Row left="? / H" right="Toggle this help screen" />
+          <Row left="Esc" right="Pause menu" />
+          <div className="mt-1 mb-0.5" style={{ color: "var(--void-muted)" }}>On death/victory screen:</div>
+          <Row left="R / Enter" right="Start new run" />
+          <Row left="C" right="Copy run summary to clipboard" />
+          <Row left="E" right="Continue in endless mode (victory only)" />
         </Section>
 
         {/* How to Play */}

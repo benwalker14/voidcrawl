@@ -308,7 +308,24 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
       // Block game input while help or pause is open
       if (showHelpRef.current || showPauseRef.current) return;
 
-      if (!gameRef.current || gameRef.current.gameOver) return;
+      if (!gameRef.current) return;
+
+      // Death/Victory screen keyboard shortcuts
+      if (gameRef.current.gameOver) {
+        if (e.key === "r" || e.key === "R" || e.key === "Enter") {
+          e.preventDefault();
+          restart();
+        } else if (e.key === "c" || e.key === "C") {
+          e.preventDefault();
+          copyRunSummary();
+        } else if (e.key === "e" || e.key === "E") {
+          e.preventDefault();
+          if (gameRef.current.victory) {
+            continueToEndless();
+          }
+        }
+        return;
+      }
 
       // Handle shrine prompt Y/N
       if (gameRef.current.shrinePrompt) {
@@ -417,6 +434,33 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
     setCopied(false);
     updateUI(state);
     draw();
+  };
+
+  const copyRunSummary = () => {
+    const state = gameRef.current;
+    if (!state) return;
+    const currentStats = getStatsFromState(state);
+    const rs = state.runStats;
+    const maxFloor = VICTORY_FLOOR;
+    const filled = Math.min(maxFloor, Math.round((rs.deepestFloor / maxFloor) * maxFloor));
+    const bar = "\u2593".repeat(filled) + "\u2591".repeat(maxFloor - filled);
+    const dailyTag = isDaily ? ` (Daily ${dailySeed})` : "";
+    const isVictory = state.victory;
+    const summary = isVictory
+      ? [
+          `\uD83C\uDFC6 NULLCRAWL \uD83C\uDFC6 ESCAPED!${dailyTag}`,
+          `Floor ${rs.deepestFloor} | Level ${currentStats.level} | ${rs.enemiesKilled} kills | ${formatPlayTime(rs.startTime)}`,
+          `${bar} Floor ${rs.deepestFloor}/${maxFloor}`,
+        ].join("\n")
+      : [
+          `\u2620 NULLCRAWL \u2620${dailyTag}`,
+          `Floor ${rs.deepestFloor} | Level ${currentStats.level} | ${rs.enemiesKilled} kills | ${formatPlayTime(rs.startTime)}${rs.killedBy ? ` | Killed by ${rs.killedBy}` : ""}`,
+          `${bar} Floor ${rs.deepestFloor}/${maxFloor}`,
+        ].join("\n");
+    navigator.clipboard.writeText(summary).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   };
 
   // If daily was already completed, show result screen instead of game
@@ -752,27 +796,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
             </div>
             <div className="flex gap-3">
               <button
-                onClick={() => {
-                  const maxFloor = VICTORY_FLOOR;
-                  const filled = Math.min(maxFloor, Math.round((runStats.deepestFloor / maxFloor) * maxFloor));
-                  const bar = "\u2593".repeat(filled) + "\u2591".repeat(maxFloor - filled);
-                  const dailyTag = isDaily ? ` (Daily ${dailySeed})` : "";
-                  const summary = victory
-                    ? [
-                        `\uD83C\uDFC6 NULLCRAWL \uD83C\uDFC6 ESCAPED!${dailyTag}`,
-                        `Floor ${runStats.deepestFloor} | Level ${stats.level} | ${runStats.enemiesKilled} kills | ${formatPlayTime(runStats.startTime)}`,
-                        `${bar} Floor ${runStats.deepestFloor}/${maxFloor}`,
-                      ].join("\n")
-                    : [
-                        `\u2620 NULLCRAWL \u2620${dailyTag}`,
-                        `Floor ${runStats.deepestFloor} | Level ${stats.level} | ${runStats.enemiesKilled} kills | ${formatPlayTime(runStats.startTime)}${runStats.killedBy ? ` | Killed by ${runStats.killedBy}` : ""}`,
-                        `${bar} Floor ${runStats.deepestFloor}/${maxFloor}`,
-                      ].join("\n");
-                  navigator.clipboard.writeText(summary).then(() => {
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
-                  });
-                }}
+                onClick={copyRunSummary}
                 className="px-4 py-2 border-2 font-bold tracking-wider text-sm transition-all hover:scale-105"
                 style={{
                   borderColor: copied ? "#22c55e" : "#fbbf24",
@@ -798,6 +822,11 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
                 {isDaily ? "PLAY STANDARD" : victory ? "NEW RUN" : "TRY AGAIN"}
               </button>
             </div>
+            <p className="mt-3 text-xs font-mono" style={{ color: "var(--void-muted)" }}>
+              <span style={{ color: "#fbbf24" }}>C</span> copy{" "}
+              {victory && <><span style={{ color: "#c084fc" }}>E</span> endless{" "}</>}
+              <span style={{ color: "var(--void-cyan)" }}>R</span>/<span style={{ color: "var(--void-cyan)" }}>Enter</span> {isDaily ? "standard" : victory ? "new run" : "retry"}
+            </p>
           </div>
         )}
       </div>
