@@ -130,6 +130,7 @@ export enum ConsumableEffect {
   ENCHANT = "enchant",
   FEAR = "fear",
   SUMMON = "summon",
+  REMOVE_CURSE = "remove_curse",
 }
 
 // Status effects on the player
@@ -171,6 +172,7 @@ export const CONSUMABLE_EFFECT_NAMES: Record<ConsumableEffect, string> = {
   [ConsumableEffect.ENCHANT]: "Enchanting",
   [ConsumableEffect.FEAR]: "Fear",
   [ConsumableEffect.SUMMON]: "Summoning",
+  [ConsumableEffect.REMOVE_CURSE]: "Remove Curse",
 };
 
 export const WEAPON_RUNICS = [RunicEffect.VAMPIRIC, RunicEffect.FLAMING, RunicEffect.STUNNING, RunicEffect.VORPAL];
@@ -184,6 +186,39 @@ export const RUNIC_NAMES: Record<RunicEffect, string> = {
   [RunicEffect.REFLECTIVE]: "Reflective",
   [RunicEffect.REGENERATING]: "Regenerating",
   [RunicEffect.THORNED]: "Thorned",
+};
+
+// Curse effects for weapons and armor (dual-edged: each has a downside AND a situational upside)
+export enum CurseEffect {
+  // Weapon curses
+  ERRATIC = "erratic",         // -2 ATK but 25% chance of 3x damage on any hit
+  DISPLACING = "displacing",   // Attacks teleport enemy to random tile
+  DRAINING = "draining",       // Kills give -1 max HP but +2 ATK for rest of floor
+  // Armor curses
+  ANTI_ENTROPY = "anti_entropy", // Attackers frozen 1 turn but you are slowed 1 turn
+  VOLATILE = "volatile",         // 10% chance to explode for 4 AoE damage when hit (hurts you and enemies)
+  PARANOID = "paranoid",         // +4 detect range but shrines always give negative effects
+}
+
+export const WEAPON_CURSES = [CurseEffect.ERRATIC, CurseEffect.DISPLACING, CurseEffect.DRAINING];
+export const ARMOR_CURSES = [CurseEffect.ANTI_ENTROPY, CurseEffect.VOLATILE, CurseEffect.PARANOID];
+
+export const CURSE_NAMES: Record<CurseEffect, string> = {
+  [CurseEffect.ERRATIC]: "Erratic",
+  [CurseEffect.DISPLACING]: "Displacing",
+  [CurseEffect.DRAINING]: "Draining",
+  [CurseEffect.ANTI_ENTROPY]: "Anti-Entropy",
+  [CurseEffect.VOLATILE]: "Volatile",
+  [CurseEffect.PARANOID]: "Paranoid",
+};
+
+export const CURSE_DESCRIPTIONS: Record<CurseEffect, string> = {
+  [CurseEffect.ERRATIC]: "-2 ATK, 25% chance 3x damage",
+  [CurseEffect.DISPLACING]: "Attacks teleport enemy to random tile",
+  [CurseEffect.DRAINING]: "Kills: -1 max HP, +2 ATK for floor",
+  [CurseEffect.ANTI_ENTROPY]: "Attackers frozen 1 turn, you slowed 1 turn",
+  [CurseEffect.VOLATILE]: "10% explode on hit: 4 AoE damage to all",
+  [CurseEffect.PARANOID]: "+4 detect range, shrines always negative",
 };
 
 // Item rarity
@@ -212,6 +247,8 @@ export interface Item {
   effect?: ConsumableEffect;
   effectValue?: number; // duration in turns, damage amount, etc.
   runic?: RunicEffect;
+  cursed?: boolean;           // Cannot be unequipped until Remove Curse scroll used
+  curse?: CurseEffect;       // Dual-edged curse effect (downside + situational upside)
   minFloor: number;
   description: string;
 }
@@ -370,6 +407,8 @@ export interface GameState {
   shrinesUsed: Set<string>;                       // "x,y" keys of shrines already used this floor
   gameMode: GameMode;
   seed?: string;                                  // Seed string for daily challenge mode
+  drainingAtkBonus: number;                        // Draining curse: accumulated +2 ATK per kill this floor
+  playerSlowed: boolean;                           // Anti-Entropy curse: player skips next move action
 }
 
 export interface DailyResult {

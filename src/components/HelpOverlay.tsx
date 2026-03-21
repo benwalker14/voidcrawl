@@ -24,7 +24,7 @@ const ITEMS = [
   { symbol: "!", color: "#9ca3af", label: "Potion (Common)", example: "Health, Teleport" },
   { symbol: "!", color: "#22c55e", label: "Potion (Uncommon)", example: "Haste, Fire, Poison" },
   { symbol: "!", color: "#3b82f6", label: "Potion (Rare)", example: "Invisibility, Strength" },
-  { symbol: "?", color: "#22c55e", label: "Scroll (Uncommon)", example: "Mapping, Fear" },
+  { symbol: "?", color: "#22c55e", label: "Scroll (Uncommon)", example: "Mapping, Fear, Remove Curse" },
   { symbol: "?", color: "#3b82f6", label: "Scroll (Rare)", example: "Enchanting, Summoning" },
 ];
 
@@ -208,6 +208,7 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
             <div><span style={{ color: "#22c55e" }}>Enchanting</span> — +2 to equipped weapon ATK or armor DEF</div>
             <div><span style={{ color: "#22c55e" }}>Fear</span> — All visible enemies flee for 6 turns</div>
             <div><span style={{ color: "#22c55e" }}>Summoning</span> — Summons a Void Spirit ally for 15 turns</div>
+            <div><span style={{ color: "#22c55e" }}>Remove Curse</span> — Lifts curses from all equipped items</div>
           </div>
         </Section>
 
@@ -267,6 +268,28 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
             <div><span style={{ color: "#c084fc" }}>Reflective</span> — 15% chance to reflect full damage back to attacker</div>
             <div><span style={{ color: "#c084fc" }}>Regenerating</span> — Heal 1 HP every 10 turns</div>
             <div><span style={{ color: "#c084fc" }}>Thorned</span> — Deal 1 damage to any enemy that hits you in melee</div>
+          </div>
+        </Section>
+
+        {/* Cursed Equipment */}
+        <Section title="Cursed Equipment">
+          <p className="mb-1" style={{ color: "var(--void-muted)" }}>
+            15% of Uncommon and 30% of Rare weapons/armor spawn cursed. Cursed items
+            <span style={{ color: "#ef4444" }}> cannot be unequipped</span> until a Scroll of Remove Curse is used.
+            Curses are revealed on equip. Each curse has a downside <em>and</em> a situational upside.
+            Shown as <span style={{ color: "#ef4444" }}>[Curse Name]</span> on the item.
+          </p>
+          <p className="mb-1" style={{ color: "#06b6d4" }}>Weapon Curses</p>
+          <div className="space-y-0.5 mb-2 ml-2">
+            <div><span style={{ color: "#ef4444" }}>Erratic</span> — -2 ATK, but 25% chance of 3x damage on any hit</div>
+            <div><span style={{ color: "#ef4444" }}>Displacing</span> — Attacks teleport surviving enemy to a random tile</div>
+            <div><span style={{ color: "#ef4444" }}>Draining</span> — Kills: -1 max HP, +2 ATK for rest of floor</div>
+          </div>
+          <p className="mb-1" style={{ color: "#06b6d4" }}>Armor Curses</p>
+          <div className="space-y-0.5 ml-2">
+            <div><span style={{ color: "#ef4444" }}>Anti-Entropy</span> — Attackers frozen 1 turn, but you are slowed 1 turn</div>
+            <div><span style={{ color: "#ef4444" }}>Volatile</span> — 10% chance to explode on hit: 4 AoE damage to everything nearby</div>
+            <div><span style={{ color: "#ef4444" }}>Paranoid</span> — +4 enemy detect range, but shrines always give negative effects</div>
           </div>
         </Section>
       </div>

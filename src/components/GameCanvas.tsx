@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES, CONSUMABLE_EFFECT_NAMES, VICTORY_FLOOR } from "@/game/config";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES, CONSUMABLE_EFFECT_NAMES, VICTORY_FLOOR, CURSE_NAMES, CURSE_DESCRIPTIONS } from "@/game/config";
 import { initGame, processPlayerTurn, applyInventoryItem, dropItem, processShrine, continueEndless, MoveDirection, getAttunementAtkBonus } from "@/game/engine";
 import { render, renderMinimap, renderFloatingTexts, renderHitEffects, FLOAT_DURATION, HIT_EFFECT_DURATION } from "@/game/renderer";
 import type { ActiveFloatingText, ActiveHitEffect } from "@/game/renderer";
@@ -720,6 +720,9 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
               {inventory.equippedWeapon.runic && (
                 <span style={{ color: "#c084fc" }}> [{RUNIC_NAMES[inventory.equippedWeapon.runic]}]</span>
               )}
+              {inventory.equippedWeapon.cursed && inventory.equippedWeapon.curse && (
+                <span style={{ color: "#ef4444" }} title={CURSE_DESCRIPTIONS[inventory.equippedWeapon.curse]}> [{CURSE_NAMES[inventory.equippedWeapon.curse]}]</span>
+              )}
             </>
           ) : (
             <span>None</span>
@@ -732,6 +735,9 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
               <span style={{ color: inventory.equippedArmor.color }}>{inventory.equippedArmor.name}</span>
               {inventory.equippedArmor.runic && (
                 <span style={{ color: "#c084fc" }}> [{RUNIC_NAMES[inventory.equippedArmor.runic]}]</span>
+              )}
+              {inventory.equippedArmor.cursed && inventory.equippedArmor.curse && (
+                <span style={{ color: "#ef4444" }} title={CURSE_DESCRIPTIONS[inventory.equippedArmor.curse]}> [{CURSE_NAMES[inventory.equippedArmor.curse]}]</span>
               )}
             </>
           ) : (
@@ -979,6 +985,9 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
                   </span>
                   {item.runic && (
                     <span style={{ color: "#c084fc" }}> [{RUNIC_NAMES[item.runic]}]</span>
+                  )}
+                  {item.cursed && item.curse && (
+                    <span style={{ color: "#ef4444" }}> [{CURSE_NAMES[item.curse]}]</span>
                   )}
                 </span>
               );

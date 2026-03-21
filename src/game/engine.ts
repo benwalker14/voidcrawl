@@ -24,6 +24,8 @@ import {
   SpecialAbility,
   RunicEffect,
   EnemyIntent,
+  CurseEffect,
+  CURSE_NAMES,
   MSG_COLORS,
   CONSUMABLE_EFFECT_NAMES,
   getZoneTheme,
@@ -286,6 +288,8 @@ export function generateFloor(
     shrinesUsed: new Set<string>(),
     gameMode: mode,
     seed,
+    drainingAtkBonus: 0,  // Reset per floor (Draining curse grants +2 ATK per kill this floor)
+    playerSlowed: false,   // Anti-Entropy curse: player skips next move
   };
 
   // Compute initial enemy intents so they display from turn 1
@@ -420,7 +424,8 @@ function pickupItem(state: GameState): void {
   // Auto-equip weapons if better or empty slot
   if (item.category === ItemCategory.WEAPON) {
     const current = state.inventory.equippedWeapon;
-    if (!current || (item.attack ?? 0) > (current.attack ?? 0)) {
+    const canReplaceCurrent = !current?.cursed; // Cursed items cannot be unequipped
+    if (canReplaceCurrent && (!current || (item.attack ?? 0) > (current.attack ?? 0))) {
       if (current) {
         if (state.inventory.items.length < MAX_INVENTORY_SIZE) {
           state.inventory.items.push(current);
@@ -431,7 +436,13 @@ function pickupItem(state: GameState): void {
         }
       }
       state.inventory.equippedWeapon = item;
-      state.messages.push({ text: `Equipped ${item.name}! (+${item.attack} ATK)`, color: MSG_COLORS.EQUIP });
+      // Reveal curse on equip
+      if (item.cursed && item.curse) {
+        state.messages.push({ text: `Equipped ${item.name}! (+${item.attack} ATK) — a dark energy binds it to you!`, color: "#ef4444" });
+        state.pendingFloatingTexts.push({ text: "CURSED!", color: "#ef4444", x: state.player.pos.x, y: state.player.pos.y });
+      } else {
+        state.messages.push({ text: `Equipped ${item.name}! (+${item.attack} ATK)`, color: MSG_COLORS.EQUIP });
+      }
     } else {
       if (state.inventory.items.length >= MAX_INVENTORY_SIZE) {
         state.messages.push({ text: "Inventory full! Can't pick up item.", color: MSG_COLORS.WARNING });
@@ -444,7 +455,8 @@ function pickupItem(state: GameState): void {
   // Auto-equip armor if better or empty slot
   else if (item.category === ItemCategory.ARMOR) {
     const current = state.inventory.equippedArmor;
-    if (!current || (item.defense ?? 0) > (current.defense ?? 0)) {
+    const canReplaceCurrent = !current?.cursed; // Cursed items cannot be unequipped
+    if (canReplaceCurrent && (!current || (item.defense ?? 0) > (current.defense ?? 0))) {
       if (current) {
         if (state.inventory.items.length < MAX_INVENTORY_SIZE) {
           state.inventory.items.push(current);
@@ -455,7 +467,13 @@ function pickupItem(state: GameState): void {
         }
       }
       state.inventory.equippedArmor = item;
-      state.messages.push({ text: `Equipped ${item.name}! (+${item.defense} DEF)`, color: MSG_COLORS.EQUIP });
+      // Reveal curse on equip
+      if (item.cursed && item.curse) {
+        state.messages.push({ text: `Equipped ${item.name}! (+${item.defense} DEF) — a dark energy binds it to you!`, color: "#ef4444" });
+        state.pendingFloatingTexts.push({ text: "CURSED!", color: "#ef4444", x: state.player.pos.x, y: state.player.pos.y });
+      } else {
+        state.messages.push({ text: `Equipped ${item.name}! (+${item.defense} DEF)`, color: MSG_COLORS.EQUIP });
+      }
     } else {
       if (state.inventory.items.length >= MAX_INVENTORY_SIZE) {
         state.messages.push({ text: "Inventory full! Can't pick up item.", color: MSG_COLORS.WARNING });
@@ -719,6 +737,31 @@ function applyConsumableEffect(state: GameState, item: Item): boolean {
       return true;
     }
 
+    case ConsumableEffect.REMOVE_CURSE: {
+      const weapon = state.inventory.equippedWeapon;
+      const armor = state.inventory.equippedArmor;
+      const weaponCursed = weapon?.cursed;
+      const armorCursed = armor?.cursed;
+      if (!weaponCursed && !armorCursed) {
+        state.messages.push({ text: "You have no cursed equipment.", color: MSG_COLORS.WARNING });
+        return false;
+      }
+      if (weaponCursed) {
+        state.inventory.equippedWeapon = { ...weapon, cursed: false, curse: undefined, name: weapon.name.replace(" (cursed)", "") };
+        state.messages.push({ text: `The curse lifts from your ${weapon.name.replace(" (cursed)", "")}!`, color: MSG_COLORS.HEAL });
+      }
+      if (armorCursed) {
+        state.inventory.equippedArmor = { ...armor!, cursed: false, curse: undefined, name: armor!.name.replace(" (cursed)", "") };
+        state.messages.push({ text: `The curse lifts from your ${armor!.name.replace(" (cursed)", "")}!`, color: MSG_COLORS.HEAL });
+      }
+      state.pendingFloatingTexts.push({ text: "CURSE LIFTED!", color: "#22c55e", x: state.player.pos.x, y: state.player.pos.y });
+      // Reset draining ATK bonus since the curse is gone
+      if (weaponCursed || armorCursed) {
+        state.drainingAtkBonus = 0;
+      }
+      return true;
+    }
+
     default:
       return false;
   }
@@ -757,16 +800,34 @@ export function applyInventoryItem(state: GameState, index: number): GameState {
     }
   } else if (item.category === ItemCategory.WEAPON) {
     const old = newState.inventory.equippedWeapon;
+    if (old?.cursed) {
+      newState.messages.push({ text: `Your ${old.name} is cursed! You cannot unequip it.`, color: "#ef4444" });
+      return newState;
+    }
     newState.inventory.equippedWeapon = item;
     newState.inventory.items.splice(index, 1);
     if (old) newState.inventory.items.push(old);
-    newState.messages.push({ text: `Equipped ${item.name}! (+${item.attack} ATK)`, color: MSG_COLORS.EQUIP });
+    if (item.cursed && item.curse) {
+      newState.messages.push({ text: `Equipped ${item.name}! (+${item.attack} ATK) — a dark energy binds it to you!`, color: "#ef4444" });
+      newState.pendingFloatingTexts.push({ text: "CURSED!", color: "#ef4444", x: newState.player.pos.x, y: newState.player.pos.y });
+    } else {
+      newState.messages.push({ text: `Equipped ${item.name}! (+${item.attack} ATK)`, color: MSG_COLORS.EQUIP });
+    }
   } else if (item.category === ItemCategory.ARMOR) {
     const old = newState.inventory.equippedArmor;
+    if (old?.cursed) {
+      newState.messages.push({ text: `Your ${old.name} is cursed! You cannot unequip it.`, color: "#ef4444" });
+      return newState;
+    }
     newState.inventory.equippedArmor = item;
     newState.inventory.items.splice(index, 1);
     if (old) newState.inventory.items.push(old);
-    newState.messages.push({ text: `Equipped ${item.name}! (+${item.defense} DEF)`, color: MSG_COLORS.EQUIP });
+    if (item.cursed && item.curse) {
+      newState.messages.push({ text: `Equipped ${item.name}! (+${item.defense} DEF) — a dark energy binds it to you!`, color: "#ef4444" });
+      newState.pendingFloatingTexts.push({ text: "CURSED!", color: "#ef4444", x: newState.player.pos.x, y: newState.player.pos.y });
+    } else {
+      newState.messages.push({ text: `Equipped ${item.name}! (+${item.defense} DEF)`, color: MSG_COLORS.EQUIP });
+    }
   }
 
   return newState;
@@ -935,7 +996,8 @@ function getRandomFloorTileNearBoss(state: GameState, bossPos: Position): Positi
 
 function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
   const isInvisible = hasStatusEffect(state, StatusEffectType.INVISIBLE);
-  const detectBonus = getAttunementDetectBonus(state.voidAttunement);
+  const paranoidBonus = state.inventory.equippedArmor?.curse === CurseEffect.PARANOID ? 4 : 0;
+  const detectBonus = getAttunementDetectBonus(state.voidAttunement) + paranoidBonus;
 
   for (const enemy of state.entities) {
     if (enemy.hp <= 0 || enemy.friendly) continue;
@@ -1011,6 +1073,43 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
           state.pendingFloatingTexts.push({ text: `-${reflectDmg}`, color: "#38bdf8", x: enemy.pos.x, y: enemy.pos.y });
           if (enemy.hp <= 0) {
             state.messages.push({ text: `${enemy.name} is destroyed by reflected damage!`, color: MSG_COLORS.KILL });
+          }
+        }
+
+        // Armor curse effects trigger when player takes damage
+        const armorCurse = state.inventory.equippedArmor?.curse;
+
+        // ANTI-ENTROPY: attacker frozen 1 turn, player slowed 1 turn
+        if (armorCurse === CurseEffect.ANTI_ENTROPY && enemy.hp > 0) {
+          enemy.stunnedNextTurn = true;
+          state.playerSlowed = true;
+          state.messages.push({ text: `Anti-entropy: ${enemy.name} is frozen, but you feel sluggish!`, color: "#a78bfa" });
+          state.pendingFloatingTexts.push({ text: "FROZEN!", color: "#38bdf8", x: enemy.pos.x, y: enemy.pos.y });
+        }
+
+        // VOLATILE: 10% chance to explode for 4 AoE damage (hurts player + all adjacent enemies)
+        if (armorCurse === CurseEffect.VOLATILE && random() < 0.10) {
+          const px = state.player.pos.x;
+          const py = state.player.pos.y;
+          // Damage player
+          const volatileSelfDmg = 4;
+          state.player = { ...state.player, hp: state.player.hp - volatileSelfDmg };
+          state.messages.push({ text: `Your volatile armor EXPLODES! You take ${volatileSelfDmg} damage!`, color: "#ef4444" });
+          state.pendingFloatingTexts.push({ text: `-${volatileSelfDmg}`, color: "#ef4444", x: px, y: py });
+          state.pendingShake = Math.max(state.pendingShake, 6);
+          // Damage all enemies within 1 tile
+          for (const ent of state.entities) {
+            if (ent.hp <= 0 || ent.friendly) continue;
+            const ex = Math.abs(ent.pos.x - px);
+            const ey = Math.abs(ent.pos.y - py);
+            if (ex <= 1 && ey <= 1) {
+              ent.hp -= 4;
+              state.messages.push({ text: `The explosion hits ${ent.name} for 4 damage!`, color: MSG_COLORS.PLAYER_ATK });
+              state.pendingFloatingTexts.push({ text: "-4", color: "#f97316", x: ent.pos.x, y: ent.pos.y });
+              if (ent.hp <= 0) {
+                state.messages.push({ text: `${ent.name} is destroyed by the explosion!`, color: MSG_COLORS.KILL });
+              }
+            }
           }
         }
       }
@@ -1146,7 +1245,8 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
  *  Called after enemy movement so intents reflect what enemies will do next turn. */
 function computeEnemyIntents(state: GameState) {
   const isInvisible = hasStatusEffect(state, StatusEffectType.INVISIBLE);
-  const detectBonus = getAttunementDetectBonus(state.voidAttunement);
+  const paranoidBonus = state.inventory.equippedArmor?.curse === CurseEffect.PARANOID ? 4 : 0;
+  const detectBonus = getAttunementDetectBonus(state.voidAttunement) + paranoidBonus;
 
   for (const enemy of state.entities) {
     if (enemy.hp <= 0 || enemy.friendly) {
@@ -1314,6 +1414,12 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
   if (state.gameOver) return state;
   if (state.shrinePrompt) return state; // Block movement during shrine prompt
 
+  // ANTI-ENTROPY curse: player is slowed — forced to wait this turn
+  if (state.playerSlowed && direction !== "wait") {
+    direction = "wait";
+    // Message handled below after newState created
+  }
+
   const newState = {
     ...state,
     messages: [] as GameMessage[],
@@ -1329,6 +1435,13 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
     pendingHitEffects: [] as HitEffect[],
     pendingShake: 0,
   };
+
+  // Clear Anti-Entropy slow and show message
+  if (newState.playerSlowed) {
+    newState.playerSlowed = false;
+    newState.messages.push({ text: "You are sluggish from anti-entropy...", color: "#a78bfa" });
+  }
+
   let dx = 0;
   let dy = 0;
 
@@ -1348,6 +1461,13 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
   if (strengthEffect) bonuses.attack += strengthEffect.value;
   // Add Void Strike bonus (attunement >= 50)
   bonuses.attack += getAttunementAtkBonus(newState.voidAttunement);
+  // Add Draining curse accumulated ATK bonus
+  bonuses.attack += newState.drainingAtkBonus;
+  // ERRATIC curse: -2 ATK penalty (compensated by 25% chance 3x damage)
+  const weaponCurse = newState.inventory.equippedWeapon?.curse;
+  if (weaponCurse === CurseEffect.ERRATIC) {
+    bonuses.attack -= 2;
+  }
 
   if (direction !== "wait") {
     // Check for enemy at target (skip friendly entities for bump-attack)
@@ -1369,14 +1489,22 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       } else {
         // VORPAL runic: 2x damage when enemy below 30% HP
         const weaponRunic = newState.inventory.equippedWeapon?.runic;
-        const vorpalMultiplier = (weaponRunic === RunicEffect.VORPAL && enemy.hp < enemy.maxHp * 0.3) ? 2 : 1;
-        if (vorpalMultiplier > 1) {
+        let damageMultiplier = 1;
+        if (weaponRunic === RunicEffect.VORPAL && enemy.hp < enemy.maxHp * 0.3) {
+          damageMultiplier = 2;
           newState.pendingShake = Math.max(newState.pendingShake, 5);
           newState.messages.push({ text: `Your blade senses weakness — VORPAL STRIKE!`, color: MSG_COLORS.PLAYER_ATK });
           newState.pendingFloatingTexts.push({ text: "VORPAL!", color: "#dc2626", x: newX, y: newY });
         }
+        // ERRATIC curse: 25% chance of 3x damage
+        if (weaponCurse === CurseEffect.ERRATIC && random() < 0.25) {
+          damageMultiplier = 3;
+          newState.pendingShake = Math.max(newState.pendingShake, 5);
+          newState.messages.push({ text: `Your erratic blade erupts with wild force!`, color: MSG_COLORS.PLAYER_ATK });
+          newState.pendingFloatingTexts.push({ text: "ERRATIC x3!", color: "#f59e0b", x: newX, y: newY });
+        }
 
-        const result = combat(newState.player, enemy, newState.messages, bonuses.attack, 0, newState.pendingFloatingTexts, vorpalMultiplier, newState.pendingHitEffects);
+        const result = combat(newState.player, enemy, newState.messages, bonuses.attack, 0, newState.pendingFloatingTexts, damageMultiplier, newState.pendingHitEffects);
         newState.runStats.damageDealt += result.damage;
         if (!result.dodged) {
           newState.pendingFloatingTexts.push({
@@ -1401,8 +1529,18 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
           }
         }
 
+        // DISPLACING curse: attacks teleport enemy to random tile (if survived)
+        if (!result.killed && weaponCurse === CurseEffect.DISPLACING) {
+          const dest = getRandomFloorTile(newState);
+          if (dest) {
+            enemy.pos = { ...dest };
+            newState.messages.push({ text: `Your weapon displaces ${enemy.name} across the dungeon!`, color: MSG_COLORS.WARNING });
+            newState.pendingFloatingTexts.push({ text: "DISPLACED!", color: "#a78bfa", x: dest.x, y: dest.y });
+          }
+        }
+
         // TELEPORT: Void Walker teleports to random tile when hit (and survived)
-        if (!result.killed && enemy.specialAbility === SpecialAbility.TELEPORT) {
+        if (!result.killed && enemy.specialAbility === SpecialAbility.TELEPORT && weaponCurse !== CurseEffect.DISPLACING) {
           const dest = getRandomFloorTile(newState);
           if (dest) {
             enemy.pos = { ...dest };
@@ -1426,6 +1564,14 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
               newState.messages.push({ text: `Your weapon drains life! +1 HP`, color: MSG_COLORS.HEAL });
               newState.pendingFloatingTexts.push({ text: "+1 HP", color: MSG_COLORS.HEAL, x: newState.player.pos.x, y: newState.player.pos.y });
             }
+          }
+
+          // DRAINING curse: kills give -1 max HP but +2 ATK for rest of floor
+          if (weaponCurse === CurseEffect.DRAINING) {
+            newState.player = { ...newState.player, maxHp: Math.max(5, newState.player.maxHp - 1), hp: Math.min(newState.player.hp, Math.max(5, newState.player.maxHp - 1)) };
+            newState.drainingAtkBonus += 2;
+            newState.messages.push({ text: `The draining blade feeds! -1 max HP, +2 ATK this floor.`, color: "#ef4444" });
+            newState.pendingFloatingTexts.push({ text: "DRAIN!", color: "#ef4444", x: newState.player.pos.x, y: newState.player.pos.y });
           }
 
           if (enemy.isBoss) {
@@ -1806,6 +1952,17 @@ function pickShrineEffect(): typeof SHRINE_EFFECTS[number] {
   return SHRINE_EFFECTS[0];
 }
 
+function pickNegativeShrineEffect(): typeof SHRINE_EFFECTS[number] {
+  const negative = SHRINE_EFFECTS.filter((e) => e.label === "spawn_enemies" || e.label === "curse");
+  const totalWeight = negative.reduce((sum, e) => sum + e.weight, 0);
+  let roll = random() * totalWeight;
+  for (const effect of negative) {
+    roll -= effect.weight;
+    if (roll <= 0) return effect;
+  }
+  return negative[0];
+}
+
 export function processShrine(state: GameState, accept: boolean): GameState {
   if (!state.shrinePrompt) return state;
 
@@ -1849,8 +2006,12 @@ export function processShrine(state: GameState, accept: boolean): GameState {
     newState.pendingFloatingTexts.push({ text: "VOID STRIKE", color: "#a855f7", x: newState.player.pos.x, y: newState.player.pos.y });
   }
 
-  // Pick and apply a random shrine effect
-  const effect = pickShrineEffect();
+  // PARANOID curse: shrines always give negative effects
+  const hasParanoidCurse = newState.inventory.equippedArmor?.curse === CurseEffect.PARANOID;
+  const effect = hasParanoidCurse ? pickNegativeShrineEffect() : pickShrineEffect();
+  if (hasParanoidCurse) {
+    newState.messages.push({ text: "Your paranoid armor twists the shrine's power...", color: "#ef4444" });
+  }
   effect.apply(newState);
 
   // Check for player death from curse effect

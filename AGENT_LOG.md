@@ -1,5 +1,16 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-21 00:30 | developer | Cursed equipment system (dual-edged design)
+- **6 curse effects:** 3 weapon curses (Erratic: -2 ATK but 25% chance 3x damage; Displacing: teleport surviving enemy to random tile; Draining: kills give -1 max HP but +2 ATK for rest of floor) + 3 armor curses (Anti-Entropy: freeze attacker 1 turn but slow player 1 turn; Volatile: 10% chance 4 AoE explosion on hit hurting all; Paranoid: +4 detect range but shrines always negative)
+- **Curse spawning:** 15% of Uncommon and 30% of Rare weapons/armor spawn cursed. Items can have both a runic AND a curse. Curse type names and descriptions defined in config.ts
+- **Equip lock:** Cursed items cannot be unequipped — attempting to swap shows red warning message. Curse revealed on equip with "CURSED!" floating text
+- **Remove Curse scroll:** New `ConsumableEffect.REMOVE_CURSE` + `Scroll of Remove Curse` (Uncommon, floor 2+). Removes curse from all equipped items, preserving the base item and any runic effect
+- **Combat mechanics:** Erratic applies -2 ATK penalty but rolls 3x multiplier independently of Vorpal. Displacing uses `getRandomFloorTile()` to find destination. Draining tracks `drainingAtkBonus` in GameState (resets per floor). Anti-Entropy sets `playerSlowed` flag forcing wait on next turn. Volatile damages player + all adjacent enemies. Paranoid adds +4 to enemy detect range + forces negative shrine effects via `pickNegativeShrineEffect()`
+- **UI integration:** Curse names shown in red `[brackets]` in HUD equipped weapon/armor, inventory list, and with tooltip descriptions on hover
+- **Help overlay:** Added "Cursed Equipment" section documenting all 6 curses, spawn rates, equip lock mechanic, and Remove Curse scroll. Updated Scrolls section and consumable list to include Remove Curse
+- Lint and build both pass clean
+- No money spent
+
 ### 2026-03-20 23:30 | developer | Enemy intent telegraphing system
 - **Intent indicators:** Added `EnemyIntent` enum (IDLE, APPROACHING, ATTACKING, FLEEING) and `intent` field to `GameEntity` in config.ts
 - **Intent computation:** Added `computeEnemyIntents()` function in engine.ts that evaluates each enemy's state after movement — considers distance to player, detect range, fear status, invisibility, coward flee behavior, stun, and boss status. Called after `moveEnemies()` + `processBossAI()` + `moveFriendlies()` each turn, and on floor generation for turn-1 visibility

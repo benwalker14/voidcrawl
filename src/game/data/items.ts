@@ -1,4 +1,4 @@
-import { Item, ItemCategory, ItemRarity, ConsumableEffect, RARITY_COLORS, GroundItem, Position, RunicEffect, WEAPON_RUNICS, ARMOR_RUNICS, RUNIC_NAMES } from "../config";
+import { Item, ItemCategory, ItemRarity, ConsumableEffect, RARITY_COLORS, GroundItem, Position, RunicEffect, WEAPON_RUNICS, ARMOR_RUNICS, RUNIC_NAMES, CurseEffect, WEAPON_CURSES, ARMOR_CURSES, CURSE_NAMES } from "../config";
 import { random } from "../rng";
 
 let nextItemId = 0;
@@ -24,6 +24,7 @@ const POTION_EFFECTS: ConsumableEffect[] = [
 const SCROLL_EFFECTS: ConsumableEffect[] = [
   ConsumableEffect.MAGIC_MAPPING, ConsumableEffect.ENCHANT,
   ConsumableEffect.FEAR, ConsumableEffect.SUMMON,
+  ConsumableEffect.REMOVE_CURSE,
 ];
 
 function shuffleArray<T>(arr: T[]): T[] {
@@ -105,6 +106,7 @@ const ITEM_TEMPLATES: ItemTemplate[] = [
   { name: "Scroll of Enchanting", category: ItemCategory.SCROLL, rarity: ItemRarity.RARE, symbol: "?", effect: ConsumableEffect.ENCHANT, effectValue: 2, minFloor: 3, description: "Enchants equipped weapon or armor (+2)." },
   { name: "Scroll of Fear", category: ItemCategory.SCROLL, rarity: ItemRarity.UNCOMMON, symbol: "?", effect: ConsumableEffect.FEAR, effectValue: 6, minFloor: 2, description: "All visible enemies flee for 6 turns." },
   { name: "Scroll of Summoning", category: ItemCategory.SCROLL, rarity: ItemRarity.RARE, symbol: "?", effect: ConsumableEffect.SUMMON, effectValue: 15, minFloor: 5, description: "Summons a void spirit ally for 15 turns." },
+  { name: "Scroll of Remove Curse", category: ItemCategory.SCROLL, rarity: ItemRarity.UNCOMMON, symbol: "?", effect: ConsumableEffect.REMOVE_CURSE, minFloor: 2, description: "Lifts curses from all equipped items." },
 ];
 
 function rollRarity(floor: number): ItemRarity {
@@ -132,10 +134,26 @@ function rollRunic(category: ItemCategory, rarity: ItemRarity): RunicEffect | un
   return pool[Math.floor(random() * pool.length)];
 }
 
+function rollCurse(category: ItemCategory, rarity: ItemRarity): CurseEffect | undefined {
+  if (category !== ItemCategory.WEAPON && category !== ItemCategory.ARMOR) return undefined;
+  // 15% of Uncommon, 30% of Rare spawn cursed
+  const chance = rarity === ItemRarity.RARE ? 0.30 : rarity === ItemRarity.UNCOMMON ? 0.15 : 0;
+  if (chance === 0 || random() > chance) return undefined;
+  const pool = category === ItemCategory.WEAPON ? WEAPON_CURSES : ARMOR_CURSES;
+  return pool[Math.floor(random() * pool.length)];
+}
+
 function applyRunicToItem(item: Item): Item {
   const runic = rollRunic(item.category, item.rarity);
-  if (!runic) return item;
-  return { ...item, runic, name: `${item.name} of ${RUNIC_NAMES[runic]}` };
+  if (runic) {
+    item = { ...item, runic, name: `${item.name} of ${RUNIC_NAMES[runic]}` };
+  }
+  // Roll curse independently — an item can have both a runic and a curse
+  const curse = rollCurse(item.category, item.rarity);
+  if (curse) {
+    item = { ...item, cursed: true, curse, name: `${item.name} (cursed)` };
+  }
+  return item;
 }
 
 export function generateLootDrop(floor: number, pos: Position): GroundItem | null {
