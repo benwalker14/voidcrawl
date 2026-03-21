@@ -9,6 +9,7 @@ import {
   MAP_HEIGHT,
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
+  EnemyIntent,
   getZoneTileColors,
   getZoneTheme,
 } from "./config";
@@ -183,6 +184,36 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(entity.symbol, screenX + SCALED_TILE / 2, screenY + SCALED_TILE / 2);
+
+    // Draw intent indicator above entity
+    if (entity.intent && !entity.friendly) {
+      let intentSymbol: string;
+      let intentColor: string;
+      switch (entity.intent) {
+        case EnemyIntent.ATTACKING:
+          intentSymbol = "!";
+          intentColor = "#ef4444"; // red
+          break;
+        case EnemyIntent.APPROACHING:
+          intentSymbol = "?";
+          intentColor = "#eab308"; // yellow
+          break;
+        case EnemyIntent.FLEEING:
+          intentSymbol = "\u2193"; // ↓
+          intentColor = "#3b82f6"; // blue
+          break;
+        case EnemyIntent.IDLE:
+        default:
+          intentSymbol = "~";
+          intentColor = "#6b7280"; // gray
+          break;
+      }
+      ctx.fillStyle = intentColor;
+      ctx.font = `bold ${Math.floor(SCALED_TILE * 0.45)}px monospace`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.fillText(intentSymbol, screenX + SCALED_TILE / 2, screenY - 1);
+    }
   }
 
   // Draw player
@@ -262,13 +293,24 @@ export function renderMinimap(ctx: CanvasRenderingContext2D, state: GameState) {
     ctx.fillRect(px, py, MINIMAP_TILE, MINIMAP_TILE);
   }
 
-  // Draw enemies (only visible)
+  // Draw enemies (only visible) — color by intent
   for (const entity of state.entities) {
     if (entity.hp <= 0) continue;
     if (!state.fov[entity.pos.y][entity.pos.x]) continue;
     const px = mx + entity.pos.x * MINIMAP_TILE;
     const py = my + entity.pos.y * MINIMAP_TILE;
-    ctx.fillStyle = entity.isBoss ? "#f59e0b" : "#ef4444";
+    if (entity.isBoss) {
+      ctx.fillStyle = "#f59e0b";
+    } else if (entity.friendly) {
+      ctx.fillStyle = "#22c55e";
+    } else {
+      switch (entity.intent) {
+        case EnemyIntent.ATTACKING: ctx.fillStyle = "#ef4444"; break; // red
+        case EnemyIntent.APPROACHING: ctx.fillStyle = "#eab308"; break; // yellow
+        case EnemyIntent.FLEEING: ctx.fillStyle = "#3b82f6"; break; // blue
+        default: ctx.fillStyle = "#6b7280"; break; // gray for idle
+      }
+    }
     ctx.fillRect(px, py, MINIMAP_TILE, MINIMAP_TILE);
   }
 

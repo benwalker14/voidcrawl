@@ -234,6 +234,14 @@ export interface Position {
   y: number;
 }
 
+// Enemy intent indicators (telegraphed to player)
+export enum EnemyIntent {
+  IDLE = "idle",           // ~ gray: wandering, unaware
+  APPROACHING = "approaching", // ? yellow: detected player, moving toward
+  ATTACKING = "attacking",     // ! red: adjacent, will attack next turn
+  FLEEING = "fleeing",         // ↓ blue: running away
+}
+
 // Enemy AI behavior types
 export enum AIBehavior {
   CHASE = "chase",       // Pursue player with pathfinding
@@ -276,6 +284,7 @@ export interface GameEntity {
   burnTurns?: number;     // Flaming runic: 2 dmg/turn
   stunnedNextTurn?: boolean; // Stunning runic: skip next turn
   howled?: boolean; // Abyssal Hound: already howled this floor
+  intent?: EnemyIntent;
   isBoss?: boolean;
   bossPhase?: number;        // Current boss phase (0 = spawning adds, 1 = vulnerable/paused)
   bossTurnCounter?: number;  // Turns until next phase transition

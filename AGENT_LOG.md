@@ -1,5 +1,69 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-20 23:30 | developer | Enemy intent telegraphing system
+- **Intent indicators:** Added `EnemyIntent` enum (IDLE, APPROACHING, ATTACKING, FLEEING) and `intent` field to `GameEntity` in config.ts
+- **Intent computation:** Added `computeEnemyIntents()` function in engine.ts that evaluates each enemy's state after movement — considers distance to player, detect range, fear status, invisibility, coward flee behavior, stun, and boss status. Called after `moveEnemies()` + `processBossAI()` + `moveFriendlies()` each turn, and on floor generation for turn-1 visibility
+- **Canvas rendering:** Intent symbols render above enemy sprites — `!` (red) = attacking, `?` (yellow) = approaching, `~` (gray) = idle, `↓` (blue) = fleeing. Small font with bottom-aligned baseline positioned just above the entity tile
+- **Minimap integration:** Enemy dots on minimap now color-coded by intent (red/yellow/gray/blue) instead of uniform red, giving tactical overview at a glance
+- **Help overlay:** Added "Enemy Intent" section between Enemies and Items explaining all 4 intent states
+- Lint and build both pass clean
+- No money spent
+
+### 2026-03-20 22:30 | strategist | Content Planning Wave 2 — second-wave content roadmap
+
+**Analysis type:** B. Content Planning (second pass — first wave complete, planning wave 2)
+
+**Research conducted:** Analyzed 6 benchmark roguelikes (Brogue: 59 enemies/92 items/20+ terrain types; Shattered PD: 30 enemies/5 bosses/250+ items/6 classes; DCSS: 700+ monsters/27 species/26 backgrounds; Caves of Qud: 400+ creatures/600+ items; Hoplite: 4 enemies/0 items/13 abilities). Focused on mid-game depth, boss design patterns, environmental interactions, curse systems, and hero class minimum viable scope.
+
+**Key findings:**
+
+1. **Enemy intent telegraphing is the highest-impact single feature** — Hoplite achieves extraordinary tactical depth with only 4 enemy types because every behavior is readable. Elevated from P2 to P1. This multiplies the value of all 9 existing enemies without adding content.
+
+2. **Boss design should test different skills** — Shattered PD bosses each test a distinct competency (Goo=positioning, Tengu=movement, DM-300=environmental reading, Dwarf King=resource management). Redesigned floor 10 boss (Shadow Twin: 3-phase positioning/prioritization puzzle) and floor 15 boss (Rift Warden: 3-phase resource management with shrinking arena).
+
+3. **Dual-edged curses > pure penalty curses** — Shattered PD proves that curses with tactical value (Anti-Entropy, Displacing) create "do I keep this?" decisions. Redesigned cursed equipment with 3 weapon curses and 3 armor curses that each have a situational upside. Players will debate keeping curses, not just resenting them.
+
+4. **Zone-specific enemies are critical** — Currently all enemies spawn uniformly across zones. Crystal Depths (floors 5-9) and Shadow Realm (floors 10+) need signature enemies that exploit zone mechanics. Added 2 Crystal enemies (Crystal Sentinel with damage reflection, Null Siphon that steals buffs) and 2 Shadow enemies (Void Summoner, Void Bomber).
+
+5. **Guaranteed floor loot prevents frustration** — Shattered PD and Brogue both guarantee minimum loot per depth band. Added pity mechanic task.
+
+6. **Consumable-environment interactions are free depth** — Brogue's core design insight: every item should have multiple contextual uses. Fire Potion should prevent Slime splitting, Poison should corrode Beetle armor, Invisibility should guarantee positive shrine effects. These are if-checks in existing code, not new systems.
+
+**Content gap analysis (for 15-floor game):**
+| Content | Current | Target | Gap | Priority |
+|---------|---------|--------|-----|----------|
+| Enemy types | 9 + 1 boss | 13 + 3 bosses | 4 enemies, 2 bosses | P1-P2 |
+| Item templates | 23 | 30 | 7 items | P2 |
+| Environmental hazards | 0 | 2 types | 2 types | P2 |
+| Hero classes | 0 | 4 | 4 classes | P2 |
+| Runic effects | 7 | 13 (7 + 6 curses) | 6 curse effects | P1 |
+
+**Recommended build sequence:**
+1. Enemy intent telegraphing (P1 — multiplies existing content)
+2. Cursed equipment with dual-edged curses (P1 — adds risk-reward to every loot find)
+3. 2 Crystal Depths enemies + zone-weighted spawns (P2 — fills mid-game gap)
+4. Floor 10 boss: Shadow Twin (P2 — creates second milestone)
+5. 2 Shadow Realm enemies + environmental hazards (P2 — fills late-game gap)
+6. Floor 15 boss: Rift Warden (P2 — creates final boss challenge)
+7. Hero classes (P2 — multiplies replayability of ALL content above)
+8. Epic tier + boss unique drops (P2 — rewards for mastery)
+
+**Task board changes:**
+- ELEVATED: Enemy intent telegraphing P2 → P1 (new "P1 - Tactical Depth" section)
+- ELEVATED: Cursed equipment P2 → P1, redesigned with dual-edged curses
+- REFINED: Floor 10 boss with 3-phase design (Mirror → Shadow Split → Desperation)
+- REFINED: Floor 15 boss with 3-phase design (Sentinel → Unleashed → Final Stand)
+- ADDED: 2 Crystal Depths enemies (Crystal Sentinel, Null Siphon)
+- ADDED: 2 Shadow Realm enemies (Void Summoner, Void Bomber) — split from generic "4 new enemies"
+- ADDED: Zone-weighted enemy spawns
+- ADDED: Guaranteed floor loot (pity mechanic)
+- ADDED: Consumable-environment interactions (Fire vs. Slime, Poison vs. Beetle, etc.)
+- ADDED: Boss-specific unique drops (Nucleus Core, Mirror Shard, Warden's Key)
+- REFINED: Hero classes with specific unlock conditions and Void Attunement interaction
+- REFINED: Epic tier with 5 specific items including first accessory slot (Null Ring)
+
+No money spent. No human decisions needed — all changes are content design within existing ethics guidelines.
+
 ### 2026-03-20 21:00 | developer | Personal best tracking + HUD ATK bug fix
 - **Personal best tracking:** Added `nullcrawl_bests` localStorage tracking for bestFloor, bestLevel, mostKills, mostDamage
   - `PersonalBests` interface with load/save/check helpers in GameCanvas.tsx

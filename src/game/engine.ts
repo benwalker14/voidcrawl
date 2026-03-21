@@ -23,6 +23,7 @@ import {
   AIBehavior,
   SpecialAbility,
   RunicEffect,
+  EnemyIntent,
   MSG_COLORS,
   CONSUMABLE_EFFECT_NAMES,
   getZoneTheme,
@@ -259,7 +260,7 @@ export function generateFloor(
     }
   }
 
-  return {
+  const state: GameState = {
     floor,
     map: dungeon.map,
     player,
@@ -286,6 +287,11 @@ export function generateFloor(
     gameMode: mode,
     seed,
   };
+
+  // Compute initial enemy intents so they display from turn 1
+  computeEnemyIntents(state);
+
+  return state;
 }
 
 /** Trigger victory — player escaped the void on floor 15 */
@@ -1136,6 +1142,72 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
   }
 }
 
+/** Compute intent indicators for all enemies based on current state.
+ *  Called after enemy movement so intents reflect what enemies will do next turn. */
+function computeEnemyIntents(state: GameState) {
+  const isInvisible = hasStatusEffect(state, StatusEffectType.INVISIBLE);
+  const detectBonus = getAttunementDetectBonus(state.voidAttunement);
+
+  for (const enemy of state.entities) {
+    if (enemy.hp <= 0 || enemy.friendly) {
+      enemy.intent = undefined;
+      continue;
+    }
+
+    const dx = state.player.pos.x - enemy.pos.x;
+    const dy = state.player.pos.y - enemy.pos.y;
+    const dist = Math.abs(dx) + Math.abs(dy);
+    const detectRange = (enemy.detectRange ?? 8) + detectBonus;
+    const behavior = enemy.behavior ?? AIBehavior.CHASE;
+
+    // Feared enemies are always fleeing
+    if (enemy.fearTurns && enemy.fearTurns > 0) {
+      enemy.intent = EnemyIntent.FLEEING;
+      continue;
+    }
+
+    // If player is invisible, enemies are idle
+    if (isInvisible) {
+      enemy.intent = EnemyIntent.IDLE;
+      continue;
+    }
+
+    // Adjacent = will attack next turn
+    if (dist === 1) {
+      enemy.intent = EnemyIntent.ATTACKING;
+      continue;
+    }
+
+    // Stunned enemies still show intent based on position (stun is temporary)
+    if (enemy.stunnedNextTurn) {
+      enemy.intent = dist <= detectRange ? EnemyIntent.APPROACHING : EnemyIntent.IDLE;
+      continue;
+    }
+
+    // Boss intent
+    if (enemy.isBoss) {
+      enemy.intent = EnemyIntent.ATTACKING; // Boss is always a threat
+      continue;
+    }
+
+    // Coward fleeing when low HP
+    if (behavior === AIBehavior.COWARD && enemy.hp < enemy.maxHp * 0.4 && dist <= detectRange) {
+      enemy.intent = EnemyIntent.FLEEING;
+      continue;
+    }
+
+    // Within detect range = approaching
+    if (dist <= detectRange) {
+      // Ethereal and howled enemies are always aware within range
+      enemy.intent = EnemyIntent.APPROACHING;
+      continue;
+    }
+
+    // Out of range = idle
+    enemy.intent = EnemyIntent.IDLE;
+  }
+}
+
 function moveFriendlies(state: GameState) {
   for (const ally of state.entities) {
     if (!ally.friendly || ally.hp <= 0) continue;
@@ -1502,6 +1574,9 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
 
   // Friendly entity (summon) AI — chase and attack nearest enemy
   moveFriendlies(newState);
+
+  // Compute enemy intent indicators for the player to read
+  computeEnemyIntents(newState);
 
   // Tick status effects
   newState.statusEffects = newState.statusEffects

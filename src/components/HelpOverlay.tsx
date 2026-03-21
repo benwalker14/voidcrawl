@@ -143,6 +143,35 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
           </div>
         </Section>
 
+        {/* Enemy Intent */}
+        <Section title="Enemy Intent">
+          <p className="mb-1" style={{ color: "var(--void-muted)" }}>
+            Enemies display an intent indicator above them showing what they plan to do next turn.
+          </p>
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2">
+              <span className="w-4 text-center font-bold" style={{ color: "#ef4444" }}>!</span>
+              <span style={{ color: "#ef4444" }}>Attacking</span>
+              <span style={{ color: "var(--void-muted)" }}>— Adjacent and will attack next turn</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-4 text-center font-bold" style={{ color: "#eab308" }}>?</span>
+              <span style={{ color: "#eab308" }}>Approaching</span>
+              <span style={{ color: "var(--void-muted)" }}>— Has detected you and is moving toward you</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-4 text-center font-bold" style={{ color: "#6b7280" }}>~</span>
+              <span style={{ color: "#6b7280" }}>Idle</span>
+              <span style={{ color: "var(--void-muted)" }}>— Unaware of your presence, wandering</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-4 text-center font-bold" style={{ color: "#3b82f6" }}>&darr;</span>
+              <span style={{ color: "#3b82f6" }}>Fleeing</span>
+              <span style={{ color: "var(--void-muted)" }}>— Running away (feared or wounded coward)</span>
+            </div>
+          </div>
+        </Section>
+
         {/* Items */}
         <Section title="Items & Rarities">
           <div className="flex gap-4 mb-2">
