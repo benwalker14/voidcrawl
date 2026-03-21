@@ -467,6 +467,7 @@ export interface GameState {
   maxHpReduced: boolean;                           // Whether 75% max HP reduction has been applied
   voidPatches: VoidPatch[];                        // Rift Warden: void patches on the ground that deal damage
   onStairs: boolean;                                // true when player is standing on stairs, awaiting descent confirmation
+  pendingTips: string[];                             // contextual tips to display (auto-dismissing banners)
 }
 
 export interface DailyResult {

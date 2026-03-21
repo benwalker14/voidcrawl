@@ -43,6 +43,22 @@ import { computeFov, FOV_RADIUS } from "./generation/fov";
 import { generateLootDrop, generateBossLoot, generateGuaranteedFloorLoot, initConsumableAppearances, initIdentified } from "./data/items";
 import { findPath, findFleeStep } from "./pathfinding";
 
+// ── Contextual tips (progressive tutorial) ──────────────────────────────────
+// Each tip fires once per install via localStorage. Tips are pushed to
+// state.pendingTips and rendered as auto-dismissing banners by GameCanvas.
+const TIP_STORAGE_PREFIX = "nullcrawl_tip_";
+
+function addContextualTip(state: GameState, key: string, text: string): void {
+  try {
+    if (typeof window === "undefined") return;
+    if (localStorage.getItem(TIP_STORAGE_PREFIX + key)) return;
+    localStorage.setItem(TIP_STORAGE_PREFIX + key, "1");
+    state.pendingTips.push(text);
+  } catch {
+    // localStorage unavailable — skip tip silently
+  }
+}
+
 function createPlayer(pos: Position): GameEntity {
   return {
     id: "player",
@@ -76,6 +92,7 @@ function awardXp(
 ): void {
   state.progression.xp += xp;
   state.messages.push({ text: `+${xp} XP`, color: MSG_COLORS.XP });
+  addContextualTip(state, "first_kill", "XP gained! Defeat enemies to level up.");
 
   while (state.progression.xp >= state.progression.xpToNext) {
     state.progression.xp -= state.progression.xpToNext;
@@ -93,6 +110,7 @@ function awardXp(
       color: MSG_COLORS.LEVEL_UP,
       critical: true,
     });
+    addContextualTip(state, "first_levelup", "Level up! You gain +5 HP, +1 ATK, +1 DEF and heal to full each level.");
     state.pendingFloatingTexts.push({
       text: "LEVEL UP!",
       color: MSG_COLORS.LEVEL_UP,
@@ -393,6 +411,7 @@ export function generateFloor(
     maxHpReduced: maxHpWasReduced,  // Track if 75% HP reduction was applied
     voidPatches: [],                // Rift Warden: void patches on arena floor
     onStairs: false,                // Stairs descent confirmation
+    pendingTips: [],                // Contextual tips to display
   };
 
   // Warden's Key (passive): reveal all traps on new floor if player carries it
@@ -719,6 +738,22 @@ function pickupItem(state: GameState): void {
     }
   }
 
+  // Contextual tips for item pickups
+  if (item.category === ItemCategory.WEAPON || item.category === ItemCategory.ARMOR) {
+    addContextualTip(state, "first_equip", "Weapons and armor auto-equip if they're an upgrade. Press Q to drop items.");
+    if (item.runic) {
+      addContextualTip(state, "first_runic", "Runic items have special effects! Check the message log for details.");
+    }
+    if (item.cursed) {
+      addContextualTip(state, "first_cursed", "Cursed items can't be unequipped! Use a Scroll of Remove Curse to break free.");
+    }
+  } else if (item.category === ItemCategory.POTION || item.category === ItemCategory.SCROLL) {
+    if (item.effect && !state.identified[item.effect]) {
+      addContextualTip(state, "first_unidentified", "Potion effects are unknown until first use \u2014 experiment carefully!");
+    }
+    addContextualTip(state, "first_consumable", "Press 1\u20138 to use inventory items. Potions heal, buff, or harm \u2014 scrolls have powerful effects.");
+  }
+
   // Remove from ground and track the pickup
   state.items = state.items.filter((gi) => gi !== groundItem);
   state.runStats.itemsFound++;
@@ -1023,6 +1058,7 @@ export function applyInventoryItem(state: GameState, index: number): GameState {
     pendingFloatingTexts: [] as FloatingText[],
     pendingHitEffects: [] as HitEffect[],
     pendingShake: 0,
+    pendingTips: [] as string[],
   };
   const item = newState.inventory.items[index];
 
@@ -1100,6 +1136,7 @@ export function dropItem(state: GameState, index: number): GameState {
     pendingFloatingTexts: [] as FloatingText[],
     pendingHitEffects: [] as HitEffect[],
     pendingShake: 0,
+    pendingTips: [] as string[],
   };
   const item = newState.inventory.items[index];
   newState.inventory.items.splice(index, 1);
@@ -1673,6 +1710,7 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
       const result = combat(enemy, state.player, state.messages, 0, playerDefenseBonus, state.pendingFloatingTexts, 1, state.pendingHitEffects);
       state.runStats.damageTaken += result.damage;
       if (!result.dodged) {
+        addContextualTip(state, "first_hit", "You took damage! Your DEF reduces incoming hits. Find better armor to survive deeper floors.");
         // Screen shake scales with damage taken (min 2, max 6)
         state.pendingShake = Math.max(state.pendingShake, Math.min(6, Math.max(2, result.damage)));
         state.pendingFloatingTexts.push({
@@ -2182,6 +2220,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
     pendingFloatingTexts: [] as FloatingText[],
     pendingHitEffects: [] as HitEffect[],
     pendingShake: 0,
+    pendingTips: [] as string[],
   };
 
   // Clear stairs prompt on movement — it gets re-set if player moves to another stairs tile
@@ -2600,12 +2639,14 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       if (newState.map[checkY][checkX] === TileType.STAIRS_DOWN) {
         newState.onStairs = true;
         newState.messages.push({ text: "You see stairs leading down. Press > or Enter to descend.", color: MSG_COLORS.INFO });
+        addContextualTip(newState, "first_stairs", "Explore each floor before descending \u2014 there's guaranteed loot in rooms you haven't visited!");
       }
 
       // Check for void shrine
       if (newState.map[checkY][checkX] === TileType.SHRINE && !newState.shrinesUsed.has(`${checkX},${checkY}`)) {
         newState.shrinePrompt = true;
         newState.messages.push({ text: "A Void Shrine pulses with dark energy. Commune with the Void? (Y/N)", color: "#c084fc" });
+        addContextualTip(newState, "first_shrine", "Void Shrines grant random effects but increase Void Attunement (the purple meter).");
         // Return immediately — no enemy turn until the player answers
         newState.fov = computeFov(newState.map, newState.player.pos.x, newState.player.pos.y, getAttunementFovRadius(newState.voidAttunement, newState.floor));
         newState.explored = newState.explored.map((row) => [...row]);
@@ -3043,6 +3084,7 @@ export function processShrine(state: GameState, action: ShrineAction): GameState
     pendingFloatingTexts: [] as FloatingText[],
     pendingHitEffects: [] as HitEffect[],
     pendingShake: 0,
+    pendingTips: [] as string[],
     shrinePrompt: false,
     shrinesUsed: new Set(state.shrinesUsed),
     inventory: { ...state.inventory, items: [...state.inventory.items] },

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import MobileBanner from "@/components/MobileBanner";
 
 export default function Home() {
   return (
@@ -12,6 +13,7 @@ export default function Home() {
         </p>
 
         <div className="space-y-4 flex flex-col items-center">
+          <MobileBanner />
           <Link
             href="/play"
             className="inline-block px-8 py-4 text-xl font-bold tracking-widest border-2 transition-all duration-200 hover:scale-105"

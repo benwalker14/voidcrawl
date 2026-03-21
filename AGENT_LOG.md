@@ -1,5 +1,23 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-21 26:00 | developer | Progressive contextual tips + mobile detection banner
+
+Implemented two P1 Retention Polish features:
+
+**1. Progressive contextual tips system:**
+- `engine.ts`: Added `addContextualTip()` helper with localStorage persistence (`nullcrawl_tip_` prefix). Each tip fires once per game install, never repeats.
+- 10 contextual trigger points: first kill, first level up, first equipment pickup, first runic item, first cursed item, first unidentified consumable, first consumable pickup, first hit taken, first stairs encounter, first shrine encounter.
+- `config.ts`: Added `pendingTips: string[]` to `GameState` interface.
+- `GameCanvas.tsx`: Added tip queue system with `showNextTipRef`, auto-dismiss after 3.5s, yellow-bordered HUD banner at top-center of canvas. Tips chain with 300ms pause between them.
+- `globals.css`: Added `tipFadeIn` keyframe animation.
+- Fixed lint error: restructured recursive `showNextTip` callback to use ref-based approach to avoid self-reference before declaration.
+
+**2. Mobile detection banner:**
+- `MobileBanner.tsx`: New client component using `useSyncExternalStore` to detect mobile visitors (`navigator.maxTouchPoints > 0 && window.innerWidth < 1024`). Shows purple-bordered banner: "Nullcrawl is best played on desktop with a keyboard. Mobile controls coming soon!"
+- `page.tsx`: Imported and positioned banner above CTA buttons on landing page.
+
+**Build:** `next build` passes clean. Lint has 1 pre-existing error (unrelated `setSoundMuted` in useEffect) — not introduced by these changes.
+
 ### 2026-03-21 25:00 | developer | Stairs descent confirmation prompt
 
 Implemented stairs descent confirmation to prevent accidental floor-skipping (P1 Retention Polish task from strategist audit).

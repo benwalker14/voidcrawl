@@ -178,11 +178,29 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
   const showMinimapRef = useRef(true);
   const [soundMuted, setSoundMuted] = useState(true);
   const dropModeRef = useRef(false);
+  const [contextualTip, setContextualTip] = useState<string | null>(null);
+  const tipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tipQueueRef = useRef<string[]>([]);
   const floatingTextsRef = useRef<ActiveFloatingText[]>([]);
   const hitEffectsRef = useRef<ActiveHitEffect[]>([]);
   const animFrameRef = useRef<number>(0);
   const shakeRef = useRef<{ intensity: number; startTime: number }>({ intensity: 0, startTime: 0 });
   const canvasWrapRef = useRef<HTMLDivElement>(null);
+
+  // Show next tip from queue (auto-dismiss after 3.5s)
+  const showNextTipRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    showNextTipRef.current = () => {
+      if (tipQueueRef.current.length === 0) return;
+      const tip = tipQueueRef.current.shift()!;
+      setContextualTip(tip);
+      if (tipTimerRef.current) clearTimeout(tipTimerRef.current);
+      tipTimerRef.current = setTimeout(() => {
+        setContextualTip(null);
+        setTimeout(() => showNextTipRef.current(), 300);
+      }, 3500);
+    };
+  });
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -267,7 +285,12 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
       }
       setNewBestFlags(newBests);
     }
-  }, [saveDailyOnDeath]);
+    // Process contextual tips
+    if (state.pendingTips && state.pendingTips.length > 0) {
+      tipQueueRef.current.push(...state.pendingTips);
+      if (!contextualTip) showNextTipRef.current();
+    }
+  }, [saveDailyOnDeath, contextualTip]);
 
   const SHAKE_DURATION = 250; // ms
   const TRANSITION_DURATION = 600; // ms — floor transition fade-in
@@ -413,6 +436,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
   useEffect(() => {
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      if (tipTimerRef.current) clearTimeout(tipTimerRef.current);
     };
   }, []);
 
@@ -991,6 +1015,32 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
                 <span style={{ color: "#e2e8f0" }}>or</span>{" "}
                 <span style={{ color: "#fbbf24" }}>Enter</span>{" "}
                 <span style={{ color: "#e2e8f0" }}>to descend</span>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {contextualTip && (
+          <div
+            className="absolute left-1/2 pointer-events-none"
+            style={{
+              top: "12px",
+              transform: "translateX(-50%)",
+              zIndex: 4,
+              animation: "tipFadeIn 0.3s ease-out",
+            }}
+          >
+            <div
+              className="px-4 py-2 rounded border text-center max-w-sm"
+              style={{
+                backgroundColor: "rgba(10, 10, 15, 0.92)",
+                borderColor: "#fbbf24",
+                boxShadow: "0 0 16px rgba(251, 191, 36, 0.2)",
+              }}
+            >
+              <p className="text-xs font-mono" style={{ color: "#fbbf24" }}>
+                <span style={{ color: "#fbbf24", marginRight: "6px" }}>TIP</span>
+                <span style={{ color: "#e2e8f0" }}>{contextualTip}</span>
               </p>
             </div>
           </div>
