@@ -1,5 +1,86 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-21 24:30 | strategist | Post-Launch Retention Audit — first-5-minutes funnel, meta-progression prioritization, post-launch roadmap
+
+**Analysis type:** A. Game Design Research (fifth pass — focused on post-launch player retention)
+
+**Research conducted:** Analyzed first-session retention benchmarks from Google Play "First Ten Minutes" study (Adam Carpenter), GameAnalytics 2025 D1/D7/D30 data, browser game bounce rate benchmarks from Reddit/HN traffic, Wordle/Rogule daily-format retention data, meta-progression ROI comparison across 7 systems (Slay the Spire, Shattered PD, Hades, Dead Cells). Performed a complete first-5-minutes code trace through the actual Nullcrawl player path: landing page → tutorial → floor 1 generation → first combat → first death.
+
+#### Key Research Findings
+
+**1. First-session retention benchmarks are brutal for browser games.**
+- Top-quartile mobile games lose 24% of players by minute 10; bottom-quartile lose 58%.
+- Browser games have an even steeper funnel — zero install commitment means players leave faster.
+- D1 retention for top 25% of games: 26-28%. By D7: 3-6%. By D30: under 2%.
+- **The first 30-60 seconds determine whether a player returns.** No loading screens, no text walls, no confusion.
+
+**2. Nullcrawl's first 5 minutes have 3 UX gaps that will cost D1 retention.**
+
+After tracing the exact code path from "Enter the Void" through first death:
+
+- **Gap 1: Tutorial is too thin.** The current tutorial is exactly 3 sentences: "WASD to move / Bump to attack / Find stairs." It fires once, blocks all input, then disappears forever. It does not explain: HP, items, potions, inventory, shrines, identification, intent indicators, combat math, or the Void Attunement system. The player's only recourse is the 397-line help encyclopedia. **Fix: progressive contextual tips** (first kill → "Nice! You gain XP by defeating enemies", first item pickup → "Weapons and armor auto-equip if they're better", first shrine → "Void Shrines grant random effects but increase your Void Attunement").
+
+- **Gap 2: Stairs auto-descend on step.** Walking onto `>` instantly generates a new floor (engine.ts:2583-2588). No confirmation prompt. Players who haven't explored the full floor lose guaranteed loot (2 items placed in non-starting rooms). This is the #1 cause of "I accidentally left before exploring" frustration in roguelikes. **Fix: require `>` key or Enter to descend** — display "Press > to descend" when standing on stairs, like NetHack/DCSS/Brogue.
+
+- **Gap 3: No mobile detection or warning.** The landing page has no detection for mobile users (page.tsx). ~50% of Reddit/HN traffic is mobile. They land on the game, see a canvas, and cannot interact. There's no keyboard. **Fix: show "Best played on desktop — keyboard required" banner for mobile visitors.** Touch controls are P2; a warning message is 10 minutes of work.
+
+**3. Floor 1 difficulty is correctly tuned.** Player (30 HP, 5 ATK, 2 DEF) vs. floor 1 enemies (Void Rat 4 HP/2 ATK, Shadow Wisp 3 HP/3 ATK, Void Beetle 6 HP/2 ATK). Player one-shots Void Rats 66% of the time. Max enemy damage per hit is 3 HP. A player can absorb 15-30 hits. Estimated floor 1 survival: ~95%+. First death most likely on floor 2-3 (Dark Slime split or Shade life drain), 5-10 minutes in. This is excellent — the first floor teaches without punishing.
+
+**4. Meta-progression ROI ranking (from research):**
+1. **Ascension/difficulty levels — best ROI.** Cumulative stat modifiers, near-zero dev cost, provides 75-100+ hours of endgame content. Slay the Spire's 20 ascension levels are the primary endgame loop. Nullcrawl has this spec'd at P2 (5 levels). **Recommend elevating to first post-launch update.**
+2. **Daily seeded runs — already implemented.** Nullcrawl's Daily Void is the single best retention feature already in the game. Research confirms: daily format creates habit loops, and Rogule sustains players on this alone.
+3. **Unlockable characters — high impact, medium cost.** Each character multiplies content. Already spec'd as 4 classes (Null Walker, Void Knight, Null Mage, Shadow Rogue). **Recommend as second post-launch update.**
+4. **Run history/stats — near-zero cost.** Already partially implemented (personal bests). Extend to full run history (last 20 runs). **Trivial addition, do alongside Ascension.**
+5. **Bestiary/codex — moderate impact, low cost.** Appeals to completionist subset. Shattered PD uses this as its *only* meta-progression and sustains an active community. **Third post-launch update.**
+6. **Challenge modes — moderate impact, low cost.** Already spec'd (Fragile, Identified, Speedvoid). Constraint-based modes are zero-content-cost replayability. **Third post-launch update, paired with codex.**
+
+**5. Post-launch content cadence matters more than pre-launch completeness.** Research confirms the game exceeds every browser roguelike launch benchmark. The remaining P2 items become update announcements: "New content!" posts on r/roguelikedev, itch.io devlog updates, and Sharing Saturday. Each update is a re-engagement opportunity.
+
+**6. Optimal session length for a browser roguelike: 5-15 minutes.** Rogule targets "coffee-break" length. Nullcrawl's current run (floor 1-15 or death) is approximately 20-40 minutes for experienced players. The Daily Void should be calibrated to 5-10 minutes. Regular runs are fine at 20-40 min for the core roguelike audience.
+
+**7. Community features retention ranking:**
+1. Daily seeded runs with shareable results (already implemented) — highest impact
+2. Daily/weekly leaderboards with automatic reset — high impact, needs backend
+3. Run history with shareable links — medium impact, client-side only
+4. Discord server — premature until DAU > 50, would feel empty now
+
+#### Post-Launch Roadmap (Recommended)
+
+**Update 1 (Launch Week, days 1-3): "Retention Polish"**
+- Progressive contextual tips (replaces 3-line tutorial)
+- Stairs descent confirmation ("Press > to descend")
+- Mobile detection banner ("Best on desktop — keyboard required")
+- Run history (last 20 runs in localStorage)
+- Sound on by default (or first-visit audio prompt)
+
+**Update 2 (Week 2): "The Ascension Update"**
+- Ascension mode (5 difficulty levels) — the highest-ROI endgame system
+- Ascension level shown in shareable death/victory summaries
+- Streak tracking in daily challenge (ethical design, no punishment)
+
+**Update 3 (Week 3-4): "Heroes of the Void"**
+- 4 hero classes with achievement-based unlocking
+- Bestiary/Codex tracking (enemies, items, runics, curses discovered)
+- Challenge modes (Fragile, Identified, Speedvoid)
+
+**Update 4 (Week 5-6): "Deeper Void"**
+- Epic rarity tier + 5 epic items
+- Void-Touched item variant system
+- Void Fissures (environmental hazards)
+- Run narrative recap on death screen
+
+Each update gets: itch.io devlog post, r/roguelikedev Sharing Saturday mention, updated landing page feature list.
+
+#### Task Board Changes Made
+
+- NEW P1: Progressive contextual tips system (replaces thin 3-line tutorial)
+- NEW P1: Stairs descent confirmation prompt ("Press > to descend")
+- NEW P1: Mobile detection banner on landing page
+- ELEVATED: Ascension mode from P2 to P1 (first post-launch update, highest ROI meta-progression)
+- ELEVATED: Run history from P2 to P1 (near-zero cost, pairs with Ascension)
+- RECLASSIFIED: All P2 meta-progression tasks into a 4-update post-launch content roadmap
+- No money spent. No human decisions needed — all changes are strategic prioritization.
+
 ### 2026-03-22 00:15 | developer | Item stat comparison tooltip on canvas
 
 **Task:** Add item stat comparison tooltip when player stands on a weapon or armor ground item.
