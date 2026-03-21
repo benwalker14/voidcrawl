@@ -1,5 +1,13 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-21 01:30 | developer | Floor transition animation
+- **Fade-from-black effect:** When descending stairs, the new floor fades in from black over 600ms with a floor number and zone name displayed during the transition
+- **Zone-aware styling:** Floor number text uses the zone's accent color (purple for Null Tunnels, cyan for Crystal Depths, red for Shadow Realm). Zone name shown below in gray
+- **Engine integration:** Added `pendingFloorTransition` flag to GameState, set to `true` in `generateFloor()` when `floor > 1` (no transition on initial game start)
+- **Animation loop:** Transition runs in the same `requestAnimationFrame` loop as floating texts, hit effects, and screen shake. Uses `ctx.globalAlpha` for the fade overlay and text opacity
+- Lint and build both pass clean
+- No money spent
+
 ### 2026-03-21 01:00 | developer | Screen shake on big hits
 - **Implementation:** Connected existing `pendingShake` from engine (already set on damage taken, kills, vorpal/erratic strikes, volatile explosions, boss kills) to the canvas animation loop
 - **Shake effect:** `ctx.translate()` with random X/Y offset based on intensity (0-8 scale), 250ms duration with linear decay. Intensity comes from engine events (2-3 for normal hits, 5-6 for special hits/kills, 7 for boss AoE)

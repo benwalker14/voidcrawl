@@ -290,6 +290,7 @@ export function generateFloor(
     seed,
     drainingAtkBonus: 0,  // Reset per floor (Draining curse grants +2 ATK per kill this floor)
     playerSlowed: false,   // Anti-Entropy curse: player skips next move
+    pendingFloorTransition: floor > 1,  // Trigger fade-in on floor transitions (not on game start)
   };
 
   // Compute initial enemy intents so they display from turn 1

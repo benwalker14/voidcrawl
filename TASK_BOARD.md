@@ -70,7 +70,7 @@
 - [ ] Replace ASCII characters with pixel art sprites
 - [x] Add hit/damage animations
 - [x] Add screen shake on big hits
-- [ ] Floor transition animation
+- [x] Floor transition animation
 - [x] Death screen with run stats
 
 ### P2 - Player Experience (UPDATED — strategist analysis 2026-03-20)

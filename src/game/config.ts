@@ -409,6 +409,7 @@ export interface GameState {
   seed?: string;                                  // Seed string for daily challenge mode
   drainingAtkBonus: number;                        // Draining curse: accumulated +2 ATK per kill this floor
   playerSlowed: boolean;                           // Anti-Entropy curse: player skips next move action
+  pendingFloorTransition: boolean;                 // Triggers fade-in animation when entering a new floor
 }
 
 export interface DailyResult {

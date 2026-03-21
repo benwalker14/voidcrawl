@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES, CONSUMABLE_EFFECT_NAMES, VICTORY_FLOOR, CURSE_NAMES, CURSE_DESCRIPTIONS } from "@/game/config";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES, CONSUMABLE_EFFECT_NAMES, VICTORY_FLOOR, CURSE_NAMES, CURSE_DESCRIPTIONS, getZoneTheme } from "@/game/config";
 import { initGame, processPlayerTurn, applyInventoryItem, dropItem, processShrine, continueEndless, MoveDirection, getAttunementAtkBonus } from "@/game/engine";
 import { render, renderMinimap, renderFloatingTexts, renderHitEffects, FLOAT_DURATION, HIT_EFFECT_DURATION } from "@/game/renderer";
 import type { ActiveFloatingText, ActiveHitEffect } from "@/game/renderer";
@@ -257,6 +257,8 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
   }, [saveDailyOnDeath]);
 
   const SHAKE_DURATION = 250; // ms
+  const TRANSITION_DURATION = 600; // ms — floor transition fade-in
+  const transitionRef = useRef<{ startTime: number; floor: number; zoneName: string } | null>(null);
 
   const startAnimations = useCallback((state: GameState) => {
     const now = performance.now();
@@ -269,7 +271,13 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
       shakeRef.current = { intensity: pendingShake, startTime: now };
     }
 
-    const hasNew = pendingFloats.length > 0 || pendingHits.length > 0 || pendingShake > 0;
+    // Start floor transition if pending
+    if (state.pendingFloorTransition) {
+      transitionRef.current = { startTime: now, floor: state.floor, zoneName: getZoneTheme(state.floor).name };
+      state.pendingFloorTransition = false;
+    }
+
+    const hasNew = pendingFloats.length > 0 || pendingHits.length > 0 || pendingShake > 0 || transitionRef.current !== null;
     if (!hasNew) return;
 
     for (const ft of pendingFloats) {
@@ -326,7 +334,40 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
         ctx.restore();
       }
 
-      const hasAnimations = hitEffectsRef.current.length > 0 || floatingTextsRef.current.length > 0 || shakeActive;
+      // Floor transition overlay: fade from black + floor number text
+      let transitionActive = false;
+      const transition = transitionRef.current;
+      if (transition) {
+        const elapsed = now - transition.startTime;
+        if (elapsed < TRANSITION_DURATION) {
+          transitionActive = true;
+          const progress = elapsed / TRANSITION_DURATION;
+          // Fade from black: opacity goes 1 -> 0
+          const opacity = 1 - progress;
+          ctx.save();
+          ctx.globalAlpha = opacity;
+          ctx.fillStyle = "#000000";
+          ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+          // Floor number text (fades faster)
+          if (progress < 0.7) {
+            const textOpacity = 1 - progress / 0.7;
+            ctx.globalAlpha = textOpacity;
+            ctx.fillStyle = getZoneTheme(transition.floor).accentColor;
+            ctx.font = "bold 28px monospace";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(`Floor ${transition.floor}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 14);
+            ctx.font = "14px monospace";
+            ctx.fillStyle = "#9ca3af";
+            ctx.fillText(transition.zoneName, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 14);
+          }
+          ctx.restore();
+        } else {
+          transitionRef.current = null;
+        }
+      }
+
+      const hasAnimations = hitEffectsRef.current.length > 0 || floatingTextsRef.current.length > 0 || shakeActive || transitionActive;
 
       if (hasAnimations) {
         animFrameRef.current = requestAnimationFrame(animate);
@@ -363,6 +404,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
     gameRef.current = state;
     floatingTextsRef.current = [];
     hitEffectsRef.current = [];
+    transitionRef.current = null;
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
       animFrameRef.current = 0;
