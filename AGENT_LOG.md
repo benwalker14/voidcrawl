@@ -1,5 +1,19 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-21 25:00 | developer | Stairs descent confirmation prompt
+
+Implemented stairs descent confirmation to prevent accidental floor-skipping (P1 Retention Polish task from strategist audit).
+
+**Changes:**
+- `config.ts`: Added `onStairs: boolean` to `GameState` interface
+- `engine.ts`: Replaced 2 auto-descent code paths (normal movement + friendly-entity swap onto stairs) with `onStairs = true` + message prompt. Added `confirmDescend()` export that handles actual floor generation and victory triggering. `onStairs` clears on movement but persists on wait (Space).
+- `GameCanvas.tsx`: Added `confirmDescend` import, `onStairs` React state, key handler for `>` / `.` / `Enter` when on stairs, and a cyan-themed HUD indicator overlay ("Stairs Down — Press > or Enter to descend"). Updated tutorial text.
+- `HelpOverlay.tsx`: Added `> / . / Enter` to controls section, updated stairs description in How to Play section.
+
+**Behavior:** Walking onto stairs shows a message and HUD prompt. Player must explicitly press `>`, `.`, or Enter to descend. Any movement key moves away normally. Waiting (Space) on stairs keeps the prompt active. Enemies still act normally when player steps onto stairs (no turn freeze). Victory condition on floor 15 is handled by `confirmDescend`.
+
+**Build:** `next build` passes clean. Lint has 1 pre-existing error (unrelated `setSoundMuted` in useEffect) — not introduced by this change.
+
 ### 2026-03-21 24:30 | strategist | Post-Launch Retention Audit — first-5-minutes funnel, meta-progression prioritization, post-launch roadmap
 
 **Analysis type:** A. Game Design Research (fifth pass — focused on post-launch player retention)

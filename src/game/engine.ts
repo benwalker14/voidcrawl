@@ -392,6 +392,7 @@ export function generateFloor(
     voidPhaseUsedThisTurn: false,
     maxHpReduced: maxHpWasReduced,  // Track if 75% HP reduction was applied
     voidPatches: [],                // Rift Warden: void patches on arena floor
+    onStairs: false,                // Stairs descent confirmation
   };
 
   // Warden's Key (passive): reveal all traps on new floor if player carries it
@@ -414,6 +415,20 @@ function triggerVictory(state: GameState): GameState {
   state.messages.push({ text: "YOU ESCAPED THE VOID!", color: "#22c55e", critical: true });
   state.pendingFloatingTexts.push({ text: "VICTORY!", color: "#22c55e", x: state.player.pos.x, y: state.player.pos.y });
   return state;
+}
+
+/** Confirm descent when player is standing on stairs and presses > or Enter */
+export function confirmDescend(state: GameState): GameState {
+  if (!state.onStairs) return state;
+  if (state.floor === VICTORY_FLOOR && !state.victory) {
+    return triggerVictory({ ...state, messages: [], onStairs: false });
+  }
+  const newState = generateFloor(
+    state.floor + 1, state.player, state.inventory, state.progression,
+    state.runStats, state.statusEffects, state.identified,
+    state.consumableAppearances, state.voidAttunement, state.gameMode, state.seed
+  );
+  return newState;
 }
 
 /** Continue into endless mode after victory — generates the next floor */
@@ -2169,6 +2184,11 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
     pendingShake: 0,
   };
 
+  // Clear stairs prompt on movement — it gets re-set if player moves to another stairs tile
+  if (direction !== "wait") {
+    newState.onStairs = false;
+  }
+
   // Clear Anti-Entropy slow and show message
   if (newState.playerSlowed) {
     newState.playerSlowed = false;
@@ -2557,11 +2577,8 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       checkVoidPatch(newState);
       if (newState.gameOver) return newState; // Killed by void patch
       if (newState.map[newY][newX] === TileType.STAIRS_DOWN) {
-        if (newState.floor === VICTORY_FLOOR && !newState.victory) {
-          return triggerVictory(newState);
-        }
-        newState.messages.push({ text: "You descend deeper into the void...", color: MSG_COLORS.INFO });
-        return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression, newState.runStats, newState.statusEffects, newState.identified, newState.consumableAppearances, newState.voidAttunement, newState.gameMode, newState.seed);
+        newState.onStairs = true;
+        newState.messages.push({ text: "You see stairs leading down. Press > or Enter to descend.", color: MSG_COLORS.INFO });
       }
     } else if (!isBlocked(newState, newX, newY)) {
       newState.player = { ...newState.player, pos: { x: newX, y: newY } };
@@ -2579,13 +2596,10 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       const checkX = wasTeleported ? newState.player.pos.x : newX;
       const checkY = wasTeleported ? newState.player.pos.y : newY;
 
-      // Check for stairs
+      // Check for stairs — prompt instead of auto-descending
       if (newState.map[checkY][checkX] === TileType.STAIRS_DOWN) {
-        if (newState.floor === VICTORY_FLOOR && !newState.victory) {
-          return triggerVictory(newState);
-        }
-        newState.messages.push({ text: "You descend deeper into the void...", color: MSG_COLORS.INFO });
-        return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression, newState.runStats, newState.statusEffects, newState.identified, newState.consumableAppearances, newState.voidAttunement, newState.gameMode, newState.seed);
+        newState.onStairs = true;
+        newState.messages.push({ text: "You see stairs leading down. Press > or Enter to descend.", color: MSG_COLORS.INFO });
       }
 
       // Check for void shrine

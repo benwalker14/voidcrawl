@@ -72,6 +72,7 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
           <Row left="Arrow Keys / WASD" right="Move (and attack by walking into enemies)" />
           <Row left="Space" right="Wait one turn" />
           <Row left="1-8" right="Use inventory item by slot number" />
+          <Row left="> / . / Enter" right="Descend stairs (when standing on stairs)" />
           <Row left="Q then 1-8" right="Drop inventory item onto the floor" />
           <Row left="M" right="Toggle mini-map" />
           <Row left="N" right="Toggle sound effects (off by default)" />
@@ -99,7 +100,7 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
             <Hl>Leveling:</Hl> Kill enemies for XP. Each level grants +5 max HP, +1 ATK, +1 DEF and a full heal.
           </p>
           <p className="mb-1">
-            <Hl>Stairs:</Hl> Find the <span style={{ color: "#06b6d4" }}>&gt;</span> symbol and walk onto it to descend. Enemies get stronger each floor.
+            <Hl>Stairs:</Hl> Find the <span style={{ color: "#06b6d4" }}>&gt;</span> symbol and walk onto it. Press <span style={{ color: "#fbbf24" }}>&gt;</span> or <span style={{ color: "#fbbf24" }}>Enter</span> to descend. Enemies get stronger each floor.
           </p>
           <p>
             <Hl>Death:</Hl> Permadeath — when you die, it&apos;s over. Start a new run and try to go deeper.

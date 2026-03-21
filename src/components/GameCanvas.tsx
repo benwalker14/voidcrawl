@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES, CONSUMABLE_EFFECT_NAMES, VICTORY_FLOOR, CURSE_NAMES, CURSE_DESCRIPTIONS, getZoneTheme, getZoneProgress, WEAPON_SPECIAL_NAMES, SpecialAbility } from "@/game/config";
-import { initGame, processPlayerTurn, applyInventoryItem, dropItem, processShrine, continueEndless, MoveDirection, getAttunementAtkBonus, getAttunementDefBonus } from "@/game/engine";
+import { initGame, processPlayerTurn, applyInventoryItem, dropItem, processShrine, continueEndless, confirmDescend, MoveDirection, getAttunementAtkBonus, getAttunementDefBonus } from "@/game/engine";
 import { render, renderMinimap, renderFloatingTexts, renderHitEffects, renderItemTooltip, FLOAT_DURATION, HIT_EFFECT_DURATION } from "@/game/renderer";
 import type { ActiveFloatingText, ActiveHitEffect } from "@/game/renderer";
 import type { GameState, GameMessage, PlayerInventory, RunStats, StatusEffect, GameEntity, DailyResult } from "@/game/config";
@@ -174,6 +174,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
   const [showPause, setShowPause] = useState(false);
   const showPauseRef = useRef(false);
   const [shrinePrompt, setShrinePrompt] = useState(false);
+  const [onStairs, setOnStairs] = useState(false);
   const showMinimapRef = useRef(true);
   const [soundMuted, setSoundMuted] = useState(true);
   const dropModeRef = useRef(false);
@@ -232,6 +233,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
     setIdentified(state.identified);
     setConsumableAppearances(state.consumableAppearances);
     setShrinePrompt(state.shrinePrompt ?? false);
+    setOnStairs(state.onStairs ?? false);
     const boss = state.entities.find((e) => e.isBoss && e.hp > 0);
     setBossInfo(boss ?? null);
     setAnchorsAlive(state.entities.filter((e) => e.isAnchor && e.hp > 0).length);
@@ -586,6 +588,17 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
           draw();
           startAnimations(newState);
         }
+        return;
+      }
+
+      // Stairs descent confirmation: > or . or Enter when standing on stairs
+      if (gameRef.current.onStairs && (e.key === ">" || e.key === "." || e.key === "Enter")) {
+        e.preventDefault();
+        const newState = confirmDescend(gameRef.current);
+        gameRef.current = newState;
+        updateUI(newState);
+        draw();
+        startAnimations(newState);
         return;
       }
 
@@ -963,6 +976,26 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
           </div>
         )}
 
+        {onStairs && !shrinePrompt && (
+          <div className="absolute inset-0 flex items-end justify-center pb-16 pointer-events-none">
+            <div className="px-4 py-2 rounded border text-center"
+              style={{
+                backgroundColor: "rgba(10, 10, 15, 0.9)",
+                borderColor: "#06b6d4",
+                boxShadow: "0 0 12px rgba(6, 182, 212, 0.3)",
+              }}
+            >
+              <p className="text-xs font-bold" style={{ color: "#06b6d4" }}>
+                Stairs Down <span style={{ color: "#e2e8f0" }}>— Press</span>{" "}
+                <span style={{ color: "#fbbf24" }}>&gt;</span>{" "}
+                <span style={{ color: "#e2e8f0" }}>or</span>{" "}
+                <span style={{ color: "#fbbf24" }}>Enter</span>{" "}
+                <span style={{ color: "#e2e8f0" }}>to descend</span>
+              </p>
+            </div>
+          </div>
+        )}
+
         {showTutorial && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 5 }}>
             <div
@@ -979,7 +1012,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
               <div className="text-xs font-mono space-y-2 mb-4" style={{ color: "#e2e8f0" }}>
                 <p><span style={{ color: "#fbbf24" }}>WASD</span> or <span style={{ color: "#fbbf24" }}>Arrow Keys</span> to move</p>
                 <p>Walk into enemies to <span style={{ color: "#ef4444" }}>attack</span></p>
-                <p>Find the stairs <span style={{ color: "#06b6d4" }}>&gt;</span> to go deeper</p>
+                <p>Find stairs <span style={{ color: "#06b6d4" }}>&gt;</span> and press <span style={{ color: "#fbbf24" }}>&gt;</span> or <span style={{ color: "#fbbf24" }}>Enter</span> to descend</p>
               </div>
               <button
                 onClick={() => {
