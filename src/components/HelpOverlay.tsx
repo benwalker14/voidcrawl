@@ -12,6 +12,8 @@ const ENEMIES = [
   { symbol: "n", color: "#3b82f6", name: "Null Siphon", behavior: "Ambushes · Siphons active status effects on hit", floors: "5+" },
   { symbol: "R", color: "#e9d5ff", name: "Rift Wraith", behavior: "Moves through walls · Vulnerable only on floor tiles", floors: "7+" },
   { symbol: "V", color: "#f5f3ff", name: "Void Lord", behavior: "Pursues from very far away", floors: "10+" },
+  { symbol: "Z", color: "#581c87", name: "Void Summoner", behavior: "Ambushes · Summons Void Rats every 3 turns", floors: "10+" },
+  { symbol: "B", color: "#f97316", name: "Void Bomber", behavior: "Pursues · Explodes on death (6 AoE dmg)", floors: "10+" },
   { symbol: "O", color: "#06b6d4", name: "BOSS: Void Nucleus", behavior: "Stationary · Spawns adds · Telegraphs AoE · Alternates active/vulnerable phases", floors: "5" },
   { symbol: "o", color: "#67e8f9", name: "Void Fragment", behavior: "Boss add · Pursues player", floors: "5" },
   { symbol: "@", color: "#dc2626", name: "BOSS: Shadow Twin", behavior: "3-phase fight · Mirror (flees) → Split (chase, kill both in 3 turns) → Desperation (ethereal, 2-tile movement)", floors: "10" },

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES, CONSUMABLE_EFFECT_NAMES, VICTORY_FLOOR, CURSE_NAMES, CURSE_DESCRIPTIONS, getZoneTheme, WEAPON_SPECIAL_NAMES, SpecialAbility } from "@/game/config";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES, CONSUMABLE_EFFECT_NAMES, VICTORY_FLOOR, CURSE_NAMES, CURSE_DESCRIPTIONS, getZoneTheme, getZoneProgress, WEAPON_SPECIAL_NAMES, SpecialAbility } from "@/game/config";
 import { initGame, processPlayerTurn, applyInventoryItem, dropItem, processShrine, continueEndless, MoveDirection, getAttunementAtkBonus, getAttunementDefBonus } from "@/game/engine";
 import { render, renderMinimap, renderFloatingTexts, renderHitEffects, FLOAT_DURATION, HIT_EFFECT_DURATION } from "@/game/renderer";
 import type { ActiveFloatingText, ActiveHitEffect } from "@/game/renderer";
@@ -740,8 +740,9 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
           <span>{stats.level}</span>
         </div>
         <div>
-          <span style={{ color: "var(--void-cyan)" }}>Floor: </span>
-          <span>{stats.floor}</span>
+          <span style={{ color: getZoneTheme(stats.floor).accentColor }}>
+            F{stats.floor} {getZoneTheme(stats.floor).name} ({getZoneProgress(stats.floor).current}/{getZoneProgress(stats.floor).total})
+          </span>
         </div>
         <div>
           <span style={{ color: "var(--void-cyan)" }}>Turns: </span>

@@ -79,6 +79,13 @@ export function getZoneTheme(floor: number): ZoneTheme {
   return ZONE_THEMES[2];
 }
 
+/** Get zone progress info: current position within zone and total floors in zone */
+export function getZoneProgress(floor: number): { current: number; total: number } {
+  if (floor <= 4) return { current: floor, total: 4 };
+  if (floor <= 9) return { current: floor - 4, total: 5 };
+  return { current: floor - 9, total: 6 };
+}
+
 /** Get tile colors for the current zone (replaces static TILE_COLORS for rendering) */
 export function getZoneTileColors(floor: number): Record<TileType, string> {
   const zone = getZoneTheme(floor);
@@ -332,6 +339,8 @@ export enum SpecialAbility {
   BOSS_RIFT_WARDEN = "boss_rift_warden", // Rift Warden: stationary sentinel, anchors, void patches
   REFLECTIVE = "reflective",   // Crystal Sentinel: 25% of melee damage reflected back to attacker
   SIPHON = "siphon",           // Null Siphon: steals a random active status effect from player on hit
+  SUMMON = "summon",           // Void Summoner: spawns 1 Void Rat every 3 turns while alive
+  EXPLODE = "explode",         // Void Bomber: deals 6 AoE damage within 1 tile radius on death
 }
 
 export interface GameEntity {

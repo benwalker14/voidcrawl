@@ -816,6 +816,7 @@ function applyConsumableEffect(state: GameState, item: Item): boolean {
             } else {
               spawnSplitSlimes(state, enemy);
             }
+            handleExplosion(state, enemy);
             state.runStats.enemiesKilled++;
             awardXp(state, enemy.xpReward ?? 5);
           }
@@ -1772,6 +1773,11 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
       }
     }
 
+    // SUMMON: Void Summoner spawns a Void Rat every 3 turns when player is detected
+    if (enemy.specialAbility === SpecialAbility.SUMMON && dist <= detectRange) {
+      processSummonerAbility(state, enemy);
+    }
+
     // ETHEREAL: Rift Wraith moves through walls toward the player
     if (enemy.specialAbility === SpecialAbility.ETHEREAL && dist <= detectRange) {
       // Move directly toward player, ignoring walls
@@ -1966,6 +1972,7 @@ function moveFriendlies(state: GameState) {
       }
       if (result.killed) {
         spawnSplitSlimes(state, nearestEnemy);
+        handleExplosion(state, nearestEnemy);
         state.runStats.enemiesKilled++;
         awardXp(state, nearestEnemy.xpReward ?? 5);
         const loot = generateLootDrop(state.floor, nearestEnemy.pos);
@@ -2037,6 +2044,101 @@ function getSplitPositions(state: GameState, origin: Position): Position[] {
     positions.push({ x: nx, y: ny });
   }
   return positions;
+}
+
+let nextSummonEnemyId = 0;
+
+/** Void Summoner: spawn a Void Rat near the summoner every 3 turns */
+function processSummonerAbility(state: GameState, enemy: GameEntity): void {
+  if (enemy.specialAbility !== SpecialAbility.SUMMON || enemy.hp <= 0) return;
+
+  // Initialize cooldown on first encounter
+  if (enemy.summonTurns == null) enemy.summonTurns = 3;
+
+  enemy.summonTurns--;
+  if (enemy.summonTurns > 0) return;
+
+  // Reset cooldown
+  enemy.summonTurns = 3;
+
+  // Find a floor tile adjacent to the summoner
+  const dirs = [
+    { x: 0, y: -1 }, { x: 0, y: 1 }, { x: -1, y: 0 }, { x: 1, y: 0 },
+    { x: -1, y: -1 }, { x: 1, y: -1 }, { x: -1, y: 1 }, { x: 1, y: 1 },
+  ];
+  let spawnPos: Position | null = null;
+  for (const d of dirs) {
+    const nx = enemy.pos.x + d.x;
+    const ny = enemy.pos.y + d.y;
+    if (nx < 0 || nx >= MAP_WIDTH || ny < 0 || ny >= MAP_HEIGHT) continue;
+    if (state.map[ny][nx] !== TileType.FLOOR) continue;
+    if (nx === state.player.pos.x && ny === state.player.pos.y) continue;
+    if (state.entities.some((e) => e.hp > 0 && e.pos.x === nx && e.pos.y === ny)) continue;
+    spawnPos = { x: nx, y: ny };
+    break;
+  }
+  if (!spawnPos) return;
+
+  const scaling = 1 + (state.floor - 1) * 0.15;
+  const rat: GameEntity = {
+    id: `summon_enemy_${nextSummonEnemyId++}`,
+    type: EntityType.ENEMY,
+    pos: spawnPos,
+    name: "Void Rat",
+    hp: Math.floor(4 * scaling),
+    maxHp: Math.floor(4 * scaling),
+    attack: Math.floor(2 * scaling),
+    defense: 0,
+    color: "#8b5cf6",
+    symbol: "r",
+    xpReward: Math.floor(5 * scaling),
+    behavior: AIBehavior.CHASE,
+    detectRange: 8,
+  };
+  state.entities.push(rat);
+  state.messages.push({ text: `${enemy.name} conjures a Void Rat!`, color: MSG_COLORS.WARNING });
+  state.pendingFloatingTexts.push({ text: "SUMMON!", color: "#581c87", x: enemy.pos.x, y: enemy.pos.y });
+}
+
+/** Void Bomber: deal AoE damage on death to all entities within 1 tile radius */
+function handleExplosion(state: GameState, exploder: GameEntity): void {
+  if (exploder.specialAbility !== SpecialAbility.EXPLODE) return;
+
+  const explosionDmg = 6;
+  state.messages.push({ text: `${exploder.name} explodes!`, color: "#f97316" });
+  state.pendingFloatingTexts.push({ text: "BOOM!", color: "#f97316", x: exploder.pos.x, y: exploder.pos.y });
+  state.pendingShake = Math.max(state.pendingShake, 5);
+
+  // Damage player if within 1 tile
+  const pdx = Math.abs(state.player.pos.x - exploder.pos.x);
+  const pdy = Math.abs(state.player.pos.y - exploder.pos.y);
+  if (pdx <= 1 && pdy <= 1) {
+    state.player = { ...state.player, hp: state.player.hp - explosionDmg };
+    state.runStats.damageTaken += explosionDmg;
+    state.messages.push({ text: `The explosion hits you for ${explosionDmg} damage!`, color: MSG_COLORS.ENEMY_ATK });
+    state.pendingFloatingTexts.push({ text: `-${explosionDmg}`, color: "#f97316", x: state.player.pos.x, y: state.player.pos.y });
+    if (state.player.hp <= 0) {
+      state.gameOver = true;
+      state.runStats.killedBy = exploder.name;
+    }
+  }
+
+  // Damage nearby enemies (not the exploder itself)
+  for (const other of state.entities) {
+    if (other.id === exploder.id || other.hp <= 0) continue;
+    const edx = Math.abs(other.pos.x - exploder.pos.x);
+    const edy = Math.abs(other.pos.y - exploder.pos.y);
+    if (edx <= 1 && edy <= 1) {
+      other.hp -= explosionDmg;
+      state.pendingFloatingTexts.push({ text: `-${explosionDmg}`, color: "#f97316", x: other.pos.x, y: other.pos.y });
+      if (other.hp <= 0) {
+        state.messages.push({ text: `${other.name} is caught in the explosion!`, color: MSG_COLORS.KILL });
+        state.runStats.enemiesKilled++;
+        state.runStats.damageDealt += explosionDmg;
+        awardXp(state, other.xpReward ?? 5);
+      }
+    }
+  }
 }
 
 export type MoveDirection = "up" | "down" | "left" | "right" | "wait";
@@ -2205,6 +2307,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
           // Screen shake on kill (3 for normal, 6 for boss)
           newState.pendingShake = Math.max(newState.pendingShake, enemy.isBoss ? 6 : 3);
           spawnSplitSlimes(newState, enemy);
+          handleExplosion(newState, enemy);
           newState.runStats.enemiesKilled++;
           awardXp(newState, enemy.xpReward ?? 5);
 
@@ -2366,6 +2469,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
             if (result2.killed) {
               newState.pendingShake = Math.max(newState.pendingShake, 3);
               spawnSplitSlimes(newState, enemy);
+              handleExplosion(newState, enemy);
               newState.runStats.enemiesKilled++;
               awardXp(newState, enemy.xpReward ?? 5);
               if (weaponRunic === RunicEffect.VAMPIRIC) {
@@ -2420,6 +2524,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
               if (cleaveResult.killed) {
                 newState.pendingShake = Math.max(newState.pendingShake, 3);
                 spawnSplitSlimes(newState, cleaveTarget);
+                handleExplosion(newState, cleaveTarget);
                 newState.runStats.enemiesKilled++;
                 awardXp(newState, cleaveTarget.xpReward ?? 5);
                 if (weaponRunic === RunicEffect.VAMPIRIC) {
@@ -2520,6 +2625,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       if (enemy.hp <= 0) {
         newState.messages.push({ text: `${enemy.name} dies from poison!`, color: MSG_COLORS.KILL });
         spawnSplitSlimes(newState, enemy);
+        handleExplosion(newState, enemy);
         newState.runStats.enemiesKilled++;
         newState.runStats.damageDealt += poisonDmg;
         awardXp(newState, enemy.xpReward ?? 5);
@@ -2543,6 +2649,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       if (enemy.hp <= 0) {
         newState.messages.push({ text: `${enemy.name} burns to death!`, color: MSG_COLORS.KILL });
         spawnSplitSlimes(newState, enemy);
+        handleExplosion(newState, enemy);
         newState.runStats.enemiesKilled++;
         newState.runStats.damageDealt += burnDmg;
         awardXp(newState, enemy.xpReward ?? 5);
@@ -2631,6 +2738,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
         if (enemy.hp <= 0) {
           newState.messages.push({ text: `${enemy.name} is consumed by your void aura!`, color: MSG_COLORS.KILL });
           spawnSplitSlimes(newState, enemy);
+          handleExplosion(newState, enemy);
           newState.runStats.enemiesKilled++;
           newState.runStats.damageDealt += 1;
           awardXp(newState, enemy.xpReward ?? 5);

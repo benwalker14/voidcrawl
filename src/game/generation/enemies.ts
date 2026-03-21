@@ -30,6 +30,8 @@ const ENEMY_TEMPLATES: EnemyTemplate[] = [
   { name: "Null Siphon",    symbol: "n", color: "#3b82f6", baseHp: 12, baseAttack: 4, baseDefense: 1, baseXp: 28, minFloor: 5,  behavior: AIBehavior.AMBUSH, detectRange: 6,  specialAbility: SpecialAbility.SIPHON,     zoneWeights: [0, 9, 2] },
   { name: "Rift Wraith",    symbol: "R", color: "#e9d5ff", baseHp: 22, baseAttack: 7, baseDefense: 4, baseXp: 50, minFloor: 7,  behavior: AIBehavior.CHASE,  detectRange: 14, specialAbility: SpecialAbility.ETHEREAL,  zoneWeights: [0, 2, 10] },
   { name: "Void Lord",      symbol: "V", color: "#f5f3ff", baseHp: 30, baseAttack: 9, baseDefense: 5, baseXp: 75, minFloor: 10, behavior: AIBehavior.CHASE,  detectRange: 16,                                          zoneWeights: [0, 1, 10] },
+  { name: "Void Summoner",  symbol: "Z", color: "#581c87", baseHp: 20, baseAttack: 5, baseDefense: 3, baseXp: 55, minFloor: 10, behavior: AIBehavior.AMBUSH, detectRange: 10, specialAbility: SpecialAbility.SUMMON,    zoneWeights: [0, 0, 8] },
+  { name: "Void Bomber",    symbol: "B", color: "#f97316", baseHp: 14, baseAttack: 6, baseDefense: 2, baseXp: 40, minFloor: 10, behavior: AIBehavior.CHASE,  detectRange: 8,  specialAbility: SpecialAbility.EXPLODE,   zoneWeights: [0, 0, 8] },
 ];
 
 /** Get zone index from floor number for weighted spawning */
