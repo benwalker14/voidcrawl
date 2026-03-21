@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES, CONSUMABLE_EFFECT_NAMES, VICTORY_FLOOR, CURSE_NAMES, CURSE_DESCRIPTIONS, getZoneTheme, getZoneProgress, WEAPON_SPECIAL_NAMES, SpecialAbility } from "@/game/config";
 import { initGame, processPlayerTurn, applyInventoryItem, dropItem, processShrine, continueEndless, MoveDirection, getAttunementAtkBonus, getAttunementDefBonus } from "@/game/engine";
-import { render, renderMinimap, renderFloatingTexts, renderHitEffects, FLOAT_DURATION, HIT_EFFECT_DURATION } from "@/game/renderer";
+import { render, renderMinimap, renderFloatingTexts, renderHitEffects, renderItemTooltip, FLOAT_DURATION, HIT_EFFECT_DURATION } from "@/game/renderer";
 import type { ActiveFloatingText, ActiveHitEffect } from "@/game/renderer";
 import type { GameState, GameMessage, PlayerInventory, RunStats, StatusEffect, GameEntity, DailyResult } from "@/game/config";
 import { getDailySeed, formatDailyDate } from "@/game/rng";
@@ -191,6 +191,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
     if (showMinimapRef.current) {
       renderMinimap(ctx, gameRef.current);
     }
+    renderItemTooltip(ctx, gameRef.current);
     const now = performance.now();
     if (hitEffectsRef.current.length > 0) {
       renderHitEffects(ctx, gameRef.current, hitEffectsRef.current, now);
@@ -328,6 +329,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
       if (showMinimapRef.current) {
         renderMinimap(ctx, gameRef.current);
       }
+      renderItemTooltip(ctx, gameRef.current);
 
       hitEffectsRef.current = hitEffectsRef.current.filter(
         (hf) => now - hf.startTime < HIT_EFFECT_DURATION

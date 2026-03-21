@@ -90,7 +90,7 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
             <Hl>Combat:</Hl> Walk into an enemy to attack. Damage = ATK - DEF + random(-1 to 1), minimum 1.
           </p>
           <p className="mb-1">
-            <Hl>Items:</Hl> Walk over items to auto-pickup. Better weapons/armor auto-equip. Potions and scrolls go to inventory — press 1-8 to use. Press Q then 1-8 to drop an item.
+            <Hl>Items:</Hl> Walk over items to auto-pickup. Better weapons/armor auto-equip. Potions and scrolls go to inventory — press 1-8 to use. Press Q then 1-8 to drop an item. Standing on a weapon or armor shows a stat comparison tooltip vs. your current gear.
           </p>
           <p className="mb-1">
             <Hl>Identification:</Hl> Potions and scrolls have randomized appearances each run. Their true effect is unknown until you use one — then all items of that type are identified for the rest of the run.

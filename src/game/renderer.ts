@@ -12,6 +12,14 @@ import {
   EnemyIntent,
   SpecialAbility,
   TrapType,
+  ItemCategory,
+  Item,
+  RunicEffect,
+  WeaponSpecial,
+  CurseEffect,
+  RUNIC_NAMES,
+  WEAPON_SPECIAL_NAMES,
+  CURSE_NAMES,
   getZoneTileColors,
   getZoneTheme,
 } from "./config";
@@ -532,4 +540,142 @@ export function renderHitEffects(
   }
 
   ctx.globalAlpha = 1.0;
+}
+
+/** Render an item stat comparison tooltip when player stands on a weapon/armor ground item */
+export function renderItemTooltip(ctx: CanvasRenderingContext2D, state: GameState) {
+  // Find ground item at player position
+  const groundItem = state.items.find(
+    (gi) => gi.pos.x === state.player.pos.x && gi.pos.y === state.player.pos.y
+  );
+  if (!groundItem) return;
+
+  const { item } = groundItem;
+  // Only show tooltip for weapons and armor (equipment with stats to compare)
+  if (item.category !== ItemCategory.WEAPON && item.category !== ItemCategory.ARMOR) return;
+
+  const isWeapon = item.category === ItemCategory.WEAPON;
+  const equipped: Item | null = isWeapon ? state.inventory.equippedWeapon : state.inventory.equippedArmor;
+  const statLabel = isWeapon ? "ATK" : "DEF";
+  const itemStat = (isWeapon ? item.attack : item.defense) ?? 0;
+  const equippedStat = equipped ? ((isWeapon ? equipped.attack : equipped.defense) ?? 0) : 0;
+  const diff = itemStat - equippedStat;
+
+  // Build tooltip lines
+  const lines: { text: string; color: string }[] = [];
+
+  // Line 1: Ground item name + stat
+  lines.push({ text: `${item.name} (+${itemStat} ${statLabel})`, color: item.color });
+
+  // Runic / special / curse tags for ground item
+  const groundTags = buildItemTags(item);
+  if (groundTags) {
+    lines.push({ text: groundTags, color: "#c084fc" });
+  }
+
+  // Line 2: Comparison
+  if (equipped) {
+    const arrow = diff > 0 ? "\u25B2" : diff < 0 ? "\u25BC" : "=";
+    const diffColor = diff > 0 ? "#22c55e" : diff < 0 ? "#ef4444" : "#9ca3af";
+    const diffText = diff > 0 ? `+${diff}` : diff < 0 ? `${diff}` : "\u00B10";
+    lines.push({ text: `vs ${equipped.name} (+${equippedStat}) ${arrow}${diffText}`, color: diffColor });
+
+    // Show equipped item tags if different from ground item
+    const equippedTags = buildItemTags(equipped);
+    if (equippedTags) {
+      lines.push({ text: `  ${equippedTags}`, color: "#8b7bb0" });
+    }
+  } else {
+    lines.push({ text: `No ${isWeapon ? "weapon" : "armor"} equipped`, color: "#6b7280" });
+  }
+
+  // Cursed warning
+  if (item.cursed && item.curse) {
+    lines.push({ text: `\u26A0 Cursed: ${CURSE_NAMES[item.curse]}`, color: "#ef4444" });
+  }
+
+  // Measure tooltip dimensions
+  const fontSize = 11;
+  const lineHeight = fontSize + 4;
+  const padding = 6;
+  ctx.font = `bold ${fontSize}px monospace`;
+
+  let maxWidth = 0;
+  for (const line of lines) {
+    const w = ctx.measureText(line.text).width;
+    if (w > maxWidth) maxWidth = w;
+  }
+
+  const tooltipW = maxWidth + padding * 2;
+  const tooltipH = lines.length * lineHeight + padding * 2;
+
+  // Position tooltip above the player
+  const camX = Math.max(
+    0,
+    Math.min(state.player.pos.x - Math.floor(VIEWPORT_TILES_X / 2), MAP_WIDTH - VIEWPORT_TILES_X)
+  );
+  const camY = Math.max(
+    0,
+    Math.min(state.player.pos.y - Math.floor(VIEWPORT_TILES_Y / 2), MAP_HEIGHT - VIEWPORT_TILES_Y)
+  );
+
+  const playerScreenX = (state.player.pos.x - camX) * SCALED_TILE + SCALED_TILE / 2;
+  const playerScreenY = (state.player.pos.y - camY) * SCALED_TILE;
+
+  // Try above player, fall back to below if too close to top
+  let tooltipX = playerScreenX - tooltipW / 2;
+  let tooltipY = playerScreenY - tooltipH - 8;
+
+  if (tooltipY < 4) {
+    tooltipY = playerScreenY + SCALED_TILE + 8;
+  }
+
+  // Clamp horizontally
+  if (tooltipX < 4) tooltipX = 4;
+  if (tooltipX + tooltipW > CANVAS_WIDTH - 4) tooltipX = CANVAS_WIDTH - 4 - tooltipW;
+
+  // Draw background
+  ctx.fillStyle = "rgba(10, 10, 20, 0.92)";
+  ctx.beginPath();
+  roundRect(ctx, tooltipX, tooltipY, tooltipW, tooltipH, 4);
+  ctx.fill();
+
+  // Draw border
+  ctx.strokeStyle = item.color + "88";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  roundRect(ctx, tooltipX, tooltipY, tooltipW, tooltipH, 4);
+  ctx.stroke();
+
+  // Draw text lines
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillStyle = lines[i].color;
+    ctx.font = i === 0 ? `bold ${fontSize}px monospace` : `${fontSize}px monospace`;
+    ctx.fillText(lines[i].text, tooltipX + padding, tooltipY + padding + i * lineHeight);
+  }
+}
+
+/** Build a tag string for item runics/specials/curses */
+function buildItemTags(item: Item): string {
+  const tags: string[] = [];
+  if (item.weaponSpecial) tags.push(WEAPON_SPECIAL_NAMES[item.weaponSpecial]);
+  if (item.runic) tags.push(RUNIC_NAMES[item.runic]);
+  if (item.cursed && item.curse) tags.push(CURSE_NAMES[item.curse]);
+  return tags.length > 0 ? `[${tags.join("] [")}]` : "";
+}
+
+/** Draw a rounded rectangle path */
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
 }

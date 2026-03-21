@@ -1,5 +1,22 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-22 00:15 | developer | Item stat comparison tooltip on canvas
+
+**Task:** Add item stat comparison tooltip when player stands on a weapon or armor ground item.
+
+**Changes:**
+- Added `renderItemTooltip()` function to `src/game/renderer.ts` — renders a tooltip box above the player when standing on a weapon or armor ground item
+- Tooltip shows: ground item name + stat, runic/special/curse tags, comparison vs. currently equipped item with colored delta (green arrow + positive diff for upgrades, red arrow + negative diff for downgrades, gray for equal)
+- Equipped item's tags also shown for comparison (runic, weapon special, curse)
+- Cursed ground items show a warning line
+- Tooltip auto-positions above player, falls back to below if near top edge, clamped horizontally
+- Rounded rectangle background with item-colored border for polish
+- Integrated into both the static `draw()` and animated render loop in `GameCanvas.tsx`
+- Updated help overlay to mention the tooltip feature
+- Added helper functions: `buildItemTags()` for formatting item modifier tags, `roundRect()` for rounded rectangle path drawing
+
+**Files modified:** `src/game/renderer.ts`, `src/components/GameCanvas.tsx`, `src/components/HelpOverlay.tsx`
+
 ### 2026-03-21 23:45 | developer | Procedural sound effects via Web Audio API
 
 **Task:** Add oscillator-generated sound effects with zero asset files.
