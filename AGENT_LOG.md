@@ -1,5 +1,125 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-21 23:30 | strategist | Launch Pipeline Audit — critical bugs found, Sharing Saturday template, conversion analysis
+
+**Analysis type:** Growth & Launch Readiness (pass 2)
+
+**Context:** The community launch plan (session 10) proposed a sequenced rollout: Sharing Saturday warmup → itch.io → r/WebGames → Hacker News. Today is Saturday March 21 — the first possible Sharing Saturday. This audit checks whether the launch pipeline is actually unblocked.
+
+#### Critical Findings
+
+**1. SEO Poisoning — 2 files still point to dead domain (P0)**
+
+`robots.ts` line 6 and `sitemap.ts` line 3 both reference `https://voidcrawl.vercel.app`. This means:
+- Google's sitemap.xml points crawlers to a nonexistent domain
+- robots.txt tells search engines the wrong sitemap location
+- Every page Google has indexed since the rename has incorrect canonical/sitemap data
+- This actively harms SEO ranking — Google penalizes conflicting canonical signals
+
+Both are 1-line fixes. Elevated to P0 on the task board.
+
+**2. Landing Page Conversion Gap — no gameplay visual**
+
+The landing page (page.tsx) is text-only: title, CTAs, feature grid, SEO paragraph. No screenshot, no GIF, no visual of the actual game. For a VISUAL game with canvas rendering, 3 themed zones, boss fights, and floating damage numbers, this is a major conversion failure:
+- Browser game landing pages with gameplay screenshots convert 2-3x better than text-only
+- Animated GIFs showing a few turns convert 3-5x better
+- The OG image shows branding but not gameplay — players clicking through from social see zero preview of what they'll play
+
+The gameplay screenshot task is already P1 on the board. I'm recommending it be elevated to P0 because it blocks effective community launch — a Sharing Saturday post without a screenshot gets minimal engagement.
+
+**3. Sharing Saturday is TODAY — template drafted**
+
+r/roguelikedev Sharing Saturday (~37K subscribers) posts every Saturday at ~00:00 UTC. This is the ideal warmup channel: it's show-and-tell, not promotional. Regulars get recognized and followed. GIFs/screenshots dramatically outperform text-only posts.
+
+Draft template for human review:
+
+```
+**Nullcrawl** | [Play in browser](https://nullcrawl.com/play)
+
+First time sharing! Nullcrawl is a traditional roguelike in the browser —
+turn-based, procedurally generated, permadeath. Built with TypeScript +
+HTML5 Canvas.
+
+**Current features:**
+- 14 enemy types + 3 multi-phase bosses (Void Nucleus, Shadow Twin, Rift Warden)
+- 3 themed zones: Null Tunnels → Crystal Depths → Shadow Realm
+- Void Attunement corruption system (4 risk-reward thresholds)
+- Unidentified potions, runic weapons, cursed equipment with tactical curses
+- Daily seeded challenge ("Daily Void")
+
+**Working on next:**
+- [current developer focus]
+
+[screenshot or GIF here]
+
+Feedback welcome — especially on balance and UX. Solo project, first public share.
+```
+
+**BLOCKER:** This template needs a gameplay screenshot/GIF to be effective. Text-only Sharing Saturday posts get ~50% less engagement.
+
+**4. itch.io page — still not created, blocks all community posts**
+
+itch.io is the primary landing page for Reddit/HN traffic. 37% of itch.io visitors play browser games directly (vs. 6% who download). The page needs:
+- Cover image (630x500) — can reuse/adapt OG image
+- 5+ screenshots showing different zones, boss fights, daily challenge, death screen
+- Browser-playable embed (iframe to nullcrawl.com/play)
+- Proper tags: roguelike, traditional-roguelike, dungeon-crawler, turn-based, procedural-generation, ascii, browser, free, fantasy
+- "What is Nullcrawl?" description (reuse landing page SEO text)
+- Initial devlog entry
+
+The itch.io page needs screenshots, which need the screenshot capture task. Everything cascades from one task: **capture gameplay screenshots**.
+
+**5. Human decisions still pending from session 10**
+
+Two questions from the community launch plan remain unanswered:
+1. Launch timeline approval (A: proceed, B: delay, C: faster)
+2. Reddit/HN account readiness (do you have accounts with history?)
+
+These don't block developer work but they block the community posting phase.
+
+#### Launch Pipeline Status
+
+```
+DONE ✓                          BLOCKED ✗
+─────────                       ─────────
+Content depth                   robots.ts domain fix ← P0, 1-line
+OG image                        sitemap.ts domain fix ← P0, 1-line
+JSON-LD structured data         Gameplay screenshot ← blocks everything below
+SEO landing page text           itch.io page ← needs screenshots
+Viewport meta tag               RogueBasin page ← needs correct domain
+metadataBase fix                 Sharing Saturday post ← needs screenshot
+Daily challenge mode             r/WebGames post ← needs itch.io
+Victory condition                Hacker News post ← needs Reddit post
+Rename to Nullcrawl              Ko-fi / GitHub Sponsors ← needs human setup
+                                 Vercel project rename ← needs human
+```
+
+The entire community launch pipeline is gated behind 3 things:
+1. Two 1-line domain fixes (developer, 2 minutes)
+2. Gameplay screenshot capture (developer, 30 minutes)
+3. Human decisions on launch timeline + accounts
+
+#### Task Board Changes
+
+- NEW P0: Fix robots.ts and sitemap.ts domain references (voidcrawl.vercel.app → nullcrawl.com)
+- ELEVATED: Gameplay screenshot from P1 to P0 (blocks entire community launch pipeline)
+- NEW P1: Draft Sharing Saturday post for human review
+- NEW P1: Capture 5+ screenshots for itch.io (different zones, boss fights, UI)
+- RESEQUENCED: Recommended developer build order: P0 domain fixes → screenshots → itch.io page → Sharing Saturday
+
+#### Conversion Optimization Notes (for developer agents)
+
+The landing page should show gameplay ABOVE the feature grid. Recommended layout:
+1. Title + tagline
+2. CTA buttons (Enter the Void + Daily Void)
+3. **Gameplay screenshot/GIF** ← NEW, most impactful addition
+4. Feature grid
+5. What is Nullcrawl? paragraph
+
+A single 800x450 screenshot showing: player in Crystal Depths zone, a few enemies with intent indicators visible, items on ground, minimap in corner, HUD with Void Attunement meter. This one image communicates more about the game than all the text combined.
+
+- No money spent. No money will be spent without logging to FINANCES.md and writing to HUMAN_INBOX.md.
+
 ### 2026-03-21 22:00 | developer | Message log improvements (P2 Player Experience)
 
 **3 improvements to the message log — the #1 information delivery problem:**

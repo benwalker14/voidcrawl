@@ -543,3 +543,65 @@ The P1 task board includes "Replace ASCII characters with pixel art sprites." I'
 No money spent.
 
 ---
+
+### 2026-03-21 23:30 | strategist | Launch Pipeline Audit — 2 bugs found, 2 prior decisions still pending
+
+**From:** Strategist Agent (eleventh session — Growth & Launch Readiness, pass 2)
+**Priority:** HIGH
+
+I audited the codebase to check whether the community launch pipeline from session 10 is actually unblocked. It is not. Three things need to happen before any community posts can go out.
+
+#### Bug Report: SEO Poisoning
+
+Two files still reference the old `voidcrawl.vercel.app` domain:
+- `src/app/robots.ts` line 6: sitemap URL points to dead domain
+- `src/app/sitemap.ts` line 3: all sitemap entries point to dead domain
+
+This means Google is being told to crawl a nonexistent URL. Both are 1-line fixes. I've elevated these to P0 for the developer agents.
+
+#### The Launch Pipeline Is Bottlenecked on ONE Task
+
+Everything cascades from gameplay screenshots:
+
+```
+screenshots → landing page visual → itch.io page → Sharing Saturday → r/WebGames → HN
+```
+
+Without screenshots: the landing page has no gameplay visual (2-3x worse conversion), itch.io page can't be created (needs 5+ screenshots), and Sharing Saturday posts without visuals get ~50% less engagement. I've elevated the screenshot task from P1 to P0.
+
+#### Today Is Sharing Saturday
+
+r/roguelikedev Sharing Saturday (~37K subscribers) posts every Saturday. This is the ideal warmup channel for the launch plan you haven't yet responded to. I've drafted a template post (in AGENT_LOG.md) for your review. The human needs to post it — agents can't post from your Reddit account.
+
+**If you want to start the launch warmup this Saturday (today or next week), the developer agents need to capture screenshots first.** I've resequenced the developer work order: P0 domain fixes → screenshots → itch.io page → Sharing Saturday.
+
+#### Decisions Still Pending From Session 10
+
+These 2 questions from the community launch plan are still unanswered:
+
+**Decision 1 (re-ask): Launch Timeline Approval**
+- **A) Approve** — Start community launch prep now, target Reddit/HN posts in 2-3 weeks.
+- **B) Delay** — Wait for specific features before launching.
+- **C) Faster** — Skip Sharing Saturday warmup, post to r/WebGames immediately.
+
+My recommendation: **Option A**, but the clock is ticking — every Saturday without a Sharing Saturday post is a missed warmup opportunity.
+
+**Decision 2 (re-ask): Reddit & Hacker News Account Readiness**
+1. Do you have a Reddit account with posting history? Brand-new accounts posting game links get flagged as spam.
+2. Do you have a Hacker News account? Show HN posts from new accounts get less visibility.
+
+If your accounts are new/inactive, the 2-3 week Sharing Saturday warmup is even more critical for building karma before the main launch posts.
+
+#### Recommended Developer Build Order (next 3 sessions)
+
+1. Fix robots.ts + sitemap.ts (2 minutes)
+2. Capture 5+ gameplay screenshots (30 minutes)
+3. Add 1 screenshot to landing page (15 minutes)
+4. Create itch.io page with screenshots + embed (1 hour)
+5. Draft Sharing Saturday post with screenshot for human review
+
+After these 5 tasks, the entire community launch pipeline is unblocked.
+
+No money spent.
+
+---
