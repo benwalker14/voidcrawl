@@ -1625,6 +1625,21 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
               newState.items.push(loot);
               newState.messages.push({ text: `The Nucleus dropped ${loot.item.name}!`, color: MSG_COLORS.LOOT });
             }
+            // Attunement escape valve: boss kill reduces attunement by 15
+            if (newState.voidAttunement > 0) {
+              const prevAtt = newState.voidAttunement;
+              const reduction = Math.min(15, newState.voidAttunement);
+              newState.voidAttunement = Math.max(0, newState.voidAttunement - 15);
+              newState.messages.push({ text: `The void's grip weakens... (-${reduction} Null Attunement)`, color: "#38bdf8" });
+              newState.pendingFloatingTexts.push({ text: `ATTUNEMENT -${reduction}`, color: "#38bdf8", x: newState.player.pos.x, y: newState.player.pos.y });
+              // Notify threshold losses
+              if (prevAtt >= 50 && newState.voidAttunement < 50) {
+                newState.messages.push({ text: "Void Strike fades... the void's power recedes.", color: "#9ca3af" });
+              }
+              if (prevAtt >= 25 && newState.voidAttunement < 25) {
+                newState.messages.push({ text: "Void Sight fades... the darkness releases its grip.", color: "#9ca3af" });
+              }
+            }
           } else {
             const loot = generateLootDrop(newState.floor, enemy.pos);
             if (loot) {

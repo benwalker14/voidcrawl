@@ -1,5 +1,13 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-20 20:20 | developer | Attunement escape valve on boss kills
+- **Boss kill attunement reduction:** Defeating a boss now reduces Null Attunement by 15 (minimum 0). Creates a natural reset point at floor 5 boss that prevents attunement from feeling inevitably oppressive
+- **Threshold de-crossing notifications:** If the reduction drops attunement below 50% or 25%, players see messages about Void Strike / Void Sight fading
+- **Floating text feedback:** "ATTUNEMENT -15" in cyan appears on boss kill alongside the existing "BOSS SLAIN!" text
+- **Strategic impact:** Players who aggressively used shrines before the boss get a partial correction. Players who avoided shrines drop to very low attunement, rewarding caution. Incentivizes engaging bosses quickly rather than over-preparing
+- Lint and build both pass clean
+- No money spent
+
 ### 2026-03-20 20:15 | developer | Attunement-as-currency shrine purification system
 - **New shrine action — Purify (P key):** When standing on a void shrine with attunement >= 25, players can press P to spend 15 attunement for a guaranteed positive effect (equal 25% chance each: Heal 50% HP, +1 permanent stat, Identify all items, or Random item). No risk of enemy spawns or equipment curses
 - **Strategic depth:** Transforms attunement from a one-way ratchet into a push-pull resource economy. Players must weigh threshold powers (Void Sight at 25%, Void Strike at 50%) against cashing in attunement for safe shrine uses. "Do I keep Void Strike, or spend down for 2 guaranteed heals?"
