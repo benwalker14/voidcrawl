@@ -96,6 +96,7 @@ function createRunStats(): RunStats {
     damageTaken: 0,
     deepestFloor: 1,
     startTime: Date.now(),
+    killedBy: "",
   };
 }
 
@@ -725,6 +726,7 @@ function processBossAI(state: GameState): void {
           state.pendingFloatingTexts.push({ text: `-${dmg}`, color: MSG_COLORS.ENEMY_ATK, x: px, y: py });
           if (state.player.hp <= 0) {
             state.gameOver = true;
+            state.runStats.killedBy = "Void Nucleus";
             state.messages.push({ text: "You have been consumed by the void...", color: MSG_COLORS.DEATH });
           }
         } else {
@@ -847,6 +849,7 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
       }
       if (state.player.hp <= 0) {
         state.gameOver = true;
+        state.runStats.killedBy = enemy.name;
         state.messages.push({ text: "You have been consumed by the void...", color: MSG_COLORS.DEATH });
       }
       continue;

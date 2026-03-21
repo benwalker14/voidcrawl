@@ -335,3 +335,19 @@
 - Updated HelpOverlay.tsx: added "M — Toggle mini-map" to Controls section
 - Updated controls hint footer: added "M for map"
 - Lint and build both pass clean
+
+### 2026-03-20 38:00 | developer | Shareable death screen with "Copy Run Summary" button
+- Added `killedBy` field to RunStats interface (config.ts) to track what killed the player
+- Engine now records killer name at both death points:
+  - Enemy melee attack death: records enemy.name (e.g., "Rift Wraith", "Abyssal Hound")
+  - Void Nucleus boss discharge death: records "Void Nucleus"
+- Added "COPY RUN SUMMARY" button to death screen (GameCanvas.tsx):
+  - Positioned alongside "TRY AGAIN" in a flex row
+  - Gold border/text styling, switches to green "COPIED!" for 2 seconds on click
+  - Uses navigator.clipboard.writeText() for clipboard access
+- Shareable text format (3 lines):
+  - `☠ VOIDCRAWL ☠`
+  - `Floor 7 | Level 5 | 23 kills | 12:45 | Killed by Rift Wraith`
+  - `▓▓▓▓▓▓▓░░░░░░░░ Floor 7/15` (15-char progress bar, proportional to floor/15)
+- Copied state resets on game restart
+- Lint and build both pass clean

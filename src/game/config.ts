@@ -247,6 +247,7 @@ export interface RunStats {
   damageTaken: number;
   deepestFloor: number;
   startTime: number;
+  killedBy: string;
 }
 
 export interface GameState {

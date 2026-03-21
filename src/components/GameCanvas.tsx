@@ -57,6 +57,7 @@ export default function GameCanvas() {
   const [bossInfo, setBossInfo] = useState<GameEntity | null>(null);
   const [identified, setIdentified] = useState<Record<string, boolean>>(initialState.identified);
   const [consumableAppearances, setConsumableAppearances] = useState<Record<string, string>>(initialState.consumableAppearances);
+  const [copied, setCopied] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const showHelpRef = useRef(false);
   const [showPause, setShowPause] = useState(false);
@@ -248,6 +249,7 @@ export default function GameCanvas() {
       animFrameRef.current = 0;
     }
     setGameOver(false);
+    setCopied(false);
     setStatusEffects([]);
     setIdentified(state.identified);
     setConsumableAppearances(state.consumableAppearances);
@@ -415,13 +417,39 @@ export default function GameCanvas() {
               <span style={{ color: "var(--void-muted)" }}>Time played</span>
               <span className="text-right">{formatPlayTime(runStats.startTime)}</span>
             </div>
-            <button
-              onClick={restart}
-              className="px-6 py-2 border-2 font-bold tracking-wider transition-all hover:scale-105"
-              style={{ borderColor: "var(--void-cyan)", color: "var(--void-cyan)" }}
-            >
-              TRY AGAIN
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  const maxFloor = 15;
+                  const filled = Math.round((runStats.deepestFloor / maxFloor) * 15);
+                  const bar = "\u2593".repeat(filled) + "\u2591".repeat(15 - filled);
+                  const killerText = runStats.killedBy ? ` | Killed by ${runStats.killedBy}` : "";
+                  const summary = [
+                    `\u2620 VOIDCRAWL \u2620`,
+                    `Floor ${runStats.deepestFloor} | Level ${stats.level} | ${runStats.enemiesKilled} kills | ${formatPlayTime(runStats.startTime)}${killerText}`,
+                    `${bar} Floor ${runStats.deepestFloor}/${maxFloor}`,
+                  ].join("\n");
+                  navigator.clipboard.writeText(summary).then(() => {
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  });
+                }}
+                className="px-4 py-2 border-2 font-bold tracking-wider text-sm transition-all hover:scale-105"
+                style={{
+                  borderColor: copied ? "#22c55e" : "#fbbf24",
+                  color: copied ? "#22c55e" : "#fbbf24",
+                }}
+              >
+                {copied ? "COPIED!" : "COPY RUN SUMMARY"}
+              </button>
+              <button
+                onClick={restart}
+                className="px-6 py-2 border-2 font-bold tracking-wider transition-all hover:scale-105"
+                style={{ borderColor: "var(--void-cyan)", color: "var(--void-cyan)" }}
+              >
+                TRY AGAIN
+              </button>
+            </div>
           </div>
         )}
       </div>
