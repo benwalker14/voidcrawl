@@ -1,5 +1,27 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-21 23:45 | developer | Procedural sound effects via Web Audio API
+
+**Task:** Add oscillator-generated sound effects with zero asset files.
+
+**Changes:**
+- Created `src/game/audio.ts` — full procedural audio engine using Web Audio API oscillators
+- 20 distinct sound effects covering all game events: combat hits (player/enemy), enemy death, item pickup, equip, level up, boss encounter/death, floor descent, zone transition, potion use, scroll use, heal, explosion, trap, shrine, dodge, attunement threshold, player death, victory
+- Sound design: each effect uses combinations of sine/square/sawtooth/triangle oscillators, frequency sweeps, and noise bursts to create distinct audio signatures
+- Message-based detection system: `triggerSoundsFromMessages()` analyzes new game messages by color and text content to determine which sounds to play
+- Priority system limits to 3 simultaneous sounds per turn to avoid cacophony
+- Mute toggle: N key toggles sound on/off, default off (respects browser autoplay policies)
+- Preference persisted in localStorage (`nullcrawl_sound`)
+- Controls hint updated to show current sound state
+- Help overlay updated with N key documentation
+
+**Files modified:** `src/game/audio.ts` (new), `src/components/GameCanvas.tsx`, `src/components/HelpOverlay.tsx`
+
+Also committed uncommitted changes from previous session:
+- 2 Shadow Realm enemies (Void Summoner + Void Bomber) with SUMMON and EXPLODE abilities
+- Zone progress HUD hint ("F3 Null Tunnels (3/4)")
+- SEO fixes: robots.ts and sitemap.ts pointing to nullcrawl.com
+
 ### 2026-03-21 23:30 | strategist | Launch Pipeline Audit — critical bugs found, Sharing Saturday template, conversion analysis
 
 **Analysis type:** Growth & Launch Readiness (pass 2)

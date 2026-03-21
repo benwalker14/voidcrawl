@@ -8,6 +8,7 @@ import { render, renderMinimap, renderFloatingTexts, renderHitEffects, FLOAT_DUR
 import type { ActiveFloatingText, ActiveHitEffect } from "@/game/renderer";
 import type { GameState, GameMessage, PlayerInventory, RunStats, StatusEffect, GameEntity, DailyResult } from "@/game/config";
 import { getDailySeed, formatDailyDate } from "@/game/rng";
+import { initAudio, isMuted, toggleMute, triggerSoundsFromMessages } from "@/game/audio";
 import HelpOverlay from "./HelpOverlay";
 import PauseMenu from "./PauseMenu";
 
@@ -174,6 +175,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
   const showPauseRef = useRef(false);
   const [shrinePrompt, setShrinePrompt] = useState(false);
   const showMinimapRef = useRef(true);
+  const [soundMuted, setSoundMuted] = useState(true);
   const dropModeRef = useRef(false);
   const floatingTextsRef = useRef<ActiveFloatingText[]>([]);
   const hitEffectsRef = useRef<ActiveHitEffect[]>([]);
@@ -269,6 +271,9 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
   const transitionRef = useRef<{ startTime: number; floor: number; zoneName: string } | null>(null);
 
   const startAnimations = useCallback((state: GameState) => {
+    // Trigger procedural sounds based on new messages
+    triggerSoundsFromMessages(state.messages);
+
     const now = performance.now();
     const pendingFloats = state.pendingFloatingTexts;
     const pendingHits = state.pendingHitEffects;
@@ -393,6 +398,11 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    initAudio();
+    setSoundMuted(isMuted());
+  }, []);
+
+  useEffect(() => {
     draw();
   }, [draw]);
 
@@ -514,6 +524,14 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
         e.preventDefault();
         showMinimapRef.current = !showMinimapRef.current;
         draw();
+        return;
+      }
+
+      // Sound toggle: N key (skip if shrine prompt active — N is "No" there)
+      if ((e.key === "n" || e.key === "N") && !gameRef.current?.shrinePrompt) {
+        e.preventDefault();
+        const nowMuted = toggleMute();
+        setSoundMuted(nowMuted);
         return;
       }
 
@@ -1145,7 +1163,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
 
       {/* Controls hint */}
       <div className="mt-2 text-xs" style={{ color: "var(--void-muted)" }}>
-        Arrow keys / WASD to move &middot; Space to wait &middot; Walk into enemies to attack &middot; Find the stairs (&gt;) to descend &middot; 1-8 to use items &middot; M for map &middot; Esc to pause &middot; ? for help
+        Arrow keys / WASD to move &middot; Space to wait &middot; Walk into enemies to attack &middot; Find the stairs (&gt;) to descend &middot; 1-8 to use items &middot; M for map &middot; N for sound ({soundMuted ? "off" : "on"}) &middot; Esc to pause &middot; ? for help
       </div>
     </div>
   );

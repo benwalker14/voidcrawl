@@ -74,6 +74,7 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
           <Row left="1-8" right="Use inventory item by slot number" />
           <Row left="Q then 1-8" right="Drop inventory item onto the floor" />
           <Row left="M" right="Toggle mini-map" />
+          <Row left="N" right="Toggle sound effects (off by default)" />
           <Row left="? / H" right="Toggle this help screen" />
           <Row left="Esc" right="Pause menu" />
           <div className="mt-1 mb-0.5" style={{ color: "var(--void-muted)" }}>On death/victory screen:</div>
