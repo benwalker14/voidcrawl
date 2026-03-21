@@ -26,7 +26,7 @@
 - [ ] Update Vercel project: rename project to "nullcrawl", update any Vercel-specific config. Ensure old URL redirects to new domain (Vercel handles this automatically with custom domains).
 
 ### P0 - Launch Blockers (NEW — strategist launch plan 2026-03-21)
-- [ ] Fix metadataBase in layout.tsx: change `https://voidcrawl.vercel.app` to `https://nullcrawl.com`. Currently ALL OG images, canonical URLs, and social card metadata point to the old URL. Every link shared anywhere has wrong metadata. 1-line fix, highest priority.
+- [x] Fix metadataBase in layout.tsx: change `https://voidcrawl.vercel.app` to `https://nullcrawl.com`. Currently ALL OG images, canonical URLs, and social card metadata point to the old URL. Every link shared anywhere has wrong metadata. 1-line fix, highest priority.
 
 ### P1 - Player Experience (NEW — strategist analysis 2026-03-20)
 - [x] Add help overlay (press ? or H) showing controls, mechanics, and enemy/item legends — players currently have no way to learn game systems beyond the tiny footer hint
@@ -131,7 +131,7 @@ These were previously classified as pre-launch requirements but the game already
 
 - [x] Floor 15 boss: "Rift Warden" — COMPLETED
 - [x] Environmental hazards — traps — COMPLETED
-- [ ] Consumable-environment interactions: Fire Potion prevents Dark Slime splitting (burned slimes die outright). Poison Potion makes Void Beetles lose ARMORED (corrodes shell). Scroll of Fear doesn't affect bosses but scatters boss adds. Invisibility allows safe shrine use (always positive effect). These are if-checks in existing combat/effect code — zero new assets, zero new systems. Each interaction adds a message: "The fire burns through the slime before it can divide!" Creates emergent combos that reward player knowledge. **Post-launch update 1.**
+- [x] Consumable-environment interactions: Fire Potion prevents Dark Slime splitting (burned slimes die outright). Poison Potion makes Void Beetles lose ARMORED (corrodes shell). Scroll of Fear doesn't affect bosses but scatters boss adds. Invisibility allows safe shrine use (always positive effect). These are if-checks in existing combat/effect code — zero new assets, zero new systems. Each interaction adds a message: "The fire burns through the slime before it can divide!" Creates emergent combos that reward player knowledge. **Post-launch update 1.**
 - [ ] 2 Crystal Depths zone-exclusive enemies: Crystal Depths (floors 5-9) currently uses repurposed Null Tunnels enemies via zone-weighting. Zone-exclusive enemies complete the zone identity. See spec in P2 Content Wave 2A. **Post-launch update 1.**
 
 ### P2 - Content Depth (REVISED — strategist content planning wave 2, 2026-03-20)

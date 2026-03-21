@@ -13,6 +13,8 @@ const ENEMIES = [
   { symbol: "O", color: "#06b6d4", name: "BOSS: Void Nucleus", behavior: "Stationary · Spawns adds · Telegraphs AoE · Alternates active/vulnerable phases", floors: "5" },
   { symbol: "o", color: "#67e8f9", name: "Void Fragment", behavior: "Boss add · Pursues player", floors: "5" },
   { symbol: "@", color: "#dc2626", name: "BOSS: Shadow Twin", behavior: "3-phase fight · Mirror (flees) → Split (chase, kill both in 3 turns) → Desperation (ethereal, 2-tile movement)", floors: "10" },
+  { symbol: "+", color: "#d4d4d8", name: "Rift Anchor", behavior: "Stationary · Shields the Rift Warden (80% damage reduction while alive)", floors: "15" },
+  { symbol: "W", color: "#fbbf24", name: "BOSS: Rift Warden", behavior: "3-phase fight · Sentinel (void bolts, destroy 4 anchors) → Unleashed (chase, void patches) → Final Stand (teleports, lethal patches)", floors: "15" },
 ];
 
 const ITEMS = [
@@ -35,6 +37,8 @@ const MAP_SYMBOLS = [
   { symbol: "#", color: "#2d2d44", label: "Wall" },
   { symbol: ">", color: "#06b6d4", label: "Stairs down (descend to next floor)" },
   { symbol: ",", color: "#ef4444", label: "Trap (revealed)" },
+  { symbol: "\u00b7", color: "#d946ef", label: "Void Patch (Rift Warden arena hazard)" },
+  { symbol: "+", color: "#d4d4d8", label: "Rift Anchor (destroy to remove Warden shield)" },
 ];
 
 interface HelpOverlayProps {
@@ -222,17 +226,17 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
           <div className="space-y-0.5 mb-2 ml-2">
             <div><span style={{ color: "#22c55e" }}>Health</span> — Restores HP (won&apos;t use at full health)</div>
             <div><span style={{ color: "#22c55e" }}>Haste</span> — Enemies move at half speed for 8 turns</div>
-            <div><span style={{ color: "#22c55e" }}>Invisibility</span> — Enemies can&apos;t see you for 10 turns (broken by attacking)</div>
+            <div><span style={{ color: "#22c55e" }}>Invisibility</span> — Enemies can&apos;t see you for 10 turns (broken by attacking). <span style={{ color: "#a78bfa" }}>Shrines always give positive effects!</span></div>
             <div><span style={{ color: "#22c55e" }}>Teleport</span> — Randomly teleport to another spot on the floor</div>
-            <div><span style={{ color: "#22c55e" }}>Fire</span> — Deal 8 damage to all enemies within 2 tiles</div>
-            <div><span style={{ color: "#22c55e" }}>Poison</span> — Poison enemies within 2 tiles (2 dmg/turn for 5 turns)</div>
+            <div><span style={{ color: "#22c55e" }}>Fire</span> — Deal 8 damage to all enemies within 2 tiles. <span style={{ color: "#f97316" }}>Prevents Dark Slime splitting!</span></div>
+            <div><span style={{ color: "#22c55e" }}>Poison</span> — Poison enemies within 2 tiles (2 dmg/turn for 5 turns). <span style={{ color: "#22c55e" }}>Corrodes Void Beetle armor!</span></div>
             <div><span style={{ color: "#22c55e" }}>Strength</span> — +3 ATK for 10 turns</div>
           </div>
           <p className="mb-1" style={{ color: "#06b6d4" }}>Scrolls (?)</p>
           <div className="space-y-0.5 ml-2">
             <div><span style={{ color: "#22c55e" }}>Mapping</span> — Reveals the entire floor layout</div>
             <div><span style={{ color: "#22c55e" }}>Enchanting</span> — +2 to equipped weapon ATK or armor DEF</div>
-            <div><span style={{ color: "#22c55e" }}>Fear</span> — All visible enemies flee for 6 turns</div>
+            <div><span style={{ color: "#22c55e" }}>Fear</span> — All visible enemies flee for 6 turns. <span style={{ color: "#eab308" }}>Bosses resist, but scatters their adds!</span></div>
             <div><span style={{ color: "#22c55e" }}>Summoning</span> — Summons a Void Spirit ally for 15 turns</div>
             <div><span style={{ color: "#22c55e" }}>Remove Curse</span> — Lifts curses from all equipped items</div>
           </div>
@@ -330,6 +334,10 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
             <div>
               <span style={{ color: "#dc2626" }}>Floor 10 — Shadow Twin:</span>{" "}
               <span style={{ color: "var(--void-muted)" }}>3-phase positioning puzzle. <strong>Mirror:</strong> flees from you — corner it using pillars. <strong>Split (50% HP):</strong> splits into 2 copies — kill both within 3 turns or it regenerates. <strong>Desperation (25% HP):</strong> becomes ethereal (only hittable on floor tiles) and moves 2 tiles per turn. Drop: Mirror Shard (creates a decoy for 8 turns).</span>
+            </div>
+            <div>
+              <span style={{ color: "#fbbf24" }}>Floor 15 — Rift Warden:</span>{" "}
+              <span style={{ color: "var(--void-muted)" }}>3-phase resource management boss. <strong>Sentinel:</strong> stationary, fires void bolts every 2 turns (telegraphed). Destroy 4 Rift Anchors to remove its 80% damage shield. <strong>Unleashed:</strong> mobile with 2-tile movement, places damaging void patches (<span style={{ color: "#d946ef" }}>5 dmg</span>) every 4 turns. <strong>Final Stand (30% HP):</strong> teleports every 2 turns, patches deal <span style={{ color: "#ef4444" }}>8 dmg</span>. Avoid void patches and commit consumables to finish it. Drop: {"Warden's Key"} (passive — reveals all traps permanently).</span>
             </div>
           </div>
         </Section>

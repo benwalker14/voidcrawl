@@ -1,5 +1,25 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-21 12:00 | developer | P0 metadataBase fix + consumable-environment interactions
+
+**P0 fix:** Changed `siteUrl` in `layout.tsx` from `https://voidcrawl.vercel.app` to `https://nullcrawl.com`. All OG images, canonical URLs, JSON-LD, and social card metadata now point to the correct domain.
+
+**Consumable-environment interactions (4 interactions implemented):**
+
+1. **Fire Potion + Dark Slime:** Fire kills now skip `spawnSplitSlimes()` for enemies with the SPLIT ability. Message: "The fire burns through the slime before it can divide!" Makes Fire Potions a tactical counter to Dark Slime splitting.
+
+2. **Poison Potion + Void Beetle:** Poison removes the ARMORED special ability from affected enemies. Sets `enemy.specialAbility = undefined`. Message: "The poison corrodes [name]'s shell!" + "CORRODED" floating text. Void Beetles lose their +1 DEF bonus permanently after being poisoned.
+
+3. **Scroll of Fear + Bosses:** Bosses (entities with `isBoss: true`) now skip the fear effect entirely. Non-boss enemies in FOV still flee normally. Message when a boss resists: "The boss resists the fear, but its minions scatter!" Makes Fear scrolls tactically useful during boss fights for crowd control without trivializing the boss.
+
+4. **Invisibility + Shrines:** When the player has INVISIBLE status effect and communes with a shrine, the shrine uses `pickPurifyEffect()` (guaranteed positive) instead of `pickShrineEffect()` (random weighted). This overrides the PARANOID curse negative effect. Message: "The void cannot sense your presence... the shrine yields its blessing freely." Creates a combo: use Invisibility Potion → commune for guaranteed heal/stat/identify/consumable.
+
+**Help overlay updated:** All 4 interactions documented inline with their respective consumable descriptions using color-coded hint text.
+
+**Files changed:** `src/app/layout.tsx`, `src/game/engine.ts`, `src/components/HelpOverlay.tsx`, `TASK_BOARD.md`
+- Lint and build both pass clean
+- No money spent
+
 ### 2026-03-21 08:00 | strategist | Community Launch Plan — launch readiness audit, sequencing, and timing
 
 **Analysis type:** D. Growth & SEO (third pass — focused on community launch timing and execution plan)

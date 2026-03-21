@@ -30,6 +30,7 @@ import {
   WeaponSpecial,
   Trap,
   TrapType,
+  VoidPatch,
   MSG_COLORS,
   CONSUMABLE_EFFECT_NAMES,
   getZoneTheme,
@@ -37,7 +38,7 @@ import {
 } from "./config";
 import { random, seedRngForFloor, unseedRng } from "./rng";
 import { generateDungeon } from "./generation/dungeon";
-import { spawnEnemies, spawnEnemyAtPos, spawnBoss, spawnBossAdd, spawnShadowTwin, spawnShadowClone } from "./generation/enemies";
+import { spawnEnemies, spawnEnemyAtPos, spawnBoss, spawnBossAdd, spawnShadowTwin, spawnShadowClone, spawnRiftWarden, spawnRiftAnchor } from "./generation/enemies";
 import { computeFov, FOV_RADIUS } from "./generation/fov";
 import { generateLootDrop, generateBossLoot, generateGuaranteedFloorLoot, initConsumableAppearances, initIdentified } from "./data/items";
 import { findPath, findFleeStep } from "./pathfinding";
@@ -250,12 +251,29 @@ export function generateFloor(
     ? { ...prevPlayer, pos: { ...dungeon.playerStart } }
     : createPlayer(dungeon.playerStart);
 
-  const isBossFloor = floor === 5 || floor === 10;
-  const enemies = floor === 5
-    ? [spawnBoss(floor, dungeon.map)]
-    : floor === 10
-    ? [spawnShadowTwin(floor, dungeon.map)]
-    : spawnEnemies(floor, floorTiles);
+  const isBossFloor = floor === 5 || floor === 10 || floor === 15;
+  let enemies: GameEntity[];
+  if (floor === 5) {
+    enemies = [spawnBoss(floor, dungeon.map)];
+  } else if (floor === 10) {
+    enemies = [spawnShadowTwin(floor, dungeon.map)];
+  } else if (floor === 15) {
+    const warden = spawnRiftWarden(floor, dungeon.map);
+    // Spawn 4 Rift Anchors around the Warden in cardinal directions
+    const anchorOffsets = [
+      { dx: -3, dy: 0 },  // left
+      { dx: 3, dy: 0 },   // right
+      { dx: 0, dy: -3 },  // above
+      { dx: 0, dy: 3 },   // below
+    ];
+    const anchors = anchorOffsets
+      .map((off) => ({ x: warden.pos.x + off.dx, y: warden.pos.y + off.dy }))
+      .filter((p) => p.x > 0 && p.x < MAP_WIDTH - 1 && p.y > 0 && p.y < MAP_HEIGHT - 1 && dungeon.map[p.y][p.x] === TileType.FLOOR)
+      .map((p) => spawnRiftAnchor(p, floor));
+    enemies = [warden, ...anchors];
+  } else {
+    enemies = spawnEnemies(floor, floorTiles);
+  }
 
   // Void Attunement: increases on descent
   const prevAttunement = prevVoidAttunement ?? 0;
@@ -304,6 +322,8 @@ export function generateFloor(
     messages.push({ text: "The air crackles with energy. A massive Void Nucleus pulses at the far end of the chamber!", color: MSG_COLORS.WARNING });
   } else if (floor === 10) {
     messages.push({ text: "A dark reflection emerges from the shadows... it mirrors your every move.", color: MSG_COLORS.WARNING });
+  } else if (floor === 15) {
+    messages.push({ text: "A towering sentinel guards the rift. Four anchors pulse with protective energy around it.", color: MSG_COLORS.WARNING });
   }
 
   if (attunementGain > 0) {
@@ -370,7 +390,15 @@ export function generateFloor(
     voidPhaseCooldown: 0,  // Void Phase (75%): ready immediately
     voidPhaseUsedThisTurn: false,
     maxHpReduced: maxHpWasReduced,  // Track if 75% HP reduction was applied
+    voidPatches: [],                // Rift Warden: void patches on arena floor
   };
+
+  // Warden's Key (passive): reveal all traps on new floor if player carries it
+  if (prevInventory?.items.some((i) => i.name === "Warden's Key")) {
+    for (const trap of state.traps) {
+      trap.revealed = true;
+    }
+  }
 
   // Compute initial enemy intents so they display from turn 1
   computeEnemyIntents(state);
@@ -460,6 +488,28 @@ function checkTrap(state: GameState): boolean {
     }
   }
   return false;
+}
+
+/** Check if player stepped on a Rift Warden void patch */
+function checkVoidPatch(state: GameState): void {
+  if (state.voidPatches.length === 0) return;
+  const px = state.player.pos.x;
+  const py = state.player.pos.y;
+  const patch = state.voidPatches.find((p) => p.pos.x === px && p.pos.y === py);
+  if (!patch) return;
+
+  const dmg = patch.damage;
+  state.player.hp -= dmg;
+  state.runStats.damageTaken += dmg;
+  state.messages.push({ text: `You step on a void patch! (-${dmg} HP)`, color: "#d946ef" });
+  state.pendingFloatingTexts.push({ text: `-${dmg}`, color: "#d946ef", x: px, y: py });
+  state.pendingShake = Math.max(state.pendingShake, 4);
+  if (state.player.hp <= 0) {
+    state.player.hp = 0;
+    state.gameOver = true;
+    state.runStats.killedBy = "Void Patch";
+    state.messages.push({ text: "The void consumes you...", color: MSG_COLORS.DEATH });
+  }
 }
 
 function isBlocked(state: GameState, x: number, y: number): boolean {
@@ -638,9 +688,19 @@ function pickupItem(state: GameState): void {
       return;
     }
     state.inventory.items.push(item);
-    const displayName = getConsumableDisplayName(state, item);
-    const unknownHint = (item.effect && !state.identified[item.effect]) ? " (?)" : "";
-    state.messages.push({ text: `Picked up ${displayName}${unknownHint}.`, color: MSG_COLORS.LOOT });
+    // Warden's Key: special passive item with unique pickup message
+    if (item.name === "Warden's Key") {
+      state.messages.push({ text: `Picked up Warden's Key! All traps are now revealed.`, color: "#fbbf24" });
+      state.pendingFloatingTexts.push({ text: "WARDEN'S KEY!", color: "#fbbf24", x: state.player.pos.x, y: state.player.pos.y });
+      // Immediately reveal all traps on the current floor
+      for (const trap of state.traps) {
+        trap.revealed = true;
+      }
+    } else {
+      const displayName = getConsumableDisplayName(state, item);
+      const unknownHint = (item.effect && !state.identified[item.effect]) ? " (?)" : "";
+      state.messages.push({ text: `Picked up ${displayName}${unknownHint}.`, color: MSG_COLORS.LOOT });
+    }
   }
 
   // Remove from ground and track the pickup
@@ -749,7 +809,12 @@ function applyConsumableEffect(state: GameState, item: Item): boolean {
           state.pendingFloatingTexts.push({ text: `-${damage}`, color: "#f97316", x: enemy.pos.x, y: enemy.pos.y });
           if (enemy.hp <= 0) {
             state.messages.push({ text: `${enemy.name} is incinerated!`, color: MSG_COLORS.KILL });
-            spawnSplitSlimes(state, enemy);
+            // Fire prevents Dark Slime splitting — the fire burns through before it can divide
+            if (enemy.specialAbility === SpecialAbility.SPLIT) {
+              state.messages.push({ text: "The fire burns through the slime before it can divide!", color: "#f97316" });
+            } else {
+              spawnSplitSlimes(state, enemy);
+            }
             state.runStats.enemiesKilled++;
             awardXp(state, enemy.xpReward ?? 5);
           }
@@ -772,6 +837,12 @@ function applyConsumableEffect(state: GameState, item: Item): boolean {
           enemy.poisonTurns = Math.max(enemy.poisonTurns ?? 0, turns);
           hitCount++;
           state.pendingFloatingTexts.push({ text: "POISON", color: "#22c55e", x: enemy.pos.x, y: enemy.pos.y });
+          // Poison corrodes Void Beetle armor
+          if (enemy.specialAbility === SpecialAbility.ARMORED) {
+            enemy.specialAbility = undefined;
+            state.messages.push({ text: `The poison corrodes ${enemy.name}'s shell!`, color: "#22c55e" });
+            state.pendingFloatingTexts.push({ text: "CORRODED", color: "#22c55e", x: enemy.pos.x, y: enemy.pos.y });
+          }
         }
       }
       state.messages.push({ text: `Used ${displayName}. Poisoned ${hitCount} nearby ${hitCount === 1 ? "enemy" : "enemies"} for ${turns} turns!`, color: MSG_COLORS.HEAL });
@@ -830,12 +901,21 @@ function applyConsumableEffect(state: GameState, item: Item): boolean {
     case ConsumableEffect.FEAR: {
       const turns = item.effectValue ?? 6;
       let hitCount = 0;
+      let bossResisted = false;
       for (const enemy of state.entities) {
         if (enemy.hp <= 0 || enemy.friendly) continue;
         if (state.fov[enemy.pos.y]?.[enemy.pos.x]) {
+          // Bosses resist fear but their adds scatter
+          if (enemy.isBoss) {
+            bossResisted = true;
+            continue;
+          }
           enemy.fearTurns = Math.max(enemy.fearTurns ?? 0, turns);
           hitCount++;
         }
+      }
+      if (bossResisted) {
+        state.messages.push({ text: "The boss resists the fear, but its minions scatter!", color: MSG_COLORS.WARNING });
       }
       state.messages.push({ text: `Used ${displayName}. ${hitCount} ${hitCount === 1 ? "enemy flees" : "enemies flee"} in terror!`, color: MSG_COLORS.INFO });
       state.pendingFloatingTexts.push({ text: "FEAR", color: "#eab308", x: state.player.pos.x, y: state.player.pos.y });
@@ -930,6 +1010,11 @@ export function applyInventoryItem(state: GameState, index: number): GameState {
   const item = newState.inventory.items[index];
 
   if (item.category === ItemCategory.POTION || item.category === ItemCategory.SCROLL) {
+    // Warden's Key is a passive item — cannot be "used"
+    if (item.name === "Warden's Key") {
+      newState.messages.push({ text: "The Warden's Key is a passive item — it reveals all traps automatically.", color: MSG_COLORS.INFO });
+      return newState;
+    }
     const wasIdentified = item.effect ? newState.identified[item.effect] ?? false : true;
     const consumed = applyConsumableEffect(newState, item);
     if (consumed) {
@@ -1332,6 +1417,187 @@ function processShadowTwinAI(state: GameState): void {
     }
 
     twin.bossTurnCounter = (twin.bossTurnCounter ?? 0) + 1;
+  }
+}
+
+// Rift Warden boss AI constants
+const WARDEN_BOLT_INTERVAL = 2;      // Fires void bolt every 2 turns
+const WARDEN_BOLT_DAMAGE = 4;        // Damage from void bolt (Phase 1)
+const WARDEN_PATCH_INTERVAL = 4;     // Places void patch every 4 turns (Phase 2)
+const WARDEN_PATCH_DAMAGE_P2 = 5;    // Void patch damage in Phase 2
+const WARDEN_PATCH_DAMAGE_P3 = 8;    // Void patch damage in Phase 3
+const WARDEN_TELEPORT_INTERVAL = 2;  // Teleports every 2 turns (Phase 3)
+
+/**
+ * Rift Warden boss: 3-phase resource management boss
+ * Phase 0 (Sentinel): stationary, fires void bolts, 80% damage reduction while anchors exist
+ * Phase 1 (Unleashed, all anchors destroyed): mobile, chase, places void patches every 4 turns
+ * Phase 2 (Final Stand, at 30% HP): teleports every 2 turns, patches deal 8 damage
+ */
+function processRiftWardenAI(state: GameState): void {
+  const warden = state.entities.find(
+    (e) => e.hp > 0 && e.isBoss && e.specialAbility === SpecialAbility.BOSS_RIFT_WARDEN
+  );
+  if (!warden) return;
+
+  warden.bossTurnCounter = (warden.bossTurnCounter ?? 0) + 1;
+
+  // Count remaining anchors
+  const anchorsAlive = state.entities.filter((e) => e.hp > 0 && e.isAnchor).length;
+
+  // Phase transition: Phase 0 → Phase 1 when all anchors destroyed
+  if (warden.bossPhase === 0 && anchorsAlive === 0) {
+    warden.bossPhase = 1;
+    warden.bossTurnCounter = 0;
+    warden.bossTelegraphed = false;
+    warden.wardenDamageReduction = 0;
+    warden.behavior = AIBehavior.CHASE;
+    state.messages.push({ text: "The Rift Warden's anchors are destroyed! It breaks free and charges!", color: MSG_COLORS.DEATH });
+    state.pendingFloatingTexts.push({ text: "UNLEASHED!", color: "#fbbf24", x: warden.pos.x, y: warden.pos.y });
+    state.pendingShake = Math.max(state.pendingShake, 6);
+  }
+
+  // Phase transition: Phase 1 → Phase 2 at 30% HP
+  if (warden.bossPhase === 1 && warden.hp <= warden.maxHp * 0.3) {
+    warden.bossPhase = 2;
+    warden.bossTurnCounter = 0;
+    warden.bossTelegraphed = false;
+    // Upgrade existing patches to Phase 3 damage
+    for (const patch of state.voidPatches) {
+      patch.damage = WARDEN_PATCH_DAMAGE_P3;
+    }
+    state.messages.push({ text: "The Rift Warden flickers with unstable energy! It begins warping through space!", color: MSG_COLORS.DEATH });
+    state.pendingFloatingTexts.push({ text: "FINAL STAND!", color: "#ef4444", x: warden.pos.x, y: warden.pos.y });
+    state.pendingShake = Math.max(state.pendingShake, 7);
+  }
+
+  const px = state.player.pos.x;
+  const py = state.player.pos.y;
+  const dx = px - warden.pos.x;
+  const dy = py - warden.pos.y;
+  const dist = Math.abs(dx) + Math.abs(dy);
+
+  // --- Phase-specific behavior ---
+
+  if (warden.bossPhase === 0) {
+    // SENTINEL PHASE: stationary, fires void bolts every 2 turns
+    // Telegraph 1 turn before firing
+    if ((warden.bossTurnCounter ?? 0) % WARDEN_BOLT_INTERVAL === WARDEN_BOLT_INTERVAL - 1 && !warden.bossTelegraphed) {
+      warden.bossTelegraphed = true;
+      state.messages.push({ text: "The Rift Warden gathers void energy, targeting your position!", color: MSG_COLORS.WARNING });
+      state.pendingFloatingTexts.push({ text: "TARGETING!", color: "#fbbf24", x: warden.pos.x, y: warden.pos.y });
+    }
+
+    // Fire void bolt
+    if ((warden.bossTurnCounter ?? 0) % WARDEN_BOLT_INTERVAL === 0 && (warden.bossTurnCounter ?? 0) > 0) {
+      warden.bossTelegraphed = false;
+      const boltDmg = Math.max(1, WARDEN_BOLT_DAMAGE - Math.floor(state.player.defense * 0.5));
+      state.player = { ...state.player, hp: state.player.hp - boltDmg };
+      state.messages.push({ text: `A void bolt strikes you for ${boltDmg} damage!`, color: MSG_COLORS.ENEMY_ATK });
+      state.pendingFloatingTexts.push({ text: `-${boltDmg}`, color: MSG_COLORS.ENEMY_ATK, x: px, y: py });
+      state.pendingShake = Math.max(state.pendingShake, 3);
+      state.runStats.damageTaken += boltDmg;
+      if (state.player.hp <= 0) {
+        state.gameOver = true;
+        state.runStats.killedBy = "Rift Warden";
+        state.messages.push({ text: "You have been consumed by the void...", color: MSG_COLORS.DEATH });
+      }
+    }
+  } else if (warden.bossPhase === 1) {
+    // UNLEASHED PHASE: mobile chase AI, places void patches every 4 turns
+    // Place void patch at current position before moving
+    if ((warden.bossTurnCounter ?? 0) % WARDEN_PATCH_INTERVAL === 0 && (warden.bossTurnCounter ?? 0) > 0) {
+      const alreadyPatched = state.voidPatches.some((p) => p.pos.x === warden.pos.x && p.pos.y === warden.pos.y);
+      if (!alreadyPatched) {
+        state.voidPatches.push({ pos: { x: warden.pos.x, y: warden.pos.y }, damage: WARDEN_PATCH_DAMAGE_P2 });
+        state.messages.push({ text: "The Rift Warden leaves a void patch behind!", color: "#d946ef" });
+        state.pendingFloatingTexts.push({ text: "VOID PATCH", color: "#d946ef", x: warden.pos.x, y: warden.pos.y });
+      }
+    }
+
+    // Chase and attack
+    if (dist <= 1) {
+      const result = combat(warden, state.player, state.messages, 0, 0, state.pendingFloatingTexts, 1, state.pendingHitEffects);
+      state.runStats.damageTaken += result.damage;
+      if (!result.dodged) {
+        state.pendingShake = Math.max(state.pendingShake, Math.min(6, Math.max(2, result.damage)));
+        state.pendingFloatingTexts.push({ text: `-${result.damage}`, color: MSG_COLORS.ENEMY_ATK, x: px, y: py });
+      }
+      if (state.player.hp <= 0) {
+        state.gameOver = true;
+        state.runStats.killedBy = "Rift Warden";
+        state.messages.push({ text: "You have been consumed by the void...", color: MSG_COLORS.DEATH });
+      }
+    } else {
+      // 2-tile movement in Unleashed phase
+      const blocked = getBlockedPositions(state, warden.id);
+      for (let step = 0; step < 2; step++) {
+        const cdist = Math.abs(state.player.pos.x - warden.pos.x) + Math.abs(state.player.pos.y - warden.pos.y);
+        if (cdist <= 1) break;
+        const pathStep = findPath(state.map, warden.pos, state.player.pos, blocked);
+        if (pathStep) {
+          warden.pos.x = pathStep.x;
+          warden.pos.y = pathStep.y;
+        } else {
+          break;
+        }
+      }
+    }
+  } else if (warden.bossPhase === 2) {
+    // FINAL STAND: teleports every 2 turns, places void patch at departure point, patches deal 8 damage
+    // Teleport to a random tile near player
+    if ((warden.bossTurnCounter ?? 0) % WARDEN_TELEPORT_INTERVAL === 0 && (warden.bossTurnCounter ?? 0) > 0) {
+      // Leave a void patch at departure point
+      const alreadyPatched = state.voidPatches.some((p) => p.pos.x === warden.pos.x && p.pos.y === warden.pos.y);
+      if (!alreadyPatched) {
+        state.voidPatches.push({ pos: { x: warden.pos.x, y: warden.pos.y }, damage: WARDEN_PATCH_DAMAGE_P3 });
+      }
+
+      // Teleport near the player (2-4 tiles away)
+      const candidates: Position[] = [];
+      for (let ty = 0; ty < MAP_HEIGHT; ty++) {
+        for (let tx = 0; tx < MAP_WIDTH; tx++) {
+          if (state.map[ty][tx] !== TileType.FLOOR) continue;
+          const tdist = Math.abs(tx - px) + Math.abs(ty - py);
+          if (tdist < 2 || tdist > 4) continue;
+          if (state.entities.some((e) => e.hp > 0 && e.pos.x === tx && e.pos.y === ty && e.id !== warden.id)) continue;
+          // Avoid teleporting onto void patches
+          if (state.voidPatches.some((p) => p.pos.x === tx && p.pos.y === ty)) continue;
+          candidates.push({ x: tx, y: ty });
+        }
+      }
+      if (candidates.length > 0) {
+        const dest = candidates[Math.floor(random() * candidates.length)];
+        warden.pos.x = dest.x;
+        warden.pos.y = dest.y;
+        state.messages.push({ text: "The Rift Warden teleports!", color: MSG_COLORS.WARNING });
+        state.pendingFloatingTexts.push({ text: "WARP!", color: "#fbbf24", x: dest.x, y: dest.y });
+        state.pendingShake = Math.max(state.pendingShake, 4);
+      }
+    }
+
+    // Attack if adjacent
+    if (Math.abs(state.player.pos.x - warden.pos.x) + Math.abs(state.player.pos.y - warden.pos.y) <= 1) {
+      const result = combat(warden, state.player, state.messages, 0, 0, state.pendingFloatingTexts, 1, state.pendingHitEffects);
+      state.runStats.damageTaken += result.damage;
+      if (!result.dodged) {
+        state.pendingShake = Math.max(state.pendingShake, Math.min(6, Math.max(2, result.damage)));
+        state.pendingFloatingTexts.push({ text: `-${result.damage}`, color: MSG_COLORS.ENEMY_ATK, x: px, y: py });
+      }
+      if (state.player.hp <= 0) {
+        state.gameOver = true;
+        state.runStats.killedBy = "Rift Warden";
+        state.messages.push({ text: "You have been consumed by the void...", color: MSG_COLORS.DEATH });
+      }
+    } else {
+      // Chase toward player (single-tile movement in Final Stand — teleport is the main repositioning)
+      const blocked = getBlockedPositions(state, warden.id);
+      const pathStep = findPath(state.map, warden.pos, state.player.pos, blocked);
+      if (pathStep) {
+        warden.pos.x = pathStep.x;
+        warden.pos.y = pathStep.y;
+      }
+    }
   }
 }
 
@@ -1850,6 +2116,13 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
           newState.pendingFloatingTexts.push({ text: "ERRATIC x3!", color: "#f59e0b", x: newX, y: newY });
         }
 
+        // Rift Warden: damage reduction while anchors alive
+        if (enemy.wardenDamageReduction && enemy.wardenDamageReduction > 0) {
+          damageMultiplier *= (1 - enemy.wardenDamageReduction);
+          newState.messages.push({ text: "The Rift Anchors absorb most of the damage!", color: MSG_COLORS.WARNING });
+          newState.pendingFloatingTexts.push({ text: "SHIELDED", color: "#d4d4d8", x: newX, y: newY });
+        }
+
         const result = combat(newState.player, enemy, newState.messages, bonuses.attack, 0, newState.pendingFloatingTexts, damageMultiplier, newState.pendingHitEffects);
         newState.runStats.damageDealt += result.damage;
         if (!result.dodged) {
@@ -1902,6 +2175,18 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
           newState.runStats.enemiesKilled++;
           awardXp(newState, enemy.xpReward ?? 5);
 
+          // Rift Anchor destroyed: notify player of remaining anchors
+          if (enemy.isAnchor) {
+            const remaining = newState.entities.filter((e) => e.hp > 0 && e.isAnchor).length;
+            if (remaining > 0) {
+              newState.messages.push({ text: `Rift Anchor destroyed! ${remaining} anchor${remaining > 1 ? "s" : ""} remaining.`, color: "#fbbf24" });
+              newState.pendingFloatingTexts.push({ text: "ANCHOR DOWN!", color: "#fbbf24", x: enemy.pos.x, y: enemy.pos.y });
+            } else {
+              newState.messages.push({ text: `The last Rift Anchor shatters!`, color: "#fbbf24" });
+              newState.pendingFloatingTexts.push({ text: "ALL ANCHORS DOWN!", color: "#fbbf24", x: enemy.pos.x, y: enemy.pos.y });
+            }
+          }
+
           // VAMPIRIC runic: heal 1 HP on kill
           if (weaponRunic === RunicEffect.VAMPIRIC) {
             const healAmt = Math.min(1, newState.player.maxHp - newState.player.hp);
@@ -1936,6 +2221,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
               }
             } else {
               // Final boss kill: victory message + loot
+              const isRiftWarden = enemy.specialAbility === SpecialAbility.BOSS_RIFT_WARDEN;
               if (isShadowTwin) {
                 newState.messages.push({ text: "The Shadow Twin dissolves into darkness! Your reflection is your own again.", color: MSG_COLORS.LEVEL_UP });
                 // Drop Mirror Shard unique item + standard boss loot
@@ -1955,6 +2241,25 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
                   pos: { x: enemy.pos.x, y: enemy.pos.y },
                 });
                 newState.messages.push({ text: `The Shadow Twin dropped Mirror Shard!`, color: MSG_COLORS.LOOT });
+              } else if (isRiftWarden) {
+                newState.messages.push({ text: "The Rift Warden collapses! The rift seals shut and void patches dissolve.", color: MSG_COLORS.LEVEL_UP });
+                // Clear all void patches on Warden death
+                newState.voidPatches = [];
+                // Drop Warden's Key unique passive item (reveals all traps permanently)
+                newState.items.push({
+                  item: {
+                    id: `item_wardens_key_${Date.now()}`,
+                    name: "Warden's Key",
+                    category: ItemCategory.SCROLL,
+                    rarity: ItemRarity.RARE,
+                    symbol: "k",
+                    color: "#fbbf24",
+                    minFloor: 15,
+                    description: "Passive: reveals all traps on current and future floors.",
+                  },
+                  pos: { x: enemy.pos.x, y: enemy.pos.y },
+                });
+                newState.messages.push({ text: `The Rift Warden dropped Warden's Key!`, color: MSG_COLORS.LOOT });
               } else {
                 newState.messages.push({ text: "The Void Nucleus shatters! The chamber falls silent.", color: MSG_COLORS.LEVEL_UP });
               }
@@ -1962,7 +2267,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
               const bossLoot = generateBossLoot(newState.floor, enemy.pos);
               for (const loot of bossLoot) {
                 newState.items.push(loot);
-                const dropName = isShadowTwin ? "Shadow Twin" : "Nucleus";
+                const dropName = isShadowTwin ? "Shadow Twin" : isRiftWarden ? "Rift Warden" : "Nucleus";
                 newState.messages.push({ text: `The ${dropName} dropped ${loot.item.name}!`, color: MSG_COLORS.LOOT });
               }
             }
@@ -2108,9 +2413,11 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       newState.player = { ...newState.player, pos: { x: newX, y: newY } };
       enemy.pos = oldPos;
       pickupItem(newState);
-      // Check for traps after swapping onto tile
+      // Check for traps and void patches after swapping onto tile
       checkTrap(newState);
       if (newState.gameOver) return newState; // Killed by spike trap
+      checkVoidPatch(newState);
+      if (newState.gameOver) return newState; // Killed by void patch
       if (newState.map[newY][newX] === TileType.STAIRS_DOWN) {
         if (newState.floor === VICTORY_FLOOR && !newState.victory) {
           return triggerVictory(newState);
@@ -2124,9 +2431,11 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       // Check for item pickup
       pickupItem(newState);
 
-      // Check for traps (before stairs/shrine — traps can teleport the player)
+      // Check for traps and void patches (before stairs/shrine — traps can teleport the player)
       const wasTeleported = checkTrap(newState);
       if (newState.gameOver) return newState; // Killed by spike trap
+      checkVoidPatch(newState);
+      if (newState.gameOver) return newState; // Killed by void patch
 
       // After teleport, use the player's new position for tile checks
       const checkX = wasTeleported ? newState.player.pos.x : newX;
@@ -2249,6 +2558,9 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
   // Shadow Twin boss AI — mirror movement, split, desperation phases
   processShadowTwinAI(newState);
 
+  // Rift Warden boss AI — void bolts, chase, teleport, void patches
+  processRiftWardenAI(newState);
+
   // Friendly entity (summon) AI — chase and attack nearest enemy
   moveFriendlies(newState);
 
@@ -2322,8 +2634,16 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
     }
   }
 
+  // Warden's Key (passive): reveals ALL traps on the floor
+  const hasWardensKey = newState.inventory.items.some((i) => i.name === "Warden's Key");
+  if (hasWardensKey) {
+    for (const trap of newState.traps) {
+      trap.revealed = true;
+    }
+  }
+
   // Void Sight (25%+ attunement) reveals hidden traps within FOV
-  if (newState.voidAttunement >= 25) {
+  if (!hasWardensKey && newState.voidAttunement >= 25) {
     for (const trap of newState.traps) {
       if (!trap.revealed && newState.fov[trap.pos.y][trap.pos.x]) {
         trap.revealed = true;
@@ -2649,11 +2969,19 @@ export function processShrine(state: GameState, action: ShrineAction): GameState
     newState.pendingFloatingTexts.push({ text: "VOID MASTERY", color: "#7c3aed", x: newState.player.pos.x, y: newState.player.pos.y });
   }
 
-  // PARANOID curse: shrines always give negative effects
+  // Invisibility grants safe shrine use — always positive effect
+  const isInvisibleAtShrine = hasStatusEffect(newState, StatusEffectType.INVISIBLE);
+  // PARANOID curse: shrines always give negative effects (overridden by invisibility)
   const hasParanoidCurse = newState.inventory.equippedArmor?.curse === CurseEffect.PARANOID;
-  const effect = hasParanoidCurse ? pickNegativeShrineEffect() : pickShrineEffect();
-  if (hasParanoidCurse) {
+  let effect;
+  if (isInvisibleAtShrine) {
+    effect = pickPurifyEffect();
+    newState.messages.push({ text: "The void cannot sense your presence... the shrine yields its blessing freely.", color: "#a78bfa" });
+  } else if (hasParanoidCurse) {
+    effect = pickNegativeShrineEffect();
     newState.messages.push({ text: "Your paranoid armor twists the shrine's power...", color: "#ef4444" });
+  } else {
+    effect = pickShrineEffect();
   }
   effect.apply(newState);
 

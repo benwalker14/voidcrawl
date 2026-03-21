@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
-const siteUrl = "https://voidcrawl.vercel.app";
+const siteUrl = "https://nullcrawl.com";
 
 export const viewport: Viewport = {
   width: "device-width",
