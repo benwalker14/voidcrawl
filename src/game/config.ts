@@ -188,6 +188,17 @@ export const RUNIC_NAMES: Record<RunicEffect, string> = {
   [RunicEffect.THORNED]: "Thorned",
 };
 
+// Weapon special abilities (sidegrade weapons with unique mechanics)
+export enum WeaponSpecial {
+  CLEAVE = "cleave",           // Null Scythe: hits target + 1 random adjacent enemy
+  DOUBLE_STRIKE = "double_strike", // Rift Dagger: attacks twice at reduced damage
+}
+
+export const WEAPON_SPECIAL_NAMES: Record<WeaponSpecial, string> = {
+  [WeaponSpecial.CLEAVE]: "Cleave",
+  [WeaponSpecial.DOUBLE_STRIKE]: "Double Strike",
+};
+
 // Curse effects for weapons and armor (dual-edged: each has a downside AND a situational upside)
 export enum CurseEffect {
   // Weapon curses
@@ -247,6 +258,7 @@ export interface Item {
   effect?: ConsumableEffect;
   effectValue?: number; // duration in turns, damage amount, etc.
   runic?: RunicEffect;
+  weaponSpecial?: WeaponSpecial; // Sidegrade weapon unique ability
   cursed?: boolean;           // Cannot be unequipped until Remove Curse scroll used
   curse?: CurseEffect;       // Dual-edged curse effect (downside + situational upside)
   minFloor: number;

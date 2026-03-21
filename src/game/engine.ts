@@ -26,6 +26,7 @@ import {
   EnemyIntent,
   CurseEffect,
   CURSE_NAMES,
+  WeaponSpecial,
   MSG_COLORS,
   CONSUMABLE_EFFECT_NAMES,
   getZoneTheme,
@@ -483,6 +484,11 @@ function pickupItem(state: GameState): void {
       } else {
         state.messages.push({ text: `Equipped ${item.name}! (+${item.attack} ATK)`, color: MSG_COLORS.EQUIP });
       }
+      if (item.weaponSpecial === WeaponSpecial.CLEAVE) {
+        state.messages.push({ text: `★ Cleave — attacks hit an adjacent enemy too!`, color: "#d946ef" });
+      } else if (item.weaponSpecial === WeaponSpecial.DOUBLE_STRIKE) {
+        state.messages.push({ text: `★ Double Strike — attacks twice, each hit triggers runics!`, color: "#06b6d4" });
+      }
     } else {
       if (state.inventory.items.length >= MAX_INVENTORY_SIZE) {
         state.messages.push({ text: "Inventory full! Can't pick up item.", color: MSG_COLORS.WARNING });
@@ -852,6 +858,11 @@ export function applyInventoryItem(state: GameState, index: number): GameState {
       newState.pendingFloatingTexts.push({ text: "CURSED!", color: "#ef4444", x: newState.player.pos.x, y: newState.player.pos.y });
     } else {
       newState.messages.push({ text: `Equipped ${item.name}! (+${item.attack} ATK)`, color: MSG_COLORS.EQUIP });
+    }
+    if (item.weaponSpecial === WeaponSpecial.CLEAVE) {
+      newState.messages.push({ text: `★ Cleave — attacks hit an adjacent enemy too!`, color: "#d946ef" });
+    } else if (item.weaponSpecial === WeaponSpecial.DOUBLE_STRIKE) {
+      newState.messages.push({ text: `★ Double Strike — attacks twice, each hit triggers runics!`, color: "#06b6d4" });
     }
   } else if (item.category === ItemCategory.ARMOR) {
     const old = newState.inventory.equippedArmor;
@@ -1648,6 +1659,117 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
             }
           }
           newState.entities = newState.entities.filter((e) => e.id !== enemy.id);
+        }
+
+        // === Weapon Special Abilities ===
+        const weaponSpecial = newState.inventory.equippedWeapon?.weaponSpecial;
+
+        // DOUBLE_STRIKE (Rift Dagger): attack same target again if alive and still adjacent
+        if (weaponSpecial === WeaponSpecial.DOUBLE_STRIKE && !result.killed && !result.dodged && enemy.hp > 0) {
+          // Only strike again if enemy is still at target position (not teleported/displaced)
+          if (enemy.pos.x === newX && enemy.pos.y === newY) {
+            newState.messages.push({ text: `Your dagger strikes again!`, color: MSG_COLORS.PLAYER_ATK });
+            let secondMultiplier = 1;
+            if (weaponRunic === RunicEffect.VORPAL && enemy.hp < enemy.maxHp * 0.3) {
+              secondMultiplier = 2;
+              newState.messages.push({ text: `VORPAL STRIKE on the second blow!`, color: MSG_COLORS.PLAYER_ATK });
+              newState.pendingFloatingTexts.push({ text: "VORPAL!", color: "#dc2626", x: newX, y: newY });
+            }
+            if (weaponCurse === CurseEffect.ERRATIC && random() < 0.25) {
+              secondMultiplier = 3;
+              newState.messages.push({ text: `Your erratic blade erupts with wild force!`, color: MSG_COLORS.PLAYER_ATK });
+              newState.pendingFloatingTexts.push({ text: "ERRATIC x3!", color: "#f59e0b", x: newX, y: newY });
+            }
+            const result2 = combat(newState.player, enemy, newState.messages, bonuses.attack, 0, newState.pendingFloatingTexts, secondMultiplier, newState.pendingHitEffects);
+            newState.runStats.damageDealt += result2.damage;
+            if (!result2.dodged) {
+              newState.pendingFloatingTexts.push({ text: `-${result2.damage}`, color: MSG_COLORS.PLAYER_ATK, x: newX, y: newY });
+              if (weaponRunic === RunicEffect.FLAMING && random() < 0.25) {
+                enemy.burnTurns = Math.max(enemy.burnTurns ?? 0, 3);
+                newState.messages.push({ text: `${enemy.name} catches fire!`, color: MSG_COLORS.PLAYER_ATK });
+                newState.pendingFloatingTexts.push({ text: "BURN!", color: "#f97316", x: newX, y: newY });
+              }
+              if (weaponRunic === RunicEffect.STUNNING && random() < 0.20) {
+                enemy.stunnedNextTurn = true;
+                newState.messages.push({ text: `${enemy.name} is stunned!`, color: MSG_COLORS.PLAYER_ATK });
+                newState.pendingFloatingTexts.push({ text: "STUNNED!", color: "#fbbf24", x: newX, y: newY });
+              }
+            }
+            if (result2.killed) {
+              newState.pendingShake = Math.max(newState.pendingShake, 3);
+              spawnSplitSlimes(newState, enemy);
+              newState.runStats.enemiesKilled++;
+              awardXp(newState, enemy.xpReward ?? 5);
+              if (weaponRunic === RunicEffect.VAMPIRIC) {
+                if (newState.player.hp < newState.player.maxHp) {
+                  newState.player = { ...newState.player, hp: newState.player.hp + 1 };
+                  newState.messages.push({ text: `Your weapon drains life! +1 HP`, color: MSG_COLORS.HEAL });
+                  newState.pendingFloatingTexts.push({ text: "+1 HP", color: MSG_COLORS.HEAL, x: newState.player.pos.x, y: newState.player.pos.y });
+                }
+              }
+              if (weaponCurse === CurseEffect.DRAINING) {
+                newState.player = { ...newState.player, maxHp: Math.max(5, newState.player.maxHp - 1), hp: Math.min(newState.player.hp, Math.max(5, newState.player.maxHp - 1)) };
+                newState.drainingAtkBonus += 2;
+                newState.messages.push({ text: `The draining blade feeds! -1 max HP, +2 ATK this floor.`, color: "#ef4444" });
+              }
+              const loot2 = generateLootDrop(newState.floor, enemy.pos);
+              if (loot2) {
+                newState.items.push(loot2);
+                newState.messages.push({ text: `${enemy.name} dropped ${loot2.item.name}!`, color: MSG_COLORS.LOOT });
+              }
+              newState.entities = newState.entities.filter((e) => e.id !== enemy.id);
+            }
+          }
+        }
+
+        // CLEAVE (Null Scythe): hit one random enemy adjacent to the target
+        if (weaponSpecial === WeaponSpecial.CLEAVE && !result.dodged) {
+          const cleaveTargets = newState.entities.filter(e =>
+            e.hp > 0 && !e.friendly && e.id !== enemy.id &&
+            Math.abs(e.pos.x - newX) <= 1 && Math.abs(e.pos.y - newY) <= 1
+          );
+          if (cleaveTargets.length > 0) {
+            const cleaveTarget = cleaveTargets[Math.floor(random() * cleaveTargets.length)];
+            newState.messages.push({ text: `Your scythe cleaves into ${cleaveTarget.name}!`, color: MSG_COLORS.PLAYER_ATK });
+            newState.pendingFloatingTexts.push({ text: "CLEAVE!", color: "#d946ef", x: cleaveTarget.pos.x, y: cleaveTarget.pos.y });
+            // Check ethereal immunity on cleave target
+            if (cleaveTarget.specialAbility === SpecialAbility.ETHEREAL && newState.map[cleaveTarget.pos.y]?.[cleaveTarget.pos.x] !== TileType.FLOOR) {
+              newState.messages.push({ text: `The cleave passes through ${cleaveTarget.name}!`, color: MSG_COLORS.WARNING });
+            } else {
+              const cleaveResult = combat(newState.player, cleaveTarget, newState.messages, bonuses.attack, 0, newState.pendingFloatingTexts, 1, newState.pendingHitEffects);
+              newState.runStats.damageDealt += cleaveResult.damage;
+              if (!cleaveResult.dodged) {
+                newState.pendingFloatingTexts.push({ text: `-${cleaveResult.damage}`, color: MSG_COLORS.PLAYER_ATK, x: cleaveTarget.pos.x, y: cleaveTarget.pos.y });
+                if (weaponRunic === RunicEffect.FLAMING && random() < 0.25) {
+                  cleaveTarget.burnTurns = Math.max(cleaveTarget.burnTurns ?? 0, 3);
+                  newState.messages.push({ text: `${cleaveTarget.name} catches fire!`, color: MSG_COLORS.PLAYER_ATK });
+                }
+                if (weaponRunic === RunicEffect.STUNNING && random() < 0.20) {
+                  cleaveTarget.stunnedNextTurn = true;
+                  newState.messages.push({ text: `${cleaveTarget.name} is stunned!`, color: MSG_COLORS.PLAYER_ATK });
+                }
+              }
+              if (cleaveResult.killed) {
+                newState.pendingShake = Math.max(newState.pendingShake, 3);
+                spawnSplitSlimes(newState, cleaveTarget);
+                newState.runStats.enemiesKilled++;
+                awardXp(newState, cleaveTarget.xpReward ?? 5);
+                if (weaponRunic === RunicEffect.VAMPIRIC) {
+                  if (newState.player.hp < newState.player.maxHp) {
+                    newState.player = { ...newState.player, hp: newState.player.hp + 1 };
+                    newState.messages.push({ text: `Your weapon drains life! +1 HP`, color: MSG_COLORS.HEAL });
+                    newState.pendingFloatingTexts.push({ text: "+1 HP", color: MSG_COLORS.HEAL, x: newState.player.pos.x, y: newState.player.pos.y });
+                  }
+                }
+                const cleaveLoot = generateLootDrop(newState.floor, cleaveTarget.pos);
+                if (cleaveLoot) {
+                  newState.items.push(cleaveLoot);
+                  newState.messages.push({ text: `${cleaveTarget.name} dropped ${cleaveLoot.item.name}!`, color: MSG_COLORS.LOOT });
+                }
+                newState.entities = newState.entities.filter((e) => e.id !== cleaveTarget.id);
+              }
+            }
+          }
         }
       }
     } else if (enemy && enemy.friendly) {

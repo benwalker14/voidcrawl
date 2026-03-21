@@ -1,5 +1,21 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-20 23:45 | developer | Late-game sidegrade weapons: Null Scythe + Rift Dagger
+- **Added `WeaponSpecial` enum to config.ts** with `CLEAVE` and `DOUBLE_STRIKE` values, plus `WEAPON_SPECIAL_NAMES` display map. Added `weaponSpecial` optional field to `Item` interface.
+- **Two new Rare weapons in items.ts (floor 8+):**
+  - **Null Scythe** (`/`, magenta, +5 ATK, Cleave): each attack also hits one random enemy adjacent to the target. Dominant in crowds but lower single-target damage than Abyssal Edge (+6 ATK).
+  - **Rift Dagger** (`/`, cyan, +3 ATK, Double Strike): attacks twice per turn. Each hit independently rolls for runic procs (Flaming, Stunning, Vorpal, Vampiric). Lower base ATK but double runic chances creates build-defining synergies.
+- **Combat mechanics in engine.ts:**
+  - Cleave: after primary attack resolves (including kill/displacing/teleport), finds a random hostile enemy within 1 tile of the target position and performs a secondary combat() call with full runic proc rolls. Respects ethereal immunity. Processes kills, loot, XP, and split-slime spawns independently.
+  - Double Strike: if primary hit doesn't kill and enemy wasn't teleported/displaced, performs a second combat() call with independent Vorpal/Erratic multiplier checks and runic proc rolls. Processes kills, loot, XP independently.
+- **Auto-equip behavior:** sidegrades won't auto-replace higher-ATK weapons (Null Scythe +5 < Abyssal Edge +6, Rift Dagger +3 < everything). Players pick them up into inventory and manually equip via number keys. This is intentional — sidegrades are a deliberate choice, not a pure upgrade.
+- **Equip messaging:** both auto-equip and manual equip paths show a colored ★ message explaining the weapon special on equip (magenta for Cleave, cyan for Double Strike).
+- **HUD display:** weapon special shown as `[Cleave]` or `[Double Strike]` in the equipment panel, styled in magenta (#d946ef), displayed before runic and curse tags.
+- **Help overlay:** new "Sidegrade Weapons" section added before Runic Effects, documenting both weapons with their ATK values and special mechanics. Rare weapon examples updated to include Null Scythe and Rift Dagger.
+- **Balance notes:** Null Scythe (+5 ATK) does less single-target damage than Abyssal Edge (+6) but excels in multi-enemy encounters typical of floors 8+. Rift Dagger (+3 ATK) does comparable total damage (defense applied twice hurts against high-DEF enemies, helps against low-DEF) but doubles all on-hit effects. Both create distinct "run identities" — a Rift Dagger + Flaming run plays completely differently from a Null Scythe + Vorpal run.
+- Lint and build both pass clean
+- No money spent
+
 ### 2026-03-20 23:15 | developer | Zone-weighted enemy spawns
 - **Added `zoneWeights: [number, number, number]` to EnemyTemplate** — each template now carries spawn weights for Null Tunnels (1-4), Crystal Depths (5-9), and Shadow Realm (10+)
 - **Weighted selection replaces uniform random** in both `spawnEnemies()` and `spawnEnemyAtPos()`. New `weightedPickTemplate()` helper rolls against cumulative zone weights

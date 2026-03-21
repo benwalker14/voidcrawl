@@ -1,4 +1,4 @@
-import { Item, ItemCategory, ItemRarity, ConsumableEffect, RARITY_COLORS, GroundItem, Position, RunicEffect, WEAPON_RUNICS, ARMOR_RUNICS, RUNIC_NAMES, CurseEffect, WEAPON_CURSES, ARMOR_CURSES, CURSE_NAMES, TileType } from "../config";
+import { Item, ItemCategory, ItemRarity, ConsumableEffect, RARITY_COLORS, GroundItem, Position, RunicEffect, WEAPON_RUNICS, ARMOR_RUNICS, RUNIC_NAMES, CurseEffect, WEAPON_CURSES, ARMOR_CURSES, CURSE_NAMES, TileType, WeaponSpecial } from "../config";
 import { random } from "../rng";
 
 let nextItemId = 0;
@@ -69,6 +69,7 @@ interface ItemTemplate {
   healAmount?: number;
   effect?: ConsumableEffect;
   effectValue?: number;
+  weaponSpecial?: WeaponSpecial;
   minFloor: number;
   description: string;
 }
@@ -80,6 +81,8 @@ const ITEM_TEMPLATES: ItemTemplate[] = [
   { name: "Void Blade", category: ItemCategory.WEAPON, rarity: ItemRarity.UNCOMMON, symbol: "/", attack: 3, minFloor: 2, description: "Hums with dark energy." },
   { name: "Shadow Axe", category: ItemCategory.WEAPON, rarity: ItemRarity.UNCOMMON, symbol: "/", attack: 4, minFloor: 4, description: "Forged from condensed shadows." },
   { name: "Abyssal Edge", category: ItemCategory.WEAPON, rarity: ItemRarity.RARE, symbol: "/", attack: 6, minFloor: 6, description: "A blade that cuts reality itself." },
+  { name: "Null Scythe", category: ItemCategory.WEAPON, rarity: ItemRarity.RARE, symbol: "/", attack: 5, weaponSpecial: WeaponSpecial.CLEAVE, minFloor: 8, description: "Sweeps through multiple foes. Hits an adjacent enemy on each attack." },
+  { name: "Rift Dagger", category: ItemCategory.WEAPON, rarity: ItemRarity.RARE, symbol: "/", attack: 3, weaponSpecial: WeaponSpecial.DOUBLE_STRIKE, minFloor: 8, description: "Strikes twice per attack. Each hit can trigger runics." },
 
   // Armor
   { name: "Tattered Cloak", category: ItemCategory.ARMOR, rarity: ItemRarity.COMMON, symbol: "[", defense: 1, minFloor: 1, description: "Thin but better than nothing." },
@@ -183,6 +186,7 @@ export function generateLootDrop(floor: number, pos: Position): GroundItem | nul
     healAmount: template.healAmount,
     effect: template.effect,
     effectValue: template.effectValue,
+    weaponSpecial: template.weaponSpecial,
     minFloor: template.minFloor,
     description: template.description,
   });

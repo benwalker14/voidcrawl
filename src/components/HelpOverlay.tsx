@@ -17,7 +17,7 @@ const ENEMIES = [
 const ITEMS = [
   { symbol: "/", color: "#9ca3af", label: "Weapon (Common)", example: "Rusty Dagger, Short Sword" },
   { symbol: "/", color: "#22c55e", label: "Weapon (Uncommon)", example: "Void Blade, Shadow Axe" },
-  { symbol: "/", color: "#3b82f6", label: "Weapon (Rare)", example: "Abyssal Edge" },
+  { symbol: "/", color: "#3b82f6", label: "Weapon (Rare)", example: "Abyssal Edge, Null Scythe, Rift Dagger" },
   { symbol: "[", color: "#9ca3af", label: "Armor (Common)", example: "Tattered Cloak, Leather Vest" },
   { symbol: "[", color: "#22c55e", label: "Armor (Uncommon)", example: "Void Mail, Shadow Plate" },
   { symbol: "[", color: "#3b82f6", label: "Armor (Rare)", example: "Abyssal Ward" },
@@ -258,6 +258,18 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
               <span style={{ color: "#22c55e" }}> +5 ATK, +3 DEF, void aura (1 dmg/turn to enemies in FOV)</span> /
               <span style={{ color: "#ef4444" }}> constant -1 HP drain per turn</span>
             </div>
+          </div>
+        </Section>
+
+        {/* Weapon Specials */}
+        <Section title="Sidegrade Weapons">
+          <p className="mb-1" style={{ color: "var(--void-muted)" }}>
+            Rare weapons found on floor 8+ with unique abilities. Lower base ATK but offer
+            distinct playstyles. Shown as <span style={{ color: "#d946ef" }}>[Special Name]</span> on the item.
+          </p>
+          <div className="space-y-0.5 ml-2">
+            <div><span style={{ color: "#d946ef" }}>Null Scythe</span> (+5 ATK) — <span style={{ color: "#d946ef" }}>Cleave:</span> each attack also hits one random adjacent enemy</div>
+            <div><span style={{ color: "#06b6d4" }}>Rift Dagger</span> (+3 ATK) — <span style={{ color: "#06b6d4" }}>Double Strike:</span> attacks twice per turn, each hit can trigger runics</div>
           </div>
         </Section>
 
