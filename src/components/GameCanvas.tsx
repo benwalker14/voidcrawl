@@ -27,7 +27,7 @@ function getStatsFromState(state: GameState) {
     maxHp: state.player.maxHp,
     floor: state.floor,
     turns: state.turnCount,
-    attack: state.player.attack + weaponAtk,
+    attack: state.player.attack + weaponAtk + getAttunementAtkBonus(state.voidAttunement),
     defense: state.player.defense + armorDef,
     level: state.progression.level,
     xp: state.progression.xp,
@@ -68,6 +68,53 @@ function saveDailyResult(result: DailyResult): void {
   }
 }
 
+// Personal best tracking
+const BESTS_KEY = "nullcrawl_bests";
+
+interface PersonalBests {
+  bestFloor: number;
+  bestLevel: number;
+  mostKills: number;
+  mostDamage: number;
+}
+
+const EMPTY_BESTS: PersonalBests = { bestFloor: 0, bestLevel: 0, mostKills: 0, mostDamage: 0 };
+
+function loadPersonalBests(): PersonalBests {
+  try {
+    const raw = localStorage.getItem(BESTS_KEY);
+    if (!raw) return { ...EMPTY_BESTS };
+    return { ...EMPTY_BESTS, ...JSON.parse(raw) };
+  } catch {
+    return { ...EMPTY_BESTS };
+  }
+}
+
+function savePersonalBests(bests: PersonalBests): void {
+  try {
+    localStorage.setItem(BESTS_KEY, JSON.stringify(bests));
+  } catch {
+    // localStorage may be full or unavailable
+  }
+}
+
+/** Compare current run stats to personal bests. Returns which stats are new records and updated bests. */
+function checkPersonalBests(
+  floor: number,
+  level: number,
+  kills: number,
+  damage: number,
+  prev: PersonalBests,
+): { newBests: Record<string, boolean>; updated: PersonalBests } {
+  const newBests: Record<string, boolean> = {};
+  const updated = { ...prev };
+  if (floor > prev.bestFloor) { newBests.bestFloor = true; updated.bestFloor = floor; }
+  if (level > prev.bestLevel) { newBests.bestLevel = true; updated.bestLevel = level; }
+  if (kills > prev.mostKills) { newBests.mostKills = true; updated.mostKills = kills; }
+  if (damage > prev.mostDamage) { newBests.mostDamage = true; updated.mostDamage = damage; }
+  return { newBests, updated };
+}
+
 interface GameCanvasProps {
   mode?: "standard" | "daily";
 }
@@ -105,6 +152,11 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
   const [identified, setIdentified] = useState<Record<string, boolean>>(initializedState.identified);
   const [consumableAppearances, setConsumableAppearances] = useState<Record<string, string>>(initializedState.consumableAppearances);
   const [copied, setCopied] = useState(false);
+  const [personalBests, setPersonalBests] = useState<PersonalBests>(() => {
+    if (typeof window === "undefined") return { ...EMPTY_BESTS };
+    return loadPersonalBests();
+  });
+  const [newBestFlags, setNewBestFlags] = useState<Record<string, boolean>>({});
   const [showTutorial, setShowTutorial] = useState(() => {
     if (typeof window === "undefined") return false;
     try {
@@ -186,6 +238,21 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
       } else {
         saveDailyOnDeath();
       }
+      // Check and update personal bests
+      const prev = loadPersonalBests();
+      const currentLevel = state.progression.level;
+      const { newBests, updated } = checkPersonalBests(
+        state.runStats.deepestFloor,
+        currentLevel,
+        state.runStats.enemiesKilled,
+        state.runStats.damageDealt,
+        prev,
+      );
+      if (Object.keys(newBests).length > 0) {
+        savePersonalBests(updated);
+        setPersonalBests(updated);
+      }
+      setNewBestFlags(newBests);
     }
   }, [saveDailyOnDeath]);
 
@@ -275,6 +342,8 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
     setGameOver(false);
     setVictory(false);
     setCopied(false);
+    setNewBestFlags({});
+    setPersonalBests(loadPersonalBests());
     setStatusEffects([]);
     setIdentified(state.identified);
     setConsumableAppearances(state.consumableAppearances);
@@ -810,22 +879,34 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
               </p>
             )}
             <p className="text-sm mb-3" style={{ color: "var(--void-muted)" }}>
-              Level {stats.level} &middot; Floor {stats.floor} &middot; {stats.turns} turns
+              Level {stats.level}{newBestFlags.bestLevel && <span style={{ color: "#fbbf24" }}> NEW BEST!</span>} &middot; Floor {stats.floor} &middot; {stats.turns} turns
             </p>
             <div
               className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs font-mono mb-4 px-4 py-2 rounded"
               style={{ backgroundColor: "rgba(26, 26, 46, 0.8)", border: `1px solid ${victory ? "#166534" : "#333"}` }}
             >
+              <span style={{ color: "#fbbf24" }}>Deepest floor</span>
+              <span className="text-right">
+                {runStats.deepestFloor}
+                {newBestFlags.bestFloor
+                  ? <span style={{ color: "#fbbf24", marginLeft: 6 }}>NEW BEST!</span>
+                  : personalBests.bestFloor > 0 && <span style={{ color: "var(--void-muted)", marginLeft: 6 }}>(best: {personalBests.bestFloor})</span>
+                }
+              </span>
               <span style={{ color: "#fb923c" }}>Enemies slain</span>
-              <span className="text-right">{runStats.enemiesKilled}</span>
+              <span className="text-right">
+                {runStats.enemiesKilled}
+                {newBestFlags.mostKills && <span style={{ color: "#fbbf24", marginLeft: 6 }}>NEW BEST!</span>}
+              </span>
               <span style={{ color: "#06b6d4" }}>Items found</span>
               <span className="text-right">{runStats.itemsFound}</span>
               <span style={{ color: "#f97316" }}>Damage dealt</span>
-              <span className="text-right">{runStats.damageDealt}</span>
+              <span className="text-right">
+                {runStats.damageDealt}
+                {newBestFlags.mostDamage && <span style={{ color: "#fbbf24", marginLeft: 6 }}>NEW BEST!</span>}
+              </span>
               <span style={{ color: "#ef4444" }}>Damage taken</span>
               <span className="text-right">{runStats.damageTaken}</span>
-              <span style={{ color: "#fbbf24" }}>Deepest floor</span>
-              <span className="text-right">{runStats.deepestFloor}</span>
               <span style={{ color: "var(--void-muted)" }}>Time played</span>
               <span className="text-right">{formatPlayTime(runStats.startTime)}</span>
             </div>

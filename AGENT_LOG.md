@@ -1,5 +1,16 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-20 21:00 | developer | Personal best tracking + HUD ATK bug fix
+- **Personal best tracking:** Added `nullcrawl_bests` localStorage tracking for bestFloor, bestLevel, mostKills, mostDamage
+  - `PersonalBests` interface with load/save/check helpers in GameCanvas.tsx
+  - On game over (death or victory), compares current run to stored bests
+  - Death/victory screen shows gold "NEW BEST!" badge next to any record-breaking stat
+  - Non-record deepest floor shows previous best as "(best: N)" reference for "one more run" motivation
+  - Bests persist across runs; state resets on restart to load latest from localStorage
+- **Bug fix — HUD ATK:** `getStatsFromState()` now includes `getAttunementAtkBonus(state.voidAttunement)` in the attack calculation. Previously the HUD showed ATK without the Void Strike +3 bonus, while the engine correctly applied it in combat. HUD now matches actual damage output.
+- Lint and build both pass clean
+- No money spent
+
 ### 2026-03-20 20:00 | developer | Add item drop command (Q key)
 - Added `dropItem()` function to engine.ts — removes item from inventory, places as GroundItem at player position
 - Added Q-key drop mode to GameCanvas: press Q to enter drop mode, then 1-8 to drop that slot (D key conflicts with WASD movement)
