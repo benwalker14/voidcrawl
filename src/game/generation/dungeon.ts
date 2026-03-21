@@ -70,7 +70,7 @@ export interface DungeonResult {
 }
 
 function isBossFloor(floor: number): boolean {
-  return floor === 5 || floor === 10;
+  return floor === 5 || floor === 10 || floor === 15;
 }
 
 function generateBossRoom(floor: number): DungeonResult {

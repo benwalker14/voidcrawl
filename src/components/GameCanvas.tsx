@@ -150,6 +150,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
   const [voidAttunement, setVoidAttunement] = useState(0);
   const [voidPhaseCooldown, setVoidPhaseCooldown] = useState(0);
   const [bossInfo, setBossInfo] = useState<GameEntity | null>(null);
+  const [anchorsAlive, setAnchorsAlive] = useState(0);
   const [identified, setIdentified] = useState<Record<string, boolean>>(initializedState.identified);
   const [consumableAppearances, setConsumableAppearances] = useState<Record<string, string>>(initializedState.consumableAppearances);
   const [copied, setCopied] = useState(false);
@@ -230,6 +231,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
     setShrinePrompt(state.shrinePrompt ?? false);
     const boss = state.entities.find((e) => e.isBoss && e.hp > 0);
     setBossInfo(boss ?? null);
+    setAnchorsAlive(state.entities.filter((e) => e.isAnchor && e.hp > 0).length);
     if (state.messages.length > 0) {
       setMessages((prev) => [...state.messages, ...prev].slice(0, 50));
     }
@@ -865,7 +867,8 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
       {/* Boss HP Bar */}
       {bossInfo && (() => {
         const isShadowTwin = bossInfo.specialAbility === SpecialAbility.BOSS_SHADOW_TWIN;
-        const bossColor = isShadowTwin ? "#dc2626" : "#06b6d4";
+        const isRiftWarden = bossInfo.specialAbility === SpecialAbility.BOSS_RIFT_WARDEN;
+        const bossColor = isShadowTwin ? "#dc2626" : isRiftWarden ? "#fbbf24" : "#06b6d4";
         const hpRatio = bossInfo.hp / bossInfo.maxHp;
         const barColor = hpRatio > 0.5 ? bossColor : hpRatio > 0.25 ? "#eab308" : "#ef4444";
         let phaseLabel: string;
@@ -874,6 +877,10 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
           if (bossInfo.bossPhase === 0) { phaseLabel = "MIRROR"; phaseColor = "#dc2626"; }
           else if (bossInfo.bossPhase === 1) { phaseLabel = "SPLIT"; phaseColor = "#b91c1c"; }
           else { phaseLabel = "DESPERATION"; phaseColor = "#ef4444"; }
+        } else if (isRiftWarden) {
+          if (bossInfo.bossPhase === 0) { phaseLabel = `SENTINEL (${anchorsAlive} anchor${anchorsAlive !== 1 ? "s" : ""})`; phaseColor = "#d4d4d8"; }
+          else if (bossInfo.bossPhase === 1) { phaseLabel = "UNLEASHED"; phaseColor = "#fbbf24"; }
+          else { phaseLabel = "FINAL STAND"; phaseColor = "#ef4444"; }
         } else {
           phaseLabel = bossInfo.bossPhase === 1 ? "VULNERABLE" : "ACTIVE";
           phaseColor = bossInfo.bossPhase === 1 ? "#22c55e" : "#ef4444";

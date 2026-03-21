@@ -149,6 +149,27 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState) {
     ctx.fillText(item.symbol, screenX + SCALED_TILE / 2, screenY + SCALED_TILE / 2);
   }
 
+  // Draw void patches (Rift Warden boss hazards)
+  for (const patch of state.voidPatches) {
+    if (!state.fov[patch.pos.y][patch.pos.x]) continue;
+
+    const screenX = (patch.pos.x - camX) * SCALED_TILE;
+    const screenY = (patch.pos.y - camY) * SCALED_TILE;
+
+    if (screenX < 0 || screenX >= CANVAS_WIDTH || screenY < 0 || screenY >= CANVAS_HEIGHT) continue;
+
+    // Pulsing magenta glow for void patches
+    const pulse = 0.4 + 0.2 * Math.sin(Date.now() / 400);
+    ctx.fillStyle = `rgba(217, 70, 239, ${pulse})`;
+    ctx.fillRect(screenX + 4, screenY + 4, SCALED_TILE - 8, SCALED_TILE - 8);
+
+    ctx.fillStyle = "#d946ef";
+    ctx.font = `bold ${SCALED_TILE - 8}px monospace`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("\u00b7", screenX + SCALED_TILE / 2, screenY + SCALED_TILE / 2);
+  }
+
   // Draw revealed traps (only visible ones)
   for (const trap of state.traps) {
     if (!trap.revealed) continue;
@@ -188,6 +209,7 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState) {
     if (entity.isBoss) {
       const pulse = 0.4 + 0.3 * Math.sin(Date.now() / 300);
       const isShadowTwin = entity.specialAbility === SpecialAbility.BOSS_SHADOW_TWIN;
+      const isRiftWarden = entity.specialAbility === SpecialAbility.BOSS_RIFT_WARDEN;
       let glowColor: string;
       if (isShadowTwin) {
         glowColor = entity.bossPhase === 2
@@ -195,6 +217,12 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState) {
           : entity.bossPhase === 1
           ? `rgba(185, 28, 28, ${pulse})`    // Dark red glow in split
           : `rgba(220, 38, 38, ${pulse})`;   // Red glow in mirror
+      } else if (isRiftWarden) {
+        glowColor = entity.bossPhase === 2
+          ? `rgba(239, 68, 68, ${pulse})`    // Red glow in Final Stand
+          : entity.bossPhase === 1
+          ? `rgba(251, 191, 36, ${pulse})`   // Gold glow in Unleashed
+          : `rgba(212, 212, 216, ${pulse})`; // White/silver glow in Sentinel
       } else {
         glowColor = entity.bossPhase === 1
           ? `rgba(34, 197, 94, ${pulse})`    // Green glow when vulnerable
@@ -329,6 +357,15 @@ export function renderMinimap(ctx: CanvasRenderingContext2D, state: GameState) {
     const py = my + groundItem.pos.y * MINIMAP_TILE;
     ctx.fillStyle = "#06b6d4";
     ctx.fillRect(px, py, MINIMAP_TILE, MINIMAP_TILE);
+  }
+
+  // Draw void patches (only visible)
+  for (const patch of state.voidPatches) {
+    if (!state.fov[patch.pos.y][patch.pos.x]) continue;
+    const ppx = mx + patch.pos.x * MINIMAP_TILE;
+    const ppy = my + patch.pos.y * MINIMAP_TILE;
+    ctx.fillStyle = "#d946ef"; // magenta
+    ctx.fillRect(ppx, ppy, MINIMAP_TILE, MINIMAP_TILE);
   }
 
   // Draw revealed traps (only visible)

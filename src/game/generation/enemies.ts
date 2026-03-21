@@ -221,6 +221,64 @@ export function spawnShadowClone(original: GameEntity, pos: Position): GameEntit
   };
 }
 
+export function spawnRiftWarden(floor: number, map: TileType[][]): GameEntity {
+  // Boss spawns at top-center of the boss room
+  let centerX = Math.floor(MAP_WIDTH / 2);
+  let centerY = 0;
+
+  for (let y = 0; y < MAP_HEIGHT; y++) {
+    if (map[y][centerX] === TileType.FLOOR) {
+      centerY = y + 2;
+      break;
+    }
+  }
+
+  const scaling = 1 + (floor - 1) * 0.15;
+
+  return {
+    id: `boss_rift_warden_${nextEnemyId++}`,
+    type: EntityType.ENEMY,
+    pos: { x: centerX, y: centerY },
+    name: "Rift Warden",
+    hp: Math.floor(90 * scaling),
+    maxHp: Math.floor(90 * scaling),
+    attack: Math.floor(9 * scaling),
+    defense: Math.floor(5 * scaling),
+    color: "#fbbf24",         // Gold/white
+    symbol: "W",
+    xpReward: Math.floor(300 * scaling),
+    behavior: AIBehavior.AMBUSH,
+    detectRange: 20,
+    specialAbility: SpecialAbility.BOSS_RIFT_WARDEN,
+    isBoss: true,
+    bossPhase: 0,             // Phase 0 = Sentinel
+    bossTurnCounter: 0,
+    bossTelegraphed: false,
+    wardenDamageReduction: 0.8, // 80% damage reduction while anchors exist
+  };
+}
+
+export function spawnRiftAnchor(pos: Position, floor: number): GameEntity {
+  const scaling = 1 + (floor - 1) * 0.15;
+
+  return {
+    id: `rift_anchor_${nextEnemyId++}`,
+    type: EntityType.ENEMY,
+    pos: { ...pos },
+    name: "Rift Anchor",
+    hp: Math.floor(15 * scaling),
+    maxHp: Math.floor(15 * scaling),
+    attack: 0,
+    defense: Math.floor(2 * scaling),
+    color: "#d4d4d8",         // Light gray
+    symbol: "+",
+    xpReward: Math.floor(15 * scaling),
+    behavior: AIBehavior.AMBUSH,
+    detectRange: 0,
+    isAnchor: true,
+  };
+}
+
 export function spawnBossAdd(floor: number, pos: Position): GameEntity {
   const scaling = 1 + (floor - 1) * 0.15;
 

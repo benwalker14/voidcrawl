@@ -146,6 +146,12 @@ export interface Trap {
   revealed: boolean;       // true once triggered or revealed by Void Sight
 }
 
+// Void patches left by Rift Warden boss
+export interface VoidPatch {
+  pos: Position;
+  damage: number;           // damage dealt when stepped on (5 in Phase 2, 8 in Phase 3)
+}
+
 // Status effects on the player
 export enum StatusEffectType {
   HASTE = "haste",
@@ -323,6 +329,7 @@ export enum SpecialAbility {
   ETHEREAL = "ethereal",       // Rift Wraith: moves through walls, vulnerable only on floor tiles
   BOSS_NUCLEUS = "boss_nucleus", // Void Nucleus: stationary, spawns adds, telegraphed attacks
   BOSS_SHADOW_TWIN = "boss_shadow_twin", // Shadow Twin: mirrors movement, splits, goes ethereal
+  BOSS_RIFT_WARDEN = "boss_rift_warden", // Rift Warden: stationary sentinel, anchors, void patches
 }
 
 export interface GameEntity {
@@ -355,6 +362,8 @@ export interface GameEntity {
   splitTurnTimer?: number;   // Shadow Twin: turns since split — both copies must die within 3 turns
   isClone?: boolean;         // Shadow Twin: true for the split copy (not the original)
   linkedCloneId?: string;    // Shadow Twin: ID of the other clone (for regeneration check)
+  isAnchor?: boolean;        // Rift Warden: true for Rift Anchor destructible objects
+  wardenDamageReduction?: number; // Rift Warden: damage reduction while anchors exist (0.0-1.0)
 }
 
 export interface PlayerProgression {
@@ -443,6 +452,7 @@ export interface GameState {
   voidPhaseCooldown: number;                       // Void Phase (75%): turns until wall-walk available again (0 = ready)
   voidPhaseUsedThisTurn: boolean;                  // Tracks if phase-walk was used this turn
   maxHpReduced: boolean;                           // Whether 75% max HP reduction has been applied
+  voidPatches: VoidPatch[];                        // Rift Warden: void patches on the ground that deal damage
 }
 
 export interface DailyResult {
