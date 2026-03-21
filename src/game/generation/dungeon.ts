@@ -70,10 +70,10 @@ export interface DungeonResult {
 }
 
 function isBossFloor(floor: number): boolean {
-  return floor === 5;
+  return floor === 5 || floor === 10;
 }
 
-function generateBossRoom(): DungeonResult {
+function generateBossRoom(floor: number): DungeonResult {
   const map: TileType[][] = Array.from({ length: MAP_HEIGHT }, () =>
     Array(MAP_WIDTH).fill(TileType.WALL)
   );
@@ -85,6 +85,32 @@ function generateBossRoom(): DungeonResult {
   const roomY = Math.floor((MAP_HEIGHT - roomHeight) / 2);
   const bossRoom: Room = { x: roomX, y: roomY, width: roomWidth, height: roomHeight };
   carveRoom(map, bossRoom);
+
+  // Floor 10 Shadow Twin: add interior pillars for corner-trapping during Mirror phase
+  if (floor === 10) {
+    // 4 symmetrical 2x2 pillar blocks inside the arena
+    const pillarOffsets = [
+      { dx: 3, dy: 3 },   // top-left
+      { dx: -4, dy: 3 },  // top-right
+      { dx: 3, dy: -4 },  // bottom-left
+      { dx: -4, dy: -4 }, // bottom-right
+    ];
+    const centerRoomX = roomX + Math.floor(roomWidth / 2);
+    const centerRoomY = roomY + Math.floor(roomHeight / 2);
+    for (const offset of pillarOffsets) {
+      const px = centerRoomX + offset.dx;
+      const py = centerRoomY + offset.dy;
+      // Place 2x2 wall pillar
+      for (let dy = 0; dy < 2; dy++) {
+        for (let dx = 0; dx < 2; dx++) {
+          if (px + dx > roomX && px + dx < roomX + roomWidth - 1 &&
+              py + dy > roomY && py + dy < roomY + roomHeight - 1) {
+            map[py + dy][px + dx] = TileType.WALL;
+          }
+        }
+      }
+    }
+  }
 
   // Player starts at the bottom-center of the room
   const playerStart = {
@@ -127,7 +153,7 @@ function generateBossRoom(): DungeonResult {
 
 export function generateDungeon(floor: number): DungeonResult {
   if (isBossFloor(floor)) {
-    return generateBossRoom();
+    return generateBossRoom(floor);
   }
 
   // Initialize with walls

@@ -10,6 +10,7 @@ import {
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
   EnemyIntent,
+  SpecialAbility,
   getZoneTileColors,
   getZoneTheme,
 } from "./config";
@@ -160,9 +161,20 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState) {
     // Boss: draw pulsing glow behind symbol
     if (entity.isBoss) {
       const pulse = 0.4 + 0.3 * Math.sin(Date.now() / 300);
-      ctx.fillStyle = entity.bossPhase === 1
-        ? `rgba(34, 197, 94, ${pulse})`  // Green glow when vulnerable
-        : `rgba(6, 182, 212, ${pulse})`;  // Cyan glow normally
+      const isShadowTwin = entity.specialAbility === SpecialAbility.BOSS_SHADOW_TWIN;
+      let glowColor: string;
+      if (isShadowTwin) {
+        glowColor = entity.bossPhase === 2
+          ? `rgba(239, 68, 68, ${pulse})`   // Red glow in desperation
+          : entity.bossPhase === 1
+          ? `rgba(185, 28, 28, ${pulse})`    // Dark red glow in split
+          : `rgba(220, 38, 38, ${pulse})`;   // Red glow in mirror
+      } else {
+        glowColor = entity.bossPhase === 1
+          ? `rgba(34, 197, 94, ${pulse})`    // Green glow when vulnerable
+          : `rgba(6, 182, 212, ${pulse})`;   // Cyan glow normally
+      }
+      ctx.fillStyle = glowColor;
       ctx.beginPath();
       ctx.arc(screenX + SCALED_TILE / 2, screenY + SCALED_TILE / 2, SCALED_TILE * 0.6, 0, Math.PI * 2);
       ctx.fill();

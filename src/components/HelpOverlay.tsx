@@ -12,6 +12,7 @@ const ENEMIES = [
   { symbol: "V", color: "#f5f3ff", name: "Void Lord", behavior: "Pursues from very far away", floors: "10+" },
   { symbol: "O", color: "#06b6d4", name: "BOSS: Void Nucleus", behavior: "Stationary · Spawns adds · Telegraphs AoE · Alternates active/vulnerable phases", floors: "5" },
   { symbol: "o", color: "#67e8f9", name: "Void Fragment", behavior: "Boss add · Pursues player", floors: "5" },
+  { symbol: "@", color: "#dc2626", name: "BOSS: Shadow Twin", behavior: "3-phase fight · Mirror (flees) → Split (chase, kill both in 3 turns) → Desperation (ethereal, 2-tile movement)", floors: "10" },
 ];
 
 const ITEMS = [
@@ -291,6 +292,20 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
             <div><span style={{ color: "#c084fc" }}>Reflective</span> — 15% chance to reflect full damage back to attacker</div>
             <div><span style={{ color: "#c084fc" }}>Regenerating</span> — Heal 1 HP every 10 turns</div>
             <div><span style={{ color: "#c084fc" }}>Thorned</span> — Deal 1 damage to any enemy that hits you in melee</div>
+          </div>
+        </Section>
+
+        {/* Boss Encounters */}
+        <Section title="Boss Encounters">
+          <div className="space-y-1">
+            <div>
+              <span style={{ color: "#06b6d4" }}>Floor 5 — Void Nucleus:</span>{" "}
+              <span style={{ color: "var(--void-muted)" }}>Stationary boss. Alternates between spawning adds and vulnerable phases. Stay at range during the discharge. Drop: guaranteed rare equipment.</span>
+            </div>
+            <div>
+              <span style={{ color: "#dc2626" }}>Floor 10 — Shadow Twin:</span>{" "}
+              <span style={{ color: "var(--void-muted)" }}>3-phase positioning puzzle. <strong>Mirror:</strong> flees from you — corner it using pillars. <strong>Split (50% HP):</strong> splits into 2 copies — kill both within 3 turns or it regenerates. <strong>Desperation (25% HP):</strong> becomes ethereal (only hittable on floor tiles) and moves 2 tiles per turn. Drop: Mirror Shard (creates a decoy for 8 turns).</span>
+            </div>
           </div>
         </Section>
 

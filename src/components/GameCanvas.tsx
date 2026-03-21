@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES, CONSUMABLE_EFFECT_NAMES, VICTORY_FLOOR, CURSE_NAMES, CURSE_DESCRIPTIONS, getZoneTheme, WEAPON_SPECIAL_NAMES } from "@/game/config";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES, CONSUMABLE_EFFECT_NAMES, VICTORY_FLOOR, CURSE_NAMES, CURSE_DESCRIPTIONS, getZoneTheme, WEAPON_SPECIAL_NAMES, SpecialAbility } from "@/game/config";
 import { initGame, processPlayerTurn, applyInventoryItem, dropItem, processShrine, continueEndless, MoveDirection, getAttunementAtkBonus, getAttunementDefBonus } from "@/game/engine";
 import { render, renderMinimap, renderFloatingTexts, renderHitEffects, FLOAT_DURATION, HIT_EFFECT_DURATION } from "@/game/renderer";
 import type { ActiveFloatingText, ActiveHitEffect } from "@/game/renderer";
@@ -863,26 +863,37 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
       )}
 
       {/* Boss HP Bar */}
-      {bossInfo && (
-        <div className="w-full max-w-[640px] mb-1 px-2">
-          <div className="flex items-center gap-2 text-xs font-mono">
-            <span style={{ color: "#06b6d4" }} className="font-bold">{bossInfo.name}</span>
-            <div className="flex-1 h-3 rounded-sm overflow-hidden" style={{ backgroundColor: "#1a1a2e", border: "1px solid #333" }}>
-              <div
-                className="h-full rounded-sm transition-all duration-300"
-                style={{
-                  width: `${(bossInfo.hp / bossInfo.maxHp) * 100}%`,
-                  backgroundColor: bossInfo.hp / bossInfo.maxHp > 0.5 ? "#06b6d4" : bossInfo.hp / bossInfo.maxHp > 0.25 ? "#eab308" : "#ef4444",
-                }}
-              />
+      {bossInfo && (() => {
+        const isShadowTwin = bossInfo.specialAbility === SpecialAbility.BOSS_SHADOW_TWIN;
+        const bossColor = isShadowTwin ? "#dc2626" : "#06b6d4";
+        const hpRatio = bossInfo.hp / bossInfo.maxHp;
+        const barColor = hpRatio > 0.5 ? bossColor : hpRatio > 0.25 ? "#eab308" : "#ef4444";
+        let phaseLabel: string;
+        let phaseColor: string;
+        if (isShadowTwin) {
+          if (bossInfo.bossPhase === 0) { phaseLabel = "MIRROR"; phaseColor = "#dc2626"; }
+          else if (bossInfo.bossPhase === 1) { phaseLabel = "SPLIT"; phaseColor = "#b91c1c"; }
+          else { phaseLabel = "DESPERATION"; phaseColor = "#ef4444"; }
+        } else {
+          phaseLabel = bossInfo.bossPhase === 1 ? "VULNERABLE" : "ACTIVE";
+          phaseColor = bossInfo.bossPhase === 1 ? "#22c55e" : "#ef4444";
+        }
+        return (
+          <div className="w-full max-w-[640px] mb-1 px-2">
+            <div className="flex items-center gap-2 text-xs font-mono">
+              <span style={{ color: bossColor }} className="font-bold">{bossInfo.name}</span>
+              <div className="flex-1 h-3 rounded-sm overflow-hidden" style={{ backgroundColor: "#1a1a2e", border: "1px solid #333" }}>
+                <div
+                  className="h-full rounded-sm transition-all duration-300"
+                  style={{ width: `${hpRatio * 100}%`, backgroundColor: barColor }}
+                />
+              </div>
+              <span style={{ color: "var(--void-muted)" }}>{bossInfo.hp}/{bossInfo.maxHp}</span>
+              <span style={{ color: phaseColor }} className="font-bold">{phaseLabel}</span>
             </div>
-            <span style={{ color: "var(--void-muted)" }}>{bossInfo.hp}/{bossInfo.maxHp}</span>
-            <span style={{ color: bossInfo.bossPhase === 1 ? "#22c55e" : "#ef4444" }} className="font-bold">
-              {bossInfo.bossPhase === 1 ? "VULNERABLE" : "ACTIVE"}
-            </span>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Game Canvas */}
       <div className="relative">

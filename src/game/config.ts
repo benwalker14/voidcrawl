@@ -309,6 +309,7 @@ export enum SpecialAbility {
   HOWL = "howl",               // Abyssal Hound: alerts all hounds when spotting player
   ETHEREAL = "ethereal",       // Rift Wraith: moves through walls, vulnerable only on floor tiles
   BOSS_NUCLEUS = "boss_nucleus", // Void Nucleus: stationary, spawns adds, telegraphed attacks
+  BOSS_SHADOW_TWIN = "boss_shadow_twin", // Shadow Twin: mirrors movement, splits, goes ethereal
 }
 
 export interface GameEntity {
@@ -338,6 +339,9 @@ export interface GameEntity {
   bossPhase?: number;        // Current boss phase (0 = spawning adds, 1 = vulnerable/paused)
   bossTurnCounter?: number;  // Turns until next phase transition
   bossTelegraphed?: boolean; // Whether the boss has telegraphed its next special attack
+  splitTurnTimer?: number;   // Shadow Twin: turns since split — both copies must die within 3 turns
+  isClone?: boolean;         // Shadow Twin: true for the split copy (not the original)
+  linkedCloneId?: string;    // Shadow Twin: ID of the other clone (for regeneration check)
 }
 
 export interface PlayerProgression {

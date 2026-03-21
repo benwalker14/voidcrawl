@@ -1,5 +1,23 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-20 24:30 | developer | Floor 10 boss: Shadow Twin — 3-phase positioning puzzle
+- **Added `BOSS_SHADOW_TWIN` special ability** to `SpecialAbility` enum in config.ts. Added `splitTurnTimer`, `isClone`, and `linkedCloneId` fields to `GameEntity` for the split mechanic.
+- **New boss entity functions in enemies.ts:** `spawnShadowTwin()` creates the boss (symbol `@`, dark red #dc2626, 75 base HP, 8 ATK, 4 DEF, 200 XP). `spawnShadowClone()` creates a 60%-stat copy during the split phase.
+- **Boss room for floor 10 in dungeon.ts:** `isBossFloor()` now returns true for floor 10. The boss room includes 4 symmetrical 2x2 wall pillars for corner-trapping during the Mirror phase.
+- **3-phase AI in engine.ts (`processShadowTwinAI`):**
+  - **Phase 0 — Mirror:** the Twin flees from the player (inverse movement). Player must corner it using the room's pillars. Attacks when adjacent. Transitions to Phase 1 at 50% HP.
+  - **Phase 1 — Shadow Split:** the Twin splits into 2 copies at 60% stats each. Both aggressively chase the player. A 3-turn timer starts — if the surviving clone isn't killed within 3 turns of its twin, it regenerates to full HP. Creates intense time pressure.
+  - **Phase 2 — Desperation (at 40% of split HP):** the surviving Twin becomes ethereal (moves through walls, only vulnerable on floor tiles like Rift Wraith) and moves 2 tiles per turn. Fast, dangerous endgame chase.
+- **Ethereal immunity extended:** the player-side ethereal invulnerability check now covers Shadow Twin in Phase 2 — attacks pass through it when it's on wall/void tiles, with the same "IMMUNE" floating text.
+- **Boss kill handling:** updated to support the split mechanic. Killing one clone doesn't drop loot — it resets the regen timer on the survivor. Only the final Shadow Twin death triggers the victory message, loot, and attunement reduction.
+- **Mirror Shard unique drop:** a boss-exclusive consumable (`*`, dark red, Rare) that creates a decoy drawing enemy aggro for 8 turns. Uses the existing Summon effect with 8 turn duration. Drops alongside standard boss loot (guaranteed rare equipment + rare consumable).
+- **Renderer:** boss glow color is now phase-dependent — red in Mirror, dark red in Split, bright red in Desperation (distinct from the Void Nucleus's cyan/green).
+- **HUD boss bar:** GameCanvas.tsx now detects Shadow Twin vs Void Nucleus via `specialAbility`. Shows boss name in red (#dc2626), HP bar in red, and phase-specific labels: "MIRROR", "SPLIT", or "DESPERATION" instead of "ACTIVE"/"VULNERABLE".
+- **Help overlay:** added Shadow Twin to the enemy bestiary with 3-phase description. Added new "Boss Encounters" section documenting both bosses' strategies and unique drops.
+- **Pacing impact:** cuts the boss-less stretch from 9 floors (5→15) to 4 floors (5→10 and 10→15). Floor 10 now serves as a mid-run milestone and zone transition marker (entering Shadow Realm).
+- Lint and build both pass clean
+- No money spent
+
 ### 2026-03-20 23:45 | developer | Late-game sidegrade weapons: Null Scythe + Rift Dagger
 - **Added `WeaponSpecial` enum to config.ts** with `CLEAVE` and `DOUBLE_STRIKE` values, plus `WEAPON_SPECIAL_NAMES` display map. Added `weaponSpecial` optional field to `Item` interface.
 - **Two new Rare weapons in items.ts (floor 8+):**

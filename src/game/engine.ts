@@ -10,6 +10,7 @@ import {
   MAP_HEIGHT,
   Item,
   ItemCategory,
+  ItemRarity,
   ConsumableEffect,
   StatusEffect,
   StatusEffectType,
@@ -34,7 +35,7 @@ import {
 } from "./config";
 import { random, seedRngForFloor, unseedRng } from "./rng";
 import { generateDungeon } from "./generation/dungeon";
-import { spawnEnemies, spawnEnemyAtPos, spawnBoss, spawnBossAdd } from "./generation/enemies";
+import { spawnEnemies, spawnEnemyAtPos, spawnBoss, spawnBossAdd, spawnShadowTwin, spawnShadowClone } from "./generation/enemies";
 import { computeFov, FOV_RADIUS } from "./generation/fov";
 import { generateLootDrop, generateBossLoot, generateGuaranteedFloorLoot, initConsumableAppearances, initIdentified } from "./data/items";
 import { findPath, findFleeStep } from "./pathfinding";
@@ -216,9 +217,11 @@ export function generateFloor(
     ? { ...prevPlayer, pos: { ...dungeon.playerStart } }
     : createPlayer(dungeon.playerStart);
 
-  const isBossFloor = floor === 5;
-  const enemies = isBossFloor
+  const isBossFloor = floor === 5 || floor === 10;
+  const enemies = floor === 5
     ? [spawnBoss(floor, dungeon.map)]
+    : floor === 10
+    ? [spawnShadowTwin(floor, dungeon.map)]
     : spawnEnemies(floor, floorTiles);
 
   // Void Attunement: increases on descent
@@ -264,8 +267,10 @@ export function generateFloor(
     }
   }
 
-  if (isBossFloor) {
+  if (floor === 5) {
     messages.push({ text: "The air crackles with energy. A massive Void Nucleus pulses at the far end of the chamber!", color: MSG_COLORS.WARNING });
+  } else if (floor === 10) {
+    messages.push({ text: "A dark reflection emerges from the shadows... it mirrors your every move.", color: MSG_COLORS.WARNING });
   }
 
   if (attunementGain > 0) {
@@ -1045,6 +1050,194 @@ function getRandomFloorTileNearBoss(state: GameState, bossPos: Position): Positi
   return tiles[Math.floor(random() * tiles.length)];
 }
 
+// Shadow Twin boss AI constants
+const SHADOW_TWIN_SPLIT_REGEN_TURNS = 3; // Both clones must die within 3 turns
+
+/**
+ * Shadow Twin boss: 3-phase positioning puzzle boss
+ * Phase 0 (Mirror): copies player ATK/DEF, mirrors player movement inversely
+ * Phase 1 (Shadow Split, at 50% HP): splits into 2 weaker copies, must kill both within 3 turns
+ * Phase 2 (Desperation, at 25% HP): becomes ethereal, moves 2 tiles per turn
+ */
+function processShadowTwinAI(state: GameState): void {
+  const twins = state.entities.filter(
+    (e) => e.hp > 0 && e.isBoss && e.specialAbility === SpecialAbility.BOSS_SHADOW_TWIN
+  );
+  if (twins.length === 0) return;
+
+  // Check split timer — if one clone dies and the other survives past 3 turns, regenerate
+  const clones = twins.filter((t) => t.bossPhase === 1 && t.splitTurnTimer !== undefined);
+  if (clones.length === 1) {
+    // One clone already dead — tick timer on the survivor
+    const survivor = clones[0];
+    survivor.splitTurnTimer = (survivor.splitTurnTimer ?? 0) + 1;
+    if (survivor.splitTurnTimer >= SHADOW_TWIN_SPLIT_REGEN_TURNS) {
+      // Survivor regenerates to full
+      survivor.hp = survivor.maxHp;
+      survivor.splitTurnTimer = undefined;
+      state.messages.push({ text: "The Shadow Twin absorbs its fallen half and regenerates!", color: MSG_COLORS.DEATH });
+      state.pendingFloatingTexts.push({ text: "REGENERATE!", color: "#dc2626", x: survivor.pos.x, y: survivor.pos.y });
+    }
+  } else if (clones.length === 2) {
+    // Both alive — tick timer on both
+    for (const c of clones) {
+      c.splitTurnTimer = (c.splitTurnTimer ?? 0) + 1;
+    }
+  }
+
+  for (const twin of twins) {
+    if (twin.hp <= 0) continue;
+
+    const blocked = getBlockedPositions(state, twin.id);
+    const px = state.player.pos.x;
+    const py = state.player.pos.y;
+    const dx = px - twin.pos.x;
+    const dy = py - twin.pos.y;
+    const dist = Math.abs(dx) + Math.abs(dy);
+
+    // Check for phase transitions based on HP thresholds
+    // Transition to Phase 1 (Shadow Split) at 50% HP
+    if (twin.bossPhase === 0 && twin.hp <= twin.maxHp * 0.5 && !twin.isClone) {
+      twin.bossPhase = 1;
+      twin.bossTurnCounter = 0;
+      twin.splitTurnTimer = 0;
+
+      // Reduce stats to 60% for the original
+      const origMaxHp = twin.maxHp;
+      twin.maxHp = Math.floor(origMaxHp * 0.6);
+      twin.hp = Math.min(twin.hp, twin.maxHp);
+      twin.attack = Math.floor(twin.attack * 0.6);
+      twin.defense = Math.floor(twin.defense * 0.6);
+      twin.color = "#b91c1c";
+
+      // Spawn clone at a nearby position
+      const clonePos = getRandomFloorTileNearBoss(state, twin.pos);
+      if (clonePos) {
+        const clone = spawnShadowClone(twin, clonePos);
+        clone.linkedCloneId = twin.id;
+        twin.linkedCloneId = clone.id;
+        state.entities.push(clone);
+      }
+
+      state.messages.push({ text: "The Shadow Twin splits! Kill both within 3 turns or it regenerates!", color: MSG_COLORS.DEATH });
+      state.pendingFloatingTexts.push({ text: "SHADOW SPLIT!", color: "#dc2626", x: twin.pos.x, y: twin.pos.y });
+      state.pendingShake = Math.max(state.pendingShake, 5);
+      continue;
+    }
+
+    // Transition to Phase 2 (Desperation) at 25% of ORIGINAL maxHp
+    // Only transition from phase 1 — check if this clone's HP is at 25% of its phase-1 maxHp
+    if (twin.bossPhase === 1 && twin.hp <= twin.maxHp * 0.4) {
+      twin.bossPhase = 2;
+      twin.bossTurnCounter = 0;
+      twin.splitTurnTimer = undefined; // Stop regen timer in desperation
+      state.messages.push({ text: "The Shadow Twin flickers... it becomes ethereal and moves faster!", color: MSG_COLORS.WARNING });
+      state.pendingFloatingTexts.push({ text: "DESPERATION!", color: "#ef4444", x: twin.pos.x, y: twin.pos.y });
+    }
+
+    // --- Phase-specific movement and behavior ---
+
+    if (twin.bossPhase === 0) {
+      // MIRROR PHASE: mirrors player movement inversely
+      // The twin moves in the opposite direction the player moved
+      // We use the position delta between player current pos and the twin to determine mirror direction
+      // Move toward the opposite direction from the player's relative position
+      // This means: if the player moves left (dx decreases), the twin moves right (and vice versa)
+      // Implementation: move AWAY from the player along their relative axis
+      if (dist <= 1) {
+        // Adjacent — attack the player
+        const result = combat(twin, state.player, state.messages, 0, 0, state.pendingFloatingTexts, 1, state.pendingHitEffects);
+        state.runStats.damageTaken += result.damage;
+        if (!result.dodged) {
+          state.pendingShake = Math.max(state.pendingShake, Math.min(6, Math.max(2, result.damage)));
+          state.pendingFloatingTexts.push({ text: `-${result.damage}`, color: MSG_COLORS.ENEMY_ATK, x: px, y: py });
+        }
+        if (state.player.hp <= 0) {
+          state.gameOver = true;
+          state.runStats.killedBy = "Shadow Twin";
+          state.messages.push({ text: "You have been consumed by the void...", color: MSG_COLORS.DEATH });
+        }
+      } else {
+        // Mirror: move inversely to player — flee from player
+        const step = findFleeStep(state.map, twin.pos, state.player.pos, blocked);
+        if (step) {
+          twin.pos.x = step.x;
+          twin.pos.y = step.y;
+        }
+      }
+    } else if (twin.bossPhase === 1) {
+      // SPLIT PHASE: aggressive chase AI
+      if (dist <= 1) {
+        const result = combat(twin, state.player, state.messages, 0, 0, state.pendingFloatingTexts, 1, state.pendingHitEffects);
+        state.runStats.damageTaken += result.damage;
+        if (!result.dodged) {
+          state.pendingShake = Math.max(state.pendingShake, Math.min(6, Math.max(2, result.damage)));
+          state.pendingFloatingTexts.push({ text: `-${result.damage}`, color: MSG_COLORS.ENEMY_ATK, x: px, y: py });
+        }
+        if (state.player.hp <= 0) {
+          state.gameOver = true;
+          state.runStats.killedBy = "Shadow Twin";
+          state.messages.push({ text: "You have been consumed by the void...", color: MSG_COLORS.DEATH });
+        }
+      } else {
+        const step = findPath(state.map, twin.pos, state.player.pos, blocked);
+        if (step) {
+          twin.pos.x = step.x;
+          twin.pos.y = step.y;
+        }
+      }
+    } else if (twin.bossPhase === 2) {
+      // DESPERATION PHASE: ethereal (moves through walls) + 2-tile movement
+      if (dist <= 1) {
+        const result = combat(twin, state.player, state.messages, 0, 0, state.pendingFloatingTexts, 1, state.pendingHitEffects);
+        state.runStats.damageTaken += result.damage;
+        if (!result.dodged) {
+          state.pendingShake = Math.max(state.pendingShake, Math.min(6, Math.max(2, result.damage)));
+          state.pendingFloatingTexts.push({ text: `-${result.damage}`, color: MSG_COLORS.ENEMY_ATK, x: px, y: py });
+        }
+        if (state.player.hp <= 0) {
+          state.gameOver = true;
+          state.runStats.killedBy = "Shadow Twin";
+          state.messages.push({ text: "You have been consumed by the void...", color: MSG_COLORS.DEATH });
+        }
+      } else {
+        // Ethereal 2-tile movement: move toward player through walls, 2 steps per turn
+        for (let step = 0; step < 2; step++) {
+          const cdx = state.player.pos.x - twin.pos.x;
+          const cdy = state.player.pos.y - twin.pos.y;
+          const cdist = Math.abs(cdx) + Math.abs(cdy);
+          if (cdist <= 1) break; // Don't overshoot into player
+
+          const stepX = cdx === 0 ? 0 : cdx > 0 ? 1 : -1;
+          const stepY = cdy === 0 ? 0 : cdy > 0 ? 1 : -1;
+          // Try primary axis, then secondary (ethereal: ignore wall tiles)
+          const candidates: Position[] = [];
+          if (Math.abs(cdx) >= Math.abs(cdy)) {
+            candidates.push({ x: twin.pos.x + stepX, y: twin.pos.y });
+            if (stepY !== 0) candidates.push({ x: twin.pos.x, y: twin.pos.y + stepY });
+          } else {
+            candidates.push({ x: twin.pos.x, y: twin.pos.y + stepY });
+            if (stepX !== 0) candidates.push({ x: twin.pos.x + stepX, y: twin.pos.y });
+          }
+          let moved = false;
+          const currentBlocked = getBlockedPositions(state, twin.id);
+          for (const c of candidates) {
+            if (c.x < 0 || c.x >= MAP_WIDTH || c.y < 0 || c.y >= MAP_HEIGHT) continue;
+            if (currentBlocked.has(`${c.x},${c.y}`)) continue;
+            twin.pos.x = c.x;
+            twin.pos.y = c.y;
+            moved = true;
+            break;
+          }
+          if (!moved) break;
+        }
+      }
+    }
+
+    twin.bossTurnCounter = (twin.bossTurnCounter ?? 0) + 1;
+  }
+}
+
 function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
   const isInvisible = hasStatusEffect(state, StatusEffectType.INVISIBLE);
   const paranoidBonus = state.inventory.equippedArmor?.curse === CurseEffect.PARANOID ? 4 : 0;
@@ -1053,7 +1246,8 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
   for (const enemy of state.entities) {
     if (enemy.hp <= 0 || enemy.friendly) continue;
 
-    // Boss is stationary — handled by processBossAI
+    // Void Nucleus boss is stationary — handled by processBossAI
+    // Shadow Twin boss movement is handled by processShadowTwinAI
     if (enemy.isBoss) continue;
 
     // Stunned enemies skip their turn (Stunning runic)
@@ -1535,8 +1729,10 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
         return true;
       });
 
-      // ETHEREAL: Rift Wraith is invulnerable when not on a floor tile
-      if (enemy.specialAbility === SpecialAbility.ETHEREAL && newState.map[enemy.pos.y]?.[enemy.pos.x] !== TileType.FLOOR) {
+      // ETHEREAL: Rift Wraith and Shadow Twin (Desperation) are invulnerable when not on a floor tile
+      const isEthereal = enemy.specialAbility === SpecialAbility.ETHEREAL ||
+        (enemy.specialAbility === SpecialAbility.BOSS_SHADOW_TWIN && enemy.bossPhase === 2);
+      if (isEthereal && newState.map[enemy.pos.y]?.[enemy.pos.x] !== TileType.FLOOR) {
         newState.messages.push({ text: `Your attack passes through ${enemy.name}! It's only vulnerable on solid ground.`, color: MSG_COLORS.WARNING });
         newState.pendingFloatingTexts.push({ text: "IMMUNE", color: "#e9d5ff", x: newX, y: newY });
       } else {
@@ -1628,13 +1824,50 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
           }
 
           if (enemy.isBoss) {
-            // Boss kill: guaranteed rare+ loot, victory message
-            newState.messages.push({ text: "The Void Nucleus shatters! The chamber falls silent.", color: MSG_COLORS.LEVEL_UP });
-            newState.pendingFloatingTexts.push({ text: "BOSS SLAIN!", color: "#facc15", x: enemy.pos.x, y: enemy.pos.y });
-            const bossLoot = generateBossLoot(newState.floor, enemy.pos);
-            for (const loot of bossLoot) {
-              newState.items.push(loot);
-              newState.messages.push({ text: `The Nucleus dropped ${loot.item.name}!`, color: MSG_COLORS.LOOT });
+            // Shadow Twin: check if this is a clone kill or the final kill
+            const isShadowTwin = enemy.specialAbility === SpecialAbility.BOSS_SHADOW_TWIN;
+            const remainingTwins = isShadowTwin
+              ? newState.entities.filter((e) => e.id !== enemy.id && e.hp > 0 && e.isBoss && e.specialAbility === SpecialAbility.BOSS_SHADOW_TWIN)
+              : [];
+
+            if (isShadowTwin && remainingTwins.length > 0) {
+              // Clone killed but another twin still alive — reset its regen timer
+              newState.messages.push({ text: `One Shadow Twin falls! Destroy the other before it regenerates!`, color: MSG_COLORS.WARNING });
+              newState.pendingFloatingTexts.push({ text: "CLONE SLAIN!", color: "#facc15", x: enemy.pos.x, y: enemy.pos.y });
+              for (const rt of remainingTwins) {
+                rt.splitTurnTimer = 0; // Reset the regen countdown
+              }
+            } else {
+              // Final boss kill: victory message + loot
+              if (isShadowTwin) {
+                newState.messages.push({ text: "The Shadow Twin dissolves into darkness! Your reflection is your own again.", color: MSG_COLORS.LEVEL_UP });
+                // Drop Mirror Shard unique item + standard boss loot
+                newState.items.push({
+                  item: {
+                    id: `item_mirror_shard_${Date.now()}`,
+                    name: "Mirror Shard",
+                    category: ItemCategory.SCROLL,
+                    rarity: ItemRarity.RARE,
+                    symbol: "*",
+                    color: "#dc2626",
+                    effect: ConsumableEffect.SUMMON,
+                    effectValue: 8,
+                    minFloor: 10,
+                    description: "Creates a decoy that draws enemy aggro for 8 turns.",
+                  },
+                  pos: { x: enemy.pos.x, y: enemy.pos.y },
+                });
+                newState.messages.push({ text: `The Shadow Twin dropped Mirror Shard!`, color: MSG_COLORS.LOOT });
+              } else {
+                newState.messages.push({ text: "The Void Nucleus shatters! The chamber falls silent.", color: MSG_COLORS.LEVEL_UP });
+              }
+              newState.pendingFloatingTexts.push({ text: "BOSS SLAIN!", color: "#facc15", x: enemy.pos.x, y: enemy.pos.y });
+              const bossLoot = generateBossLoot(newState.floor, enemy.pos);
+              for (const loot of bossLoot) {
+                newState.items.push(loot);
+                const dropName = isShadowTwin ? "Shadow Twin" : "Nucleus";
+                newState.messages.push({ text: `The ${dropName} dropped ${loot.item.name}!`, color: MSG_COLORS.LOOT });
+              }
             }
             // Attunement escape valve: boss kill reduces attunement by 15
             if (newState.voidAttunement > 0) {
@@ -1904,6 +2137,9 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
 
   // Boss AI — spawns adds, telegraphs attacks, phase transitions
   processBossAI(newState);
+
+  // Shadow Twin boss AI — mirror movement, split, desperation phases
+  processShadowTwinAI(newState);
 
   // Friendly entity (summon) AI — chase and attack nearest enemy
   moveFriendlies(newState);

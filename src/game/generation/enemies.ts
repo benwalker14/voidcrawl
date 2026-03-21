@@ -158,6 +158,69 @@ export function spawnBoss(floor: number, map: TileType[][]): GameEntity {
   };
 }
 
+export function spawnShadowTwin(floor: number, map: TileType[][]): GameEntity {
+  // Boss spawns at top-center of the boss room
+  let centerX = Math.floor(MAP_WIDTH / 2);
+  let centerY = 0;
+
+  for (let y = 0; y < MAP_HEIGHT; y++) {
+    if (map[y][centerX] === TileType.FLOOR) {
+      centerY = y + 2;
+      break;
+    }
+  }
+
+  const scaling = 1 + (floor - 1) * 0.15;
+
+  return {
+    id: `boss_shadow_twin_${nextEnemyId++}`,
+    type: EntityType.ENEMY,
+    pos: { x: centerX, y: centerY },
+    name: "Shadow Twin",
+    hp: Math.floor(75 * scaling),
+    maxHp: Math.floor(75 * scaling),
+    attack: Math.floor(8 * scaling),
+    defense: Math.floor(4 * scaling),
+    color: "#dc2626",
+    symbol: "@",
+    xpReward: Math.floor(200 * scaling),
+    behavior: AIBehavior.CHASE,
+    detectRange: 20,
+    specialAbility: SpecialAbility.BOSS_SHADOW_TWIN,
+    isBoss: true,
+    bossPhase: 0,         // Phase 0 = Mirror
+    bossTurnCounter: 0,
+    bossTelegraphed: false,
+  };
+}
+
+export function spawnShadowClone(original: GameEntity, pos: Position): GameEntity {
+  const id = `boss_shadow_clone_${nextEnemyId++}`;
+  return {
+    id,
+    type: EntityType.ENEMY,
+    pos: { ...pos },
+    name: "Shadow Twin",
+    hp: Math.floor(original.maxHp * 0.6),
+    maxHp: Math.floor(original.maxHp * 0.6),
+    attack: Math.floor(original.attack * 0.6),
+    defense: Math.floor(original.defense * 0.6),
+    color: "#b91c1c",
+    symbol: "@",
+    xpReward: Math.floor((original.xpReward ?? 200) * 0.3),
+    behavior: AIBehavior.CHASE,
+    detectRange: 20,
+    specialAbility: SpecialAbility.BOSS_SHADOW_TWIN,
+    isBoss: true,
+    bossPhase: 1,         // Phase 1 = Shadow Split (chase + kill timer)
+    bossTurnCounter: 0,
+    bossTelegraphed: false,
+    splitTurnTimer: 0,
+    isClone: true,
+    linkedCloneId: original.id,
+  };
+}
+
 export function spawnBossAdd(floor: number, pos: Position): GameEntity {
   const scaling = 1 + (floor - 1) * 0.15;
 
