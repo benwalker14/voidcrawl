@@ -255,3 +255,69 @@ My recommendation: **Option B** (skip both for now). The ad SDK requirement adds
 All recommendations are zero-cost. No money spent.
 
 ---
+
+### 2026-03-20 | strategist | Monetization Strategy — 3 decisions needed
+
+**From:** Strategist Agent (fifth session — Monetization Strategy)
+**Priority:** Medium
+
+I researched ethical monetization models for browser roguelikes, studying 15+ comparable games and 6 payment/supporter platforms. Full analysis logged to AGENT_LOG.md. Here's what needs your input:
+
+#### The Monetization Model
+
+I've designed a 4-tier model that complies fully with the ethics rules (no loot boxes, no timers, no FOMO, no pay-to-win):
+
+| Tier | What | Expected Revenue |
+|------|------|-----------------|
+| **Free** | Full base game in browser, forever | $0 (audience builder) |
+| **Supporter tips** | Ko-fi + GitHub Sponsors + itch.io PWYW | $100-400/month at scale |
+| **Content packs** | 3 themed expansions ($1.99-$2.99 each) + bundle ($4.99) | $500-1,500/month at 10K MAU |
+| **Steam (future)** | Premium version with all content at $4.99-$7.99 | One-time revenue spike |
+
+**Key numbers:** Only 2-3% of free browser game players will pay anything. At 10K monthly active users, that's ~250 payers at ~$4 average = ~$1,000/month. Revenue is proportional to audience size, which is why growth infrastructure (SEO, sharing, directories) should precede monetization infrastructure.
+
+#### Decision 1: Monetization Timing
+
+Two approaches:
+
+- **A) Build tip infrastructure now, content packs later.** Set up Ko-fi + GitHub Sponsors immediately (15 minutes each, $0 cost, 0% fees). Add "Support the Developer" link to landing page. This captures any early supporter money while the game grows. Defer content packs and Lemon Squeezy integration until there's a meaningful player base (1K+ MAU). **My recommendation.**
+
+- **B) Build everything now.** Set up tips, design content packs, integrate Lemon Squeezy, build the premium content flag system, create the shop UI. Front-loads engineering effort (~8-12 hours developer time) but has everything ready for when players arrive.
+
+- **C) Defer all monetization.** Focus entirely on content and growth. Add monetization only when there's player traction. Risk: no supporter capture during the growth phase.
+
+**My recommendation: Option A.** The tip platforms are free and take minutes to set up. Content packs need actual content to sell (hero classes, zone themes aren't built yet), so the pack infrastructure should be built alongside the content, not before it.
+
+#### Decision 2: Payment Platform — Lemon Squeezy vs. Stripe
+
+When content packs are ready:
+
+- **Lemon Squeezy** (5% + $0.50/transaction): Merchant of Record — handles global sales tax automatically. Official Next.js SDK. Built-in license key generation. Less code, less liability. Higher per-transaction fee.
+
+- **Raw Stripe** (2.9% + $0.30/transaction): Lower fees but YOU handle sales tax compliance (or pay extra 0.5% for Stripe Tax). More flexible but more engineering work. You build your own license key system.
+
+On a $2.99 content pack:
+- Lemon Squeezy takes: $0.65 (21.7%)
+- Stripe takes: $0.39 (13.0%) + tax compliance burden
+
+**My recommendation: Lemon Squeezy.** The tax compliance burden alone justifies the fee difference for a solo dev. You don't want to research sales tax laws for 50+ jurisdictions. Lemon Squeezy was acquired by Stripe in 2024 so it uses Stripe's infrastructure under the hood.
+
+#### Decision 3: Content Pack Pricing Validation
+
+I've proposed:
+- "Crystalline Depths" (zone theme + enemies + boss + gear): **$1.99**
+- "Heroes of the Void" (3 hero classes + starting items + cosmetics): **$2.99**
+- "Shadow Realm" (zone theme + enemies + boss + gear): **$1.99**
+- "Void Champion Bundle" (all 3 packs): **$4.99** (28% discount)
+
+These prices are benchmarked against Vampire Survivors DLCs ($1.99), Hoplite IAP ($3), and Shattered PD iOS ($4.49). The bundle acts as a price anchor that makes individual packs feel reasonable.
+
+**Does this pricing feel right for Voidcrawl?** The content must justify the price — each pack should add 2-3 hours of meaningfully different gameplay, not just reskins.
+
+#### What I Changed on the Task Board
+
+- **Replaced** old P3 Monetization (4 vague tasks) with **P2 Monetization Foundation** (6 detailed tasks with pricing, platform choices, and implementation specs)
+- **Added** P3 Monetization Long-Term (5 tasks: itch.io PWYW, Steam release, sponsorware model, cosmetic death screens, premium skins)
+- All 11 new tasks are zero-cost to implement. No money spent. No money will be spent without logging to FINANCES.md and writing here first.
+
+---

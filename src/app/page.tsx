@@ -11,7 +11,7 @@ export default function Home() {
           Descend into the void. Turn-based roguelike dungeon crawler.
         </p>
 
-        <div className="space-y-4">
+        <div className="space-y-4 flex flex-col items-center">
           <Link
             href="/play"
             className="inline-block px-8 py-4 text-xl font-bold tracking-widest border-2 transition-all duration-200 hover:scale-105"
@@ -23,6 +23,20 @@ export default function Home() {
           >
             ENTER THE VOID
           </Link>
+          <Link
+            href="/play/daily"
+            className="inline-block px-6 py-3 text-sm font-bold tracking-widest border-2 transition-all duration-200 hover:scale-105"
+            style={{
+              borderColor: '#c084fc',
+              color: '#c084fc',
+              backgroundColor: 'transparent',
+            }}
+          >
+            DAILY VOID
+          </Link>
+          <p className="text-xs" style={{ color: 'var(--void-muted)' }}>
+            Same dungeon for everyone, once per day
+          </p>
         </div>
 
         <div className="mt-16 grid grid-cols-3 gap-8 text-sm" style={{ color: 'var(--void-muted)' }}>

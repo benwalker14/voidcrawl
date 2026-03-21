@@ -250,6 +250,9 @@ export interface RunStats {
   killedBy: string;
 }
 
+// Game modes
+export type GameMode = "standard" | "daily";
+
 export interface GameState {
   floor: number;
   map: TileType[][];
@@ -268,4 +271,19 @@ export interface GameState {
   pendingFloatingTexts: FloatingText[];
   identified: Record<string, boolean>;           // ConsumableEffect -> whether identified this run
   consumableAppearances: Record<string, string>;  // ConsumableEffect -> randomized appearance descriptor
+  gameMode: GameMode;
+  seed?: string;                                  // Seed string for daily challenge mode
+}
+
+export interface DailyResult {
+  date: string;
+  floor: number;
+  level: number;
+  kills: number;
+  damageDealt: number;
+  damageTaken: number;
+  itemsFound: number;
+  time: string;
+  killedBy: string;
+  completed: boolean;
 }

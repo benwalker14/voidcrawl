@@ -2,6 +2,7 @@ import {
   GameState,
   GameEntity,
   GameMessage,
+  GameMode,
   EntityType,
   TileType,
   Position,
@@ -24,6 +25,7 @@ import {
   MSG_COLORS,
   CONSUMABLE_EFFECT_NAMES,
 } from "./config";
+import { random, seedRngForFloor, unseedRng } from "./rng";
 import { generateDungeon } from "./generation/dungeon";
 import { spawnEnemies, spawnBoss, spawnBossAdd } from "./generation/enemies";
 import { computeFov } from "./generation/fov";
@@ -117,8 +119,13 @@ export function getConsumableDisplayName(state: GameState, item: Item): string {
   return `${appearance} ${typeLabel}`;
 }
 
-export function initGame(): GameState {
-  return generateFloor(1, null, null, null, null);
+export function initGame(mode: GameMode = "standard", seed?: string): GameState {
+  if (mode === "daily" && seed) {
+    seedRngForFloor(seed, 1);
+  } else {
+    unseedRng();
+  }
+  return generateFloor(1, null, null, null, null, null, null, null, mode, seed);
 }
 
 export function generateFloor(
@@ -130,7 +137,14 @@ export function generateFloor(
   prevStatusEffects: StatusEffect[] | null = null,
   prevIdentified: Record<string, boolean> | null = null,
   prevAppearances: Record<string, string> | null = null,
+  mode: GameMode = "standard",
+  seed?: string,
 ): GameState {
+  // Re-seed RNG for deterministic floor generation in daily mode
+  if (mode === "daily" && seed) {
+    seedRngForFloor(seed, floor);
+  }
+
   const dungeon = generateDungeon(floor);
 
   // Get all floor tiles for enemy placement (exclude player start and stairs)
@@ -193,6 +207,8 @@ export function generateFloor(
     pendingFloatingTexts: [],
     identified: prevIdentified ?? initIdentified(),
     consumableAppearances: prevAppearances ?? initConsumableAppearances(),
+    gameMode: mode,
+    seed,
   };
 }
 
@@ -219,7 +235,7 @@ function combat(
   const isPlayerAttacking = attacker.type === EntityType.PLAYER;
 
   // PHASE ability: 30% dodge chance
-  if (defender.specialAbility === SpecialAbility.PHASE && Math.random() < 0.3) {
+  if (defender.specialAbility === SpecialAbility.PHASE && random() < 0.3) {
     messages.push({
       text: `${defender.name} phases out of existence! Attack passes through!`,
       color: isPlayerAttacking ? MSG_COLORS.WARNING : MSG_COLORS.INFO,
@@ -241,7 +257,7 @@ function combat(
   // ETHEREAL ability: only vulnerable on floor tiles (invulnerable on wall/void)
   // This is checked by the caller who has access to the map — handled in processPlayerTurn
 
-  const baseDamage = Math.max(1, atk - def + Math.floor(Math.random() * 3) - 1);
+  const baseDamage = Math.max(1, atk - def + Math.floor(random() * 3) - 1);
   const damage = Math.max(1, Math.floor(baseDamage * damageMultiplier));
   defender.hp -= damage;
   messages.push({
@@ -379,7 +395,7 @@ function getRandomFloorTile(state: GameState): Position | null {
     }
   }
   if (tiles.length === 0) return null;
-  return tiles[Math.floor(Math.random() * tiles.length)];
+  return tiles[Math.floor(random() * tiles.length)];
 }
 
 let nextSummonId = 0;
@@ -658,7 +674,7 @@ function wanderStep(
   ];
   // Shuffle directions
   for (let i = dirs.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(random() * (i + 1));
     [dirs[i], dirs[j]] = [dirs[j], dirs[i]];
   }
   for (const dir of dirs) {
@@ -766,7 +782,7 @@ function getRandomFloorTileNearBoss(state: GameState, bossPos: Position): Positi
     }
   }
   if (tiles.length === 0) return null;
-  return tiles[Math.floor(Math.random() * tiles.length)];
+  return tiles[Math.floor(random() * tiles.length)];
 }
 
 function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
@@ -805,7 +821,7 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
     if (isInvisible) {
       // Wander randomly instead
       const blocked = getBlockedPositions(state, enemy.id);
-      if (Math.random() < 0.3) {
+      if (random() < 0.3) {
         const step = wanderStep(state.map, enemy.pos, blocked);
         if (step) {
           enemy.pos.x = step.x;
@@ -837,7 +853,7 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
             state.messages.push({ text: `${enemy.name} is destroyed by thorns!`, color: MSG_COLORS.KILL });
           }
         }
-        if (armorRunic === RunicEffect.REFLECTIVE && Math.random() < 0.15 && enemy.hp > 0) {
+        if (armorRunic === RunicEffect.REFLECTIVE && random() < 0.15 && enemy.hp > 0) {
           const reflectDmg = result.damage;
           enemy.hp -= reflectDmg;
           state.messages.push({ text: `Your armor reflects ${reflectDmg} damage back at ${enemy.name}!`, color: MSG_COLORS.PLAYER_ATK });
@@ -930,7 +946,7 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
           }
         } else {
           // Wander randomly (30% chance to move each turn)
-          if (Math.random() < 0.3) {
+          if (random() < 0.3) {
             const step = wanderStep(state.map, enemy.pos, blocked);
             if (step) {
               enemy.pos.x = step.x;
@@ -1148,14 +1164,14 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
           });
 
           // FLAMING runic: 25% chance to apply burn (2 dmg/turn for 3 turns)
-          if (weaponRunic === RunicEffect.FLAMING && Math.random() < 0.25) {
+          if (weaponRunic === RunicEffect.FLAMING && random() < 0.25) {
             enemy.burnTurns = Math.max(enemy.burnTurns ?? 0, 3);
             newState.messages.push({ text: `${enemy.name} catches fire!`, color: MSG_COLORS.PLAYER_ATK });
             newState.pendingFloatingTexts.push({ text: "BURN!", color: "#f97316", x: newX, y: newY });
           }
 
           // STUNNING runic: 20% chance to stun (skip enemy's next turn)
-          if (weaponRunic === RunicEffect.STUNNING && Math.random() < 0.20) {
+          if (weaponRunic === RunicEffect.STUNNING && random() < 0.20) {
             enemy.stunnedNextTurn = true;
             newState.messages.push({ text: `${enemy.name} is stunned!`, color: MSG_COLORS.PLAYER_ATK });
             newState.pendingFloatingTexts.push({ text: "STUNNED!", color: "#fbbf24", x: newX, y: newY });
@@ -1214,7 +1230,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       pickupItem(newState);
       if (newState.map[newY][newX] === TileType.STAIRS_DOWN) {
         newState.messages.push({ text: "You descend deeper into the void...", color: MSG_COLORS.INFO });
-        return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression, newState.runStats, newState.statusEffects, newState.identified, newState.consumableAppearances);
+        return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression, newState.runStats, newState.statusEffects, newState.identified, newState.consumableAppearances, newState.gameMode, newState.seed);
       }
     } else if (!isBlocked(newState, newX, newY)) {
       newState.player = { ...newState.player, pos: { x: newX, y: newY } };
@@ -1225,7 +1241,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       // Check for stairs
       if (newState.map[newY][newX] === TileType.STAIRS_DOWN) {
         newState.messages.push({ text: "You descend deeper into the void...", color: MSG_COLORS.INFO });
-        return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression, newState.runStats, newState.statusEffects, newState.identified, newState.consumableAppearances);
+        return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression, newState.runStats, newState.statusEffects, newState.identified, newState.consumableAppearances, newState.gameMode, newState.seed);
       }
     }
   }

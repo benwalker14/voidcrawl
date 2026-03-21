@@ -1,4 +1,5 @@
 import { TileType, MAP_WIDTH, MAP_HEIGHT, Position } from "../config";
+import { random } from "../rng";
 
 interface Room {
   x: number;
@@ -32,7 +33,7 @@ function carveCorridor(map: TileType[][], from: Position, to: Position) {
   const dy = to.y > y ? 1 : -1;
 
   // Horizontal first, then vertical (or vice versa randomly)
-  if (Math.random() > 0.5) {
+  if (random() > 0.5) {
     while (x !== to.x) {
       if (x > 0 && x < MAP_WIDTH - 1 && y > 0 && y < MAP_HEIGHT - 1) {
         map[y][x] = TileType.FLOOR;
@@ -143,10 +144,10 @@ export function generateDungeon(floor: number): DungeonResult {
   for (let attempt = 0; attempt < 100; attempt++) {
     if (rooms.length >= maxRooms) break;
 
-    const width = minRoomSize + Math.floor(Math.random() * (maxRoomSize - minRoomSize));
-    const height = minRoomSize + Math.floor(Math.random() * (maxRoomSize - minRoomSize));
-    const x = 1 + Math.floor(Math.random() * (MAP_WIDTH - width - 2));
-    const y = 1 + Math.floor(Math.random() * (MAP_HEIGHT - height - 2));
+    const width = minRoomSize + Math.floor(random() * (maxRoomSize - minRoomSize));
+    const height = minRoomSize + Math.floor(random() * (maxRoomSize - minRoomSize));
+    const x = 1 + Math.floor(random() * (MAP_WIDTH - width - 2));
+    const y = 1 + Math.floor(random() * (MAP_HEIGHT - height - 2));
 
     const room: Room = { x, y, width, height };
 

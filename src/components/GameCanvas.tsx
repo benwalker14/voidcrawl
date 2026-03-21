@@ -6,7 +6,8 @@ import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES, CONSUMABLE_EFFECT_NAMES } fro
 import { initGame, processPlayerTurn, applyInventoryItem, MoveDirection } from "@/game/engine";
 import { render, renderMinimap, renderFloatingTexts, FLOAT_DURATION } from "@/game/renderer";
 import type { ActiveFloatingText } from "@/game/renderer";
-import type { GameState, GameMessage, PlayerInventory, RunStats, StatusEffect, GameEntity } from "@/game/config";
+import type { GameState, GameMessage, PlayerInventory, RunStats, StatusEffect, GameEntity, DailyResult } from "@/game/config";
+import { getDailySeed, formatDailyDate } from "@/game/rng";
 import HelpOverlay from "./HelpOverlay";
 import PauseMenu from "./PauseMenu";
 
@@ -42,21 +43,65 @@ function getInventoryFromState(state: GameState): PlayerInventory {
   };
 }
 
-const initialState = initGame();
+// Daily challenge localStorage helpers
+const DAILY_KEY_PREFIX = "voidcrawl_daily_";
 
-export default function GameCanvas() {
+function getDailyStorageKey(seed: string): string {
+  return `${DAILY_KEY_PREFIX}${seed}`;
+}
+
+function loadDailyResult(seed: string): DailyResult | null {
+  try {
+    const raw = localStorage.getItem(getDailyStorageKey(seed));
+    if (!raw) return null;
+    return JSON.parse(raw) as DailyResult;
+  } catch {
+    return null;
+  }
+}
+
+function saveDailyResult(result: DailyResult): void {
+  try {
+    localStorage.setItem(getDailyStorageKey(result.date), JSON.stringify(result));
+  } catch {
+    // localStorage may be full or unavailable
+  }
+}
+
+interface GameCanvasProps {
+  mode?: "standard" | "daily";
+}
+
+export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
+  const isDaily = mode === "daily";
+  const dailySeed = isDaily ? getDailySeed() : undefined;
+  const [dailyCompleted, setDailyCompleted] = useState<DailyResult | null>(() => {
+    if (isDaily && dailySeed && typeof window !== "undefined") {
+      const existing = loadDailyResult(dailySeed);
+      if (existing?.completed) return existing;
+    }
+    return null;
+  });
+  const dailyCheckedRef = useRef(false);
+
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const gameRef = useRef<GameState>(initialState);
-  const [messages, setMessages] = useState<GameMessage[]>([{ text: "Welcome to Voidcrawl. Use arrow keys or WASD to move. Space to wait.", color: "#e2e8f0" }]);
-  const [stats, setStats] = useState(() => getStatsFromState(initialState));
-  const [inventory, setInventory] = useState<PlayerInventory>(() => getInventoryFromState(initialState));
+  const [initializedState] = useState<GameState>(() => initGame(mode, dailySeed));
+  const gameRef = useRef<GameState>(initializedState);
+  const [messages, setMessages] = useState<GameMessage[]>(() => {
+    const welcomeMsg = isDaily
+      ? `Daily Void \u2014 ${formatDailyDate(dailySeed!)}. Same dungeon for everyone today.`
+      : "Welcome to Voidcrawl. Use arrow keys or WASD to move. Space to wait.";
+    return [{ text: welcomeMsg, color: "#e2e8f0" }];
+  });
+  const [stats, setStats] = useState(() => getStatsFromState(initializedState));
+  const [inventory, setInventory] = useState<PlayerInventory>(() => getInventoryFromState(initializedState));
   const [gameOver, setGameOver] = useState(false);
-  const [runStats, setRunStats] = useState<RunStats>(initialState.runStats);
+  const [runStats, setRunStats] = useState<RunStats>(initializedState.runStats);
   const [statusEffects, setStatusEffects] = useState<StatusEffect[]>([]);
   const [bossInfo, setBossInfo] = useState<GameEntity | null>(null);
-  const [identified, setIdentified] = useState<Record<string, boolean>>(initialState.identified);
-  const [consumableAppearances, setConsumableAppearances] = useState<Record<string, string>>(initialState.consumableAppearances);
+  const [identified, setIdentified] = useState<Record<string, boolean>>(initializedState.identified);
+  const [consumableAppearances, setConsumableAppearances] = useState<Record<string, string>>(initializedState.consumableAppearances);
   const [copied, setCopied] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const showHelpRef = useRef(false);
@@ -79,6 +124,27 @@ export default function GameCanvas() {
     }
   }, []);
 
+  // Save daily result when game ends — called from updateUI when gameOver triggers
+  const saveDailyOnDeath = useCallback(() => {
+    if (!isDaily || !dailySeed || dailyCheckedRef.current) return;
+    dailyCheckedRef.current = true;
+    const state = gameRef.current;
+    const result: DailyResult = {
+      date: dailySeed,
+      floor: state.runStats.deepestFloor,
+      level: getStatsFromState(state).level,
+      kills: state.runStats.enemiesKilled,
+      damageDealt: state.runStats.damageDealt,
+      damageTaken: state.runStats.damageTaken,
+      itemsFound: state.runStats.itemsFound,
+      time: formatPlayTime(state.runStats.startTime),
+      killedBy: state.runStats.killedBy,
+      completed: true,
+    };
+    saveDailyResult(result);
+    setDailyCompleted(result);
+  }, [isDaily, dailySeed]);
+
   const updateUI = useCallback((state: GameState) => {
     setStats(getStatsFromState(state));
     setInventory(getInventoryFromState(state));
@@ -93,8 +159,9 @@ export default function GameCanvas() {
     }
     if (state.gameOver) {
       setGameOver(true);
+      saveDailyOnDeath();
     }
-  }, []);
+  }, [saveDailyOnDeath]);
 
   const startFloatingTexts = useCallback((state: GameState) => {
     const pending = state.pendingFloatingTexts;
@@ -241,6 +308,11 @@ export default function GameCanvas() {
   }, [draw, updateUI, startFloatingTexts]);
 
   const restart = () => {
+    // Daily mode: no restart, redirect to regular play
+    if (isDaily) {
+      router.push("/play");
+      return;
+    }
     const state = initGame();
     gameRef.current = state;
     floatingTextsRef.current = [];
@@ -259,8 +331,70 @@ export default function GameCanvas() {
     draw();
   };
 
+  // If daily was already completed, show result screen instead of game
+  if (isDaily && dailyCompleted && !gameOver) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <h2 className="text-2xl font-bold mb-2" style={{ color: "#c084fc" }}>DAILY VOID COMPLETE</h2>
+          <p className="text-sm mb-4" style={{ color: "var(--void-muted)" }}>
+            {formatDailyDate(dailyCompleted.date)}
+          </p>
+          <div
+            className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs font-mono mb-6 px-4 py-3 rounded mx-auto"
+            style={{ backgroundColor: "rgba(26, 26, 46, 0.8)", border: "1px solid #333", maxWidth: 280 }}
+          >
+            <span style={{ color: "#fbbf24" }}>Deepest floor</span>
+            <span className="text-right">{dailyCompleted.floor}</span>
+            <span style={{ color: "#fbbf24" }}>Level</span>
+            <span className="text-right">{dailyCompleted.level}</span>
+            <span style={{ color: "#fb923c" }}>Enemies slain</span>
+            <span className="text-right">{dailyCompleted.kills}</span>
+            <span style={{ color: "#06b6d4" }}>Items found</span>
+            <span className="text-right">{dailyCompleted.itemsFound}</span>
+            <span style={{ color: "var(--void-muted)" }}>Time played</span>
+            <span className="text-right">{dailyCompleted.time}</span>
+            {dailyCompleted.killedBy && (
+              <>
+                <span style={{ color: "#ef4444" }}>Killed by</span>
+                <span className="text-right">{dailyCompleted.killedBy}</span>
+              </>
+            )}
+          </div>
+          <p className="text-xs mb-6" style={{ color: "var(--void-muted)" }}>
+            You already played today&apos;s daily challenge. Come back tomorrow for a new one!
+          </p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => router.push("/play")}
+              className="px-6 py-2 border-2 font-bold tracking-wider text-sm transition-all hover:scale-105"
+              style={{ borderColor: "var(--void-cyan)", color: "var(--void-cyan)" }}
+            >
+              PLAY STANDARD
+            </button>
+            <button
+              onClick={() => router.push("/")}
+              className="px-6 py-2 border-2 font-bold tracking-wider text-sm transition-all hover:scale-105"
+              style={{ borderColor: "var(--void-muted)", color: "var(--void-muted)" }}
+            >
+              MAIN MENU
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center py-4 px-2">
+      {/* Daily mode indicator */}
+      {isDaily && (
+        <div className="w-full max-w-[640px] text-center mb-1">
+          <span className="text-xs font-bold tracking-widest" style={{ color: "#c084fc" }}>
+            DAILY VOID &mdash; {formatDailyDate(dailySeed!)}
+          </span>
+        </div>
+      )}
       {/* HUD */}
       <div className="w-full max-w-[640px] flex justify-between items-center mb-0.5 px-2 text-sm font-mono">
         <div>
@@ -397,6 +531,11 @@ export default function GameCanvas() {
             <p className="text-3xl font-bold mb-1" style={{ color: "#ef4444" }}>
               YOU DIED
             </p>
+            {isDaily && (
+              <p className="text-xs font-bold mb-1" style={{ color: "#c084fc" }}>
+                DAILY VOID &mdash; {formatDailyDate(dailySeed!)}
+              </p>
+            )}
             <p className="text-sm mb-3" style={{ color: "var(--void-muted)" }}>
               Level {stats.level} &middot; Floor {stats.floor} &middot; {stats.turns} turns
             </p>
@@ -424,8 +563,9 @@ export default function GameCanvas() {
                   const filled = Math.round((runStats.deepestFloor / maxFloor) * 15);
                   const bar = "\u2593".repeat(filled) + "\u2591".repeat(15 - filled);
                   const killerText = runStats.killedBy ? ` | Killed by ${runStats.killedBy}` : "";
+                  const dailyTag = isDaily ? ` (Daily ${dailySeed})` : "";
                   const summary = [
-                    `\u2620 VOIDCRAWL \u2620`,
+                    `\u2620 VOIDCRAWL \u2620${dailyTag}`,
                     `Floor ${runStats.deepestFloor} | Level ${stats.level} | ${runStats.enemiesKilled} kills | ${formatPlayTime(runStats.startTime)}${killerText}`,
                     `${bar} Floor ${runStats.deepestFloor}/${maxFloor}`,
                   ].join("\n");
@@ -447,7 +587,7 @@ export default function GameCanvas() {
                 className="px-6 py-2 border-2 font-bold tracking-wider transition-all hover:scale-105"
                 style={{ borderColor: "var(--void-cyan)", color: "var(--void-cyan)" }}
               >
-                TRY AGAIN
+                {isDaily ? "PLAY STANDARD" : "TRY AGAIN"}
               </button>
             </div>
           </div>

@@ -1,4 +1,5 @@
 import { GameEntity, EntityType, Position, AIBehavior, SpecialAbility, MAP_WIDTH, MAP_HEIGHT, TileType } from "../config";
+import { random } from "../rng";
 
 interface EnemyTemplate {
   name: string;
@@ -41,7 +42,7 @@ export function spawnEnemies(floor: number, floorTiles: Position[]): GameEntity[
     let pos: Position;
     let attempts = 0;
     do {
-      pos = floorTiles[Math.floor(Math.random() * floorTiles.length)];
+      pos = floorTiles[Math.floor(random() * floorTiles.length)];
       attempts++;
     } while (usedPositions.has(`${pos.x},${pos.y}`) && attempts < 50);
 
@@ -49,7 +50,7 @@ export function spawnEnemies(floor: number, floorTiles: Position[]): GameEntity[
     usedPositions.add(`${pos.x},${pos.y}`);
 
     // Pick random enemy weighted toward lower-tier
-    const template = eligible[Math.floor(Math.random() * eligible.length)];
+    const template = eligible[Math.floor(random() * eligible.length)];
     const scaling = 1 + (floor - 1) * 0.15;
 
     enemies.push({

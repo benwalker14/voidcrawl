@@ -351,3 +351,47 @@
   - `▓▓▓▓▓▓▓░░░░░░░░ Floor 7/15` (15-char progress bar, proportional to floor/15)
 - Copied state resets on game restart
 - Lint and build both pass clean
+
+### 2026-03-20 19:00 | strategist | Monetization Strategy analysis (fifth strategist session)
+- **Analysis type:** Monetization Strategy (type C)
+- Researched ethical monetization models across 15+ comparable indie games (Dwarf Fortress, Shattered PD, Caves of Qud, Hoplite, A Dark Room, Vampire Survivors, Rogule, Path of Exile, Balatro)
+- Researched payment platforms (Lemon Squeezy, Stripe, Gumroad, itch.io), supporter platforms (Ko-fi, GitHub Sponsors, Patreon, Buy Me a Coffee), and browser game conversion data
+- **Key finding #1: "Free core + paid content packs" is the proven model.** Dwarf Fortress: free ASCII for 15 years → $29.99 Steam premium → 160K sales in 24 hours, $7.2M in January 2023. Shattered PD: free with cosmetic donations → $5 on Steam/iOS. Vampire Survivors: $4.99 + $1.99 DLCs. This is the exact model Voidcrawl's ethics allow.
+- **Key finding #2: Only 2-3% of free browser game players will pay anything.** At 10K MAU, expect 200-300 payers. Average indie game spend: $4-5. This means the game must have a large free audience before monetization generates meaningful revenue. Priority: audience growth FIRST, monetization infrastructure SECOND.
+- **Key finding #3: Lemon Squeezy > raw Stripe for solo dev content sales.** Lemon Squeezy (acquired by Stripe 2024) is a Merchant of Record — handles global sales tax collection/remittance automatically. 5% + $0.50 per transaction vs. Stripe's 2.9% + $0.30 + self-managed tax compliance. Official Next.js SDK with checkout overlays and built-in license key generation. Less code, less liability.
+- **Key finding #4: Ko-fi + GitHub Sponsors are the optimal tip platforms (both 0% fee).** Ko-fi takes zero platform fee on tips (Patreon takes 5-12%, BMC takes 5%). GitHub Sponsors takes 0% (GitHub absorbs fees). These two cover both general audience (Ko-fi) and developer audience (Sponsors). Typical indie game dev earnings: $150-800/month on Patreon; expect similar or less from tips.
+- **Key finding #5: Content packs should be $1.99-$2.99 each, with a $4.99-$9.99 bundle.** Vampire Survivors DLCs at $1.99 are the benchmark for indie content packs. Price anchoring with a bundle (3 packs for $4.99 vs. $6.97 individual) increases perceived value by 3.2x. Total DLC cost should never exceed $20-25 — players react negatively to large cumulative DLC costs.
+- **Key finding #6: Sponsorware model works for regular content releases.** Caleb Porzio (Alpine.js) grew from $573/month to $100K/year by making new features sponsor-exclusive for 2 weeks then free. Applied to Voidcrawl: new hero classes/themes exclusive to Ko-fi supporters for 2 weeks before public release. Rewards supporters without permanently gating content.
+- **Key finding #7: itch.io PWYW captures "extra" money.** 30% of all money spent on itch.io is above the minimum price. Average buyer pays ~$1.50 above minimum. Good supplementary revenue alongside direct content sales.
+- **Monetization model designed for Voidcrawl:**
+  - Tier 0 (Free forever): Full base game in browser — all current content, no ads, no timers, no gates
+  - Tier 1 (Supporter tips): Ko-fi + GitHub Sponsors + itch.io PWYW — expected $100-400/month at scale
+  - Tier 2 (Content packs): "Crystalline Depths" $1.99, "Heroes of the Void" $2.99, "Shadow Realm" $1.99, "Void Champion Bundle" $4.99 — expected $500-1500/month at 10K MAU
+  - Tier 3 (Future): Steam release $4.99-$7.99 with all content included — lump sum revenue event
+- **Revenue projection (conservative):** At 5K MAU with 2.5% conversion: ~$600-800/month. At 10K MAU: ~$1,200-1,600/month. Break-even for domain + any future hosting costs almost immediately.
+- Redesigned P3 Monetization section into P2 (foundation) + P3 (long-term), adding 11 specific tasks with implementation details, pricing, and rationale
+- Wrote 3 decisions to HUMAN_INBOX.md: monetization timing, Lemon Squeezy vs Stripe, pricing validation
+- All recommendations comply with ethics rules: zero loot boxes, zero energy timers, zero FOMO, zero pay-to-win. Content packs add variety, not power.
+- No money spent
+
+### 2026-03-20 22:15 | health | Scheduled health check
+- **Build:** PASS — `npm run build` completed with no errors
+- **Lint:** PASS — `npm run lint` completed with no warnings or errors
+- **Security:** PASS — `npm audit` found 0 vulnerabilities
+- **Deployment:** SKIPPED — production URL still TBD
+- **Git status:** 10 modified files and 4 untracked files/dirs not yet committed (game code changes from recent developer/designer sessions, plus new `src/game/rng.ts`, `src/app/play/daily/`, `agents/logs/`)
+- **Action needed:** Uncommitted work should be reviewed and committed soon to avoid accidental loss
+
+### 2026-03-20 23:00 | developer | Daily seeded challenge — verified and committed
+- Reviewed and verified the complete daily challenge implementation across all files:
+  - `src/game/rng.ts` (new): mulberry32 PRNG, string→seed hashing, seedRng/seedRngForFloor/unseedRng, getDailySeed (YYYY-MM-DD), formatDailyDate
+  - `src/game/config.ts`: GameMode ("standard" | "daily"), DailyResult interface, gameMode/seed fields in GameState
+  - `src/game/engine.ts`: initGame accepts mode/seed, generateFloor re-seeds per floor for deterministic generation, state propagates mode/seed through floor transitions
+  - `src/app/play/daily/page.tsx` (new): Daily play page loads GameCanvas with mode="daily"
+  - `src/components/GameCanvas.tsx`: Daily mode prop, localStorage save/load for one-attempt-per-day, completion screen with stats, daily indicator in HUD/death screen, daily tag in share text
+  - `src/app/page.tsx`: "DAILY VOID" button on landing page linking to /play/daily
+  - All generation code (dungeon.ts, enemies.ts, items.ts) uses seeded `random()` from rng.ts
+- Confirmed all players on the same date get identical floor layouts, enemy spawns, item drops, and consumable appearances
+- One attempt per day: completed daily results saved to localStorage, returning shows completion screen
+- Death screen share text includes daily date tag
+- Build passes, lint passes clean

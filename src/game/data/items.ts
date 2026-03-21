@@ -1,4 +1,5 @@
 import { Item, ItemCategory, ItemRarity, ConsumableEffect, RARITY_COLORS, GroundItem, Position, RunicEffect, WEAPON_RUNICS, ARMOR_RUNICS, RUNIC_NAMES } from "../config";
+import { random } from "../rng";
 
 let nextItemId = 0;
 
@@ -28,7 +29,7 @@ const SCROLL_EFFECTS: ConsumableEffect[] = [
 function shuffleArray<T>(arr: T[]): T[] {
   const result = [...arr];
   for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(random() * (i + 1));
     [result[i], result[j]] = [result[j], result[i]];
   }
   return result;
@@ -107,7 +108,7 @@ const ITEM_TEMPLATES: ItemTemplate[] = [
 ];
 
 function rollRarity(floor: number): ItemRarity {
-  const roll = Math.random();
+  const roll = random();
   if (floor >= 7) {
     if (roll < 0.30) return ItemRarity.RARE;
     if (roll < 0.70) return ItemRarity.UNCOMMON;
@@ -126,9 +127,9 @@ function rollRarity(floor: number): ItemRarity {
 function rollRunic(category: ItemCategory, rarity: ItemRarity): RunicEffect | undefined {
   if (category !== ItemCategory.WEAPON && category !== ItemCategory.ARMOR) return undefined;
   const chance = rarity === ItemRarity.RARE ? 0.60 : rarity === ItemRarity.UNCOMMON ? 0.25 : 0;
-  if (chance === 0 || Math.random() > chance) return undefined;
+  if (chance === 0 || random() > chance) return undefined;
   const pool = category === ItemCategory.WEAPON ? WEAPON_RUNICS : ARMOR_RUNICS;
-  return pool[Math.floor(Math.random() * pool.length)];
+  return pool[Math.floor(random() * pool.length)];
 }
 
 function applyRunicToItem(item: Item): Item {
@@ -140,7 +141,7 @@ function applyRunicToItem(item: Item): Item {
 export function generateLootDrop(floor: number, pos: Position): GroundItem | null {
   // Drop chance: 35% base + 3% per floor, capped at 60%
   const dropChance = Math.min(0.60, 0.35 + floor * 0.03);
-  if (Math.random() > dropChance) return null;
+  if (random() > dropChance) return null;
 
   const rarity = rollRarity(floor);
 
@@ -150,7 +151,7 @@ export function generateLootDrop(floor: number, pos: Position): GroundItem | nul
   );
   if (eligible.length === 0) return null;
 
-  const template = eligible[Math.floor(Math.random() * eligible.length)];
+  const template = eligible[Math.floor(random() * eligible.length)];
 
   const item = applyRunicToItem({
     id: `item_${nextItemId++}`,
@@ -181,7 +182,7 @@ export function generateBossLoot(floor: number, pos: Position): GroundItem[] {
       (t.category === ItemCategory.WEAPON || t.category === ItemCategory.ARMOR)
   );
   if (rareEquipment.length > 0) {
-    const template = rareEquipment[Math.floor(Math.random() * rareEquipment.length)];
+    const template = rareEquipment[Math.floor(random() * rareEquipment.length)];
     loot.push({
       item: applyRunicToItem({
         id: `item_${nextItemId++}`,
@@ -210,7 +211,7 @@ export function generateBossLoot(floor: number, pos: Position): GroundItem[] {
       t.minFloor <= floor
   );
   if (rareConsumables.length > 0) {
-    const template = rareConsumables[Math.floor(Math.random() * rareConsumables.length)];
+    const template = rareConsumables[Math.floor(random() * rareConsumables.length)];
     loot.push({
       item: {
         id: `item_${nextItemId++}`,
