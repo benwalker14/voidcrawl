@@ -423,3 +423,10 @@
 - 1200x630px PNG: dark gradient background (#0a0a0f → #1a1a2e → #2d2d44), cyan "VOIDCRAWL" title with glow shadow, "FREE BROWSER ROGUELIKE DUNGEON CRAWLER" tagline, 4 feature pills (Turn-Based Combat, Procedural Dungeons, Runic Loot, Daily Challenge), subtle ASCII art at bottom, purple gradient top border
 - Next.js auto-wires this as the og:image for the root route
 - Build and lint pass clean
+
+### 2026-03-20 24:00 | developer | JSON-LD structured data for Google rich results
+- Added schema.org VideoGame + SoftwareApplication co-type JSON-LD to `layout.tsx`
+- Includes: name, description, url, applicationCategory, operatingSystem, free pricing, 3 genres (Roguelike, Dungeon Crawler, Turn-Based Strategy), gamePlatform, playMode, author
+- Injected via `<script type="application/ld+json">` in body for all pages
+- Enables Google rich results with price, platform, and genre display in search
+- Build and lint pass clean

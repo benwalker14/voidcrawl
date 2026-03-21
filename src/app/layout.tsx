@@ -40,6 +40,22 @@ export const metadata: Metadata = {
   },
 };
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": ["VideoGame", "SoftwareApplication"],
+  name: "Voidcrawl",
+  description:
+    "A free turn-based browser roguelike dungeon crawler with procedurally generated dungeons, tactical combat, runic loot, and daily challenges.",
+  url: siteUrl,
+  applicationCategory: "GameApplication",
+  operatingSystem: "Any (Web Browser)",
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  genre: ["Roguelike", "Dungeon Crawler", "Turn-Based Strategy"],
+  gamePlatform: "Web Browser",
+  playMode: "SinglePlayer",
+  author: { "@type": "Person", name: "Vincent", url: "https://github.com/benwalker14" },
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -48,6 +64,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         {children}
       </body>
     </html>
