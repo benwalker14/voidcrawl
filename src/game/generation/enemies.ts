@@ -74,6 +74,29 @@ export function spawnEnemies(floor: number, floorTiles: Position[]): GameEntity[
   return enemies;
 }
 
+export function spawnEnemyAtPos(floor: number, pos: Position): GameEntity {
+  const eligible = ENEMY_TEMPLATES.filter((t) => t.minFloor <= floor);
+  const template = eligible[Math.floor(random() * eligible.length)];
+  const scaling = 1 + (floor - 1) * 0.15;
+
+  return {
+    id: `enemy_${nextEnemyId++}`,
+    type: EntityType.ENEMY,
+    pos: { ...pos },
+    name: template.name,
+    hp: Math.floor(template.baseHp * scaling),
+    maxHp: Math.floor(template.baseHp * scaling),
+    attack: Math.floor(template.baseAttack * scaling),
+    defense: Math.floor(template.baseDefense * scaling),
+    color: template.color,
+    symbol: template.symbol,
+    xpReward: Math.floor(template.baseXp * scaling),
+    behavior: template.behavior,
+    detectRange: template.detectRange,
+    specialAbility: template.specialAbility,
+  };
+}
+
 export function spawnBoss(floor: number, map: TileType[][]): GameEntity {
   // Boss spawns at top-center of the boss room
   // Find the center of the room (it's a single large room)

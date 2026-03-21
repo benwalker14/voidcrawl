@@ -25,10 +25,11 @@ import {
   RunicEffect,
   MSG_COLORS,
   CONSUMABLE_EFFECT_NAMES,
+  getZoneTheme,
 } from "./config";
 import { random, seedRngForFloor, unseedRng } from "./rng";
 import { generateDungeon } from "./generation/dungeon";
-import { spawnEnemies, spawnBoss, spawnBossAdd } from "./generation/enemies";
+import { spawnEnemies, spawnEnemyAtPos, spawnBoss, spawnBossAdd } from "./generation/enemies";
 import { computeFov, FOV_RADIUS } from "./generation/fov";
 import { generateLootDrop, generateBossLoot, initConsumableAppearances, initIdentified } from "./data/items";
 import { findPath, findFleeStep } from "./pathfinding";
@@ -106,9 +107,11 @@ function createRunStats(): RunStats {
 // Void Attunement helpers — prototype has 2 thresholds at 25% and 50%
 const ATTUNEMENT_FLOOR_GAIN = 5;  // +5 per floor descended
 
-/** FOV radius bonus from Void Sight (attunement >= 25) */
-function getAttunementFovRadius(attunement: number): number {
-  return attunement >= 25 ? FOV_RADIUS + 2 : FOV_RADIUS;
+/** FOV radius bonus from Void Sight (attunement >= 25), reduced by zone modifier */
+function getAttunementFovRadius(attunement: number, floor: number = 1): number {
+  const base = attunement >= 25 ? FOV_RADIUS + 2 : FOV_RADIUS;
+  const zone = getZoneTheme(floor);
+  return Math.max(3, base + zone.fovModifier);
 }
 
 /** Extra enemy detect range from attunement curse (>= 25) */
@@ -200,7 +203,7 @@ export function generateFloor(
   const voidAttunement = Math.min(100, prevAttunement + attunementGain);
 
   // Compute FOV with attunement-based radius (Void Sight at 25%+)
-  const fovRadius = getAttunementFovRadius(voidAttunement);
+  const fovRadius = getAttunementFovRadius(voidAttunement, floor);
   const fov = computeFov(dungeon.map, player.pos.x, player.pos.y, fovRadius);
   const explored: boolean[][] = Array.from({ length: MAP_HEIGHT }, () =>
     Array(MAP_WIDTH).fill(false)
@@ -217,11 +220,24 @@ export function generateFloor(
     ? { ...prevRunStats, deepestFloor: Math.max(prevRunStats.deepestFloor, floor) }
     : createRunStats();
 
-  // Build messages — floor descent + attunement threshold notifications
+  // Build messages — floor descent + zone transition + attunement threshold notifications
+  const zone = getZoneTheme(floor);
+  const prevZone = floor > 1 ? getZoneTheme(floor - 1) : null;
   const messages: GameMessage[] = [
-    { text: `You descend to floor ${floor} of the void.`, color: MSG_COLORS.INFO },
+    { text: `You descend to floor ${floor} — ${zone.name}.`, color: MSG_COLORS.INFO },
   ];
   const pendingFloats: FloatingText[] = [];
+
+  // Zone transition message when entering a new zone
+  if (prevZone && prevZone.name !== zone.name) {
+    if (zone.name === "Crystal Depths") {
+      messages.push({ text: "The walls shimmer with crystalline formations. The air grows cold and electric.", color: zone.accentColor });
+      pendingFloats.push({ text: "CRYSTAL DEPTHS", color: zone.accentColor, x: player.pos.x, y: player.pos.y });
+    } else if (zone.name === "Shadow Realm") {
+      messages.push({ text: "Darkness closes in. The shadows here are alive, and your vision narrows...", color: zone.accentColor });
+      pendingFloats.push({ text: "SHADOW REALM", color: zone.accentColor, x: player.pos.x, y: player.pos.y });
+    }
+  }
 
   if (isBossFloor) {
     messages.push({ text: "The air crackles with energy. A massive Void Nucleus pulses at the far end of the chamber!", color: MSG_COLORS.WARNING });
@@ -263,6 +279,8 @@ export function generateFloor(
     identified: prevIdentified ?? initIdentified(),
     consumableAppearances: prevAppearances ?? initConsumableAppearances(),
     voidAttunement,
+    shrinePrompt: false,
+    shrinesUsed: new Set<string>(),
     gameMode: mode,
     seed,
   };
@@ -514,7 +532,7 @@ function applyConsumableEffect(state: GameState, item: Item): boolean {
       state.messages.push({ text: `Used ${displayName}. You teleport to a new location!`, color: MSG_COLORS.INFO });
       state.pendingFloatingTexts.push({ text: "TELEPORT", color: "#06b6d4", x: dest.x, y: dest.y });
       // Update FOV immediately (with attunement radius)
-      state.fov = computeFov(state.map, state.player.pos.x, state.player.pos.y, getAttunementFovRadius(state.voidAttunement));
+      state.fov = computeFov(state.map, state.player.pos.x, state.player.pos.y, getAttunementFovRadius(state.voidAttunement, state.floor));
       state.explored = state.explored.map((row) => [...row]);
       for (let y = 0; y < MAP_HEIGHT; y++) {
         for (let x = 0; x < MAP_WIDTH; x++) {
@@ -1173,6 +1191,7 @@ export type MoveDirection = "up" | "down" | "left" | "right" | "wait";
 
 export function processPlayerTurn(state: GameState, direction: MoveDirection): GameState {
   if (state.gameOver) return state;
+  if (state.shrinePrompt) return state; // Block movement during shrine prompt
 
   const newState = {
     ...state,
@@ -1328,6 +1347,22 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
         newState.messages.push({ text: "You descend deeper into the void...", color: MSG_COLORS.INFO });
         return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression, newState.runStats, newState.statusEffects, newState.identified, newState.consumableAppearances, newState.voidAttunement, newState.gameMode, newState.seed);
       }
+
+      // Check for void shrine
+      if (newState.map[newY][newX] === TileType.SHRINE && !newState.shrinesUsed.has(`${newX},${newY}`)) {
+        newState.shrinePrompt = true;
+        newState.messages.push({ text: "A Void Shrine pulses with dark energy. Commune with the Void? (Y/N)", color: "#c084fc" });
+        // Return immediately — no enemy turn until the player answers
+        newState.fov = computeFov(newState.map, newState.player.pos.x, newState.player.pos.y, getAttunementFovRadius(newState.voidAttunement, newState.floor));
+        newState.explored = newState.explored.map((row) => [...row]);
+        for (let ey = 0; ey < MAP_HEIGHT; ey++) {
+          for (let ex = 0; ex < MAP_WIDTH; ex++) {
+            if (newState.fov[ey][ex]) newState.explored[ey][ex] = true;
+          }
+        }
+        newState.turnCount++;
+        return newState;
+      }
     }
   }
 
@@ -1426,7 +1461,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
     });
 
   // Update FOV (Void Sight at 25%+ attunement gives +2 radius)
-  const fovRadius = getAttunementFovRadius(newState.voidAttunement);
+  const fovRadius = getAttunementFovRadius(newState.voidAttunement, newState.floor);
   newState.fov = computeFov(newState.map, newState.player.pos.x, newState.player.pos.y, fovRadius);
   // Update explored
   newState.explored = newState.explored.map((row) => [...row]);
@@ -1446,5 +1481,254 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
   }
 
   newState.turnCount++;
+  return newState;
+}
+
+// Shrine effect pool — weights sum to 100
+const SHRINE_EFFECTS: { weight: number; label: string; apply: (state: GameState) => void }[] = [
+  {
+    weight: 20,
+    label: "heal",
+    apply: (state) => {
+      const healAmt = Math.max(1, Math.floor(state.player.maxHp * 0.5));
+      const healed = Math.min(healAmt, state.player.maxHp - state.player.hp);
+      state.player = { ...state.player, hp: Math.min(state.player.maxHp, state.player.hp + healAmt) };
+      state.messages.push({ text: `The void mends your wounds. (+${healed} HP)`, color: MSG_COLORS.HEAL });
+      state.pendingFloatingTexts.push({ text: `+${healed} HP`, color: MSG_COLORS.HEAL, x: state.player.pos.x, y: state.player.pos.y });
+    },
+  },
+  {
+    weight: 15,
+    label: "stat",
+    apply: (state) => {
+      const roll = random();
+      if (roll < 0.33) {
+        state.player = { ...state.player, attack: state.player.attack + 1 };
+        state.messages.push({ text: "Void energy surges into your arms. (+1 permanent ATK)", color: "#c084fc" });
+        state.pendingFloatingTexts.push({ text: "+1 ATK", color: "#c084fc", x: state.player.pos.x, y: state.player.pos.y });
+      } else if (roll < 0.66) {
+        state.player = { ...state.player, defense: state.player.defense + 1 };
+        state.messages.push({ text: "Void energy hardens your skin. (+1 permanent DEF)", color: "#c084fc" });
+        state.pendingFloatingTexts.push({ text: "+1 DEF", color: "#c084fc", x: state.player.pos.x, y: state.player.pos.y });
+      } else {
+        state.player = { ...state.player, maxHp: state.player.maxHp + 5, hp: state.player.hp + 5 };
+        state.messages.push({ text: "Void energy expands your vitality. (+5 permanent Max HP)", color: "#c084fc" });
+        state.pendingFloatingTexts.push({ text: "+5 MAX HP", color: "#c084fc", x: state.player.pos.x, y: state.player.pos.y });
+      }
+    },
+  },
+  {
+    weight: 15,
+    label: "identify",
+    apply: (state) => {
+      let identifiedCount = 0;
+      for (const key of Object.keys(state.consumableAppearances)) {
+        if (!state.identified[key]) {
+          state.identified = { ...state.identified, [key]: true };
+          identifiedCount++;
+        }
+      }
+      if (identifiedCount > 0) {
+        state.messages.push({ text: `The void reveals all secrets. (${identifiedCount} items identified)`, color: MSG_COLORS.LOOT });
+        state.pendingFloatingTexts.push({ text: "REVEALED", color: "#06b6d4", x: state.player.pos.x, y: state.player.pos.y });
+      } else {
+        // Fallback: all already identified — give a random consumable instead
+        state.messages.push({ text: "You already know all there is to know. The void gives you a gift instead.", color: MSG_COLORS.LOOT });
+        const loot = generateLootDrop(state.floor, state.player.pos);
+        if (loot) {
+          state.items.push(loot);
+          state.messages.push({ text: `A ${loot.item.name} materializes at your feet!`, color: MSG_COLORS.LOOT });
+        }
+      }
+    },
+  },
+  {
+    weight: 15,
+    label: "consumable",
+    apply: (state) => {
+      const loot = generateLootDrop(state.floor, state.player.pos);
+      if (loot) {
+        state.items.push(loot);
+        state.messages.push({ text: `The shrine conjures a ${loot.item.name}!`, color: MSG_COLORS.LOOT });
+        state.pendingFloatingTexts.push({ text: "GIFT", color: "#06b6d4", x: state.player.pos.x, y: state.player.pos.y });
+      }
+    },
+  },
+  {
+    weight: 15,
+    label: "enemies",
+    apply: (state) => {
+      let spawned = 0;
+      for (let i = 0; i < 2; i++) {
+        const pos = getRandomFloorTile(state);
+        if (pos) {
+          // Spawn enemies near the player (within 4 tiles if possible)
+          const nearTiles: Position[] = [];
+          for (let dy = -4; dy <= 4; dy++) {
+            for (let dx = -4; dx <= 4; dx++) {
+              const nx = state.player.pos.x + dx;
+              const ny = state.player.pos.y + dy;
+              if (nx < 0 || nx >= MAP_WIDTH || ny < 0 || ny >= MAP_HEIGHT) continue;
+              if (state.map[ny][nx] !== TileType.FLOOR && state.map[ny][nx] !== TileType.SHRINE) continue;
+              if (nx === state.player.pos.x && ny === state.player.pos.y) continue;
+              if (state.entities.some((e) => e.hp > 0 && e.pos.x === nx && e.pos.y === ny)) continue;
+              nearTiles.push({ x: nx, y: ny });
+            }
+          }
+          const spawnPos = nearTiles.length > 0 ? nearTiles[Math.floor(random() * nearTiles.length)] : pos;
+          const enemies = spawnEnemyAtPos(state.floor, spawnPos);
+          if (enemies) {
+            state.entities.push(enemies);
+            spawned++;
+          }
+        }
+      }
+      state.messages.push({ text: `The void answers with hostility! ${spawned} enemies materialize nearby!`, color: MSG_COLORS.ENEMY_ATK });
+      state.pendingFloatingTexts.push({ text: "DANGER!", color: "#ef4444", x: state.player.pos.x, y: state.player.pos.y });
+    },
+  },
+  {
+    weight: 10,
+    label: "curse",
+    apply: (state) => {
+      const weapon = state.inventory.equippedWeapon;
+      const armor = state.inventory.equippedArmor;
+      if (weapon && armor) {
+        if (random() < 0.5) {
+          const penalty = Math.max(1, Math.floor((weapon.attack ?? 0) * 0.3));
+          state.inventory.equippedWeapon = { ...weapon, attack: Math.max(1, (weapon.attack ?? 0) - penalty) };
+          state.messages.push({ text: `The void curses your ${weapon.name}! (-${penalty} ATK)`, color: MSG_COLORS.ENEMY_ATK });
+          state.pendingFloatingTexts.push({ text: "CURSED!", color: "#ef4444", x: state.player.pos.x, y: state.player.pos.y });
+        } else {
+          const penalty = Math.max(1, Math.floor((armor.defense ?? 0) * 0.3));
+          state.inventory.equippedArmor = { ...armor, defense: Math.max(0, (armor.defense ?? 0) - penalty) };
+          state.messages.push({ text: `The void curses your ${armor.name}! (-${penalty} DEF)`, color: MSG_COLORS.ENEMY_ATK });
+          state.pendingFloatingTexts.push({ text: "CURSED!", color: "#ef4444", x: state.player.pos.x, y: state.player.pos.y });
+        }
+      } else if (weapon) {
+        const penalty = Math.max(1, Math.floor((weapon.attack ?? 0) * 0.3));
+        state.inventory.equippedWeapon = { ...weapon, attack: Math.max(1, (weapon.attack ?? 0) - penalty) };
+        state.messages.push({ text: `The void curses your ${weapon.name}! (-${penalty} ATK)`, color: MSG_COLORS.ENEMY_ATK });
+        state.pendingFloatingTexts.push({ text: "CURSED!", color: "#ef4444", x: state.player.pos.x, y: state.player.pos.y });
+      } else if (armor) {
+        const penalty = Math.max(1, Math.floor((armor.defense ?? 0) * 0.3));
+        state.inventory.equippedArmor = { ...armor, defense: Math.max(0, (armor.defense ?? 0) - penalty) };
+        state.messages.push({ text: `The void curses your ${armor.name}! (-${penalty} DEF)`, color: MSG_COLORS.ENEMY_ATK });
+        state.pendingFloatingTexts.push({ text: "CURSED!", color: "#ef4444", x: state.player.pos.x, y: state.player.pos.y });
+      } else {
+        // No equipment — deal damage instead
+        const dmg = Math.max(1, Math.floor(state.player.maxHp * 0.15));
+        state.player = { ...state.player, hp: Math.max(1, state.player.hp - dmg) };
+        state.messages.push({ text: `The void lashes out! (-${dmg} HP)`, color: MSG_COLORS.ENEMY_ATK });
+        state.pendingFloatingTexts.push({ text: `-${dmg} HP`, color: "#ef4444", x: state.player.pos.x, y: state.player.pos.y });
+      }
+    },
+  },
+  {
+    weight: 10,
+    label: "teleport_stairs",
+    apply: (state) => {
+      // Find stairs position
+      for (let y = 0; y < MAP_HEIGHT; y++) {
+        for (let x = 0; x < MAP_WIDTH; x++) {
+          if (state.map[y][x] === TileType.STAIRS_DOWN) {
+            // Teleport to adjacent tile (not on stairs itself)
+            const dirs = [{ x: 0, y: -1 }, { x: 0, y: 1 }, { x: -1, y: 0 }, { x: 1, y: 0 }];
+            for (const d of dirs) {
+              const nx = x + d.x;
+              const ny = y + d.y;
+              if (nx >= 0 && nx < MAP_WIDTH && ny >= 0 && ny < MAP_HEIGHT) {
+                const tile = state.map[ny][nx];
+                if (tile === TileType.FLOOR || tile === TileType.SHRINE) {
+                  state.player = { ...state.player, pos: { x: nx, y: ny } };
+                  state.messages.push({ text: "The void hurls you through space — you land near the stairs!", color: MSG_COLORS.INFO });
+                  state.pendingFloatingTexts.push({ text: "TELEPORT", color: "#06b6d4", x: nx, y: ny });
+                  // Update FOV
+                  state.fov = computeFov(state.map, nx, ny, getAttunementFovRadius(state.voidAttunement, state.floor));
+                  state.explored = state.explored.map((row) => [...row]);
+                  for (let fy = 0; fy < MAP_HEIGHT; fy++) {
+                    for (let fx = 0; fx < MAP_WIDTH; fx++) {
+                      if (state.fov[fy][fx]) state.explored[fy][fx] = true;
+                    }
+                  }
+                  return;
+                }
+              }
+            }
+          }
+        }
+      }
+      // Fallback if no stairs found (shouldn't happen)
+      state.messages.push({ text: "The void shimmers but nothing happens.", color: MSG_COLORS.INFO });
+    },
+  },
+];
+
+const ATTUNEMENT_SHRINE_GAIN = 15; // +15 per shrine use
+
+function pickShrineEffect(): typeof SHRINE_EFFECTS[number] {
+  const totalWeight = SHRINE_EFFECTS.reduce((sum, e) => sum + e.weight, 0);
+  let roll = random() * totalWeight;
+  for (const effect of SHRINE_EFFECTS) {
+    roll -= effect.weight;
+    if (roll <= 0) return effect;
+  }
+  return SHRINE_EFFECTS[0];
+}
+
+export function processShrine(state: GameState, accept: boolean): GameState {
+  if (!state.shrinePrompt) return state;
+
+  const newState: GameState = {
+    ...state,
+    messages: [] as GameMessage[],
+    pendingFloatingTexts: [] as FloatingText[],
+    pendingHitEffects: [] as HitEffect[],
+    pendingShake: 0,
+    shrinePrompt: false,
+    shrinesUsed: new Set(state.shrinesUsed),
+    inventory: { ...state.inventory, items: [...state.inventory.items] },
+    statusEffects: state.statusEffects.map((e) => ({ ...e })),
+    items: [...state.items],
+    entities: state.entities.map((e) => ({ ...e })),
+    identified: { ...state.identified },
+  };
+
+  // Mark shrine as used regardless of accept/decline
+  const key = `${newState.player.pos.x},${newState.player.pos.y}`;
+  newState.shrinesUsed.add(key);
+
+  if (!accept) {
+    newState.messages.push({ text: "You step away from the shrine.", color: MSG_COLORS.INFO });
+    return newState;
+  }
+
+  // Apply attunement gain
+  const prevAttunement = newState.voidAttunement;
+  newState.voidAttunement = Math.min(100, newState.voidAttunement + ATTUNEMENT_SHRINE_GAIN);
+  newState.messages.push({ text: `You commune with the Void... (+${ATTUNEMENT_SHRINE_GAIN} Null Attunement)`, color: "#c084fc" });
+  newState.pendingFloatingTexts.push({ text: `NULL +${ATTUNEMENT_SHRINE_GAIN}`, color: "#c084fc", x: newState.player.pos.x, y: newState.player.pos.y });
+
+  // Threshold crossing notifications
+  if (prevAttunement < 25 && newState.voidAttunement >= 25) {
+    newState.messages.push({ text: "Null Attunement 25%: Your vision expands beyond mortal limits... but the darkness knows where you are.", color: "#c084fc" });
+    newState.pendingFloatingTexts.push({ text: "VOID SIGHT", color: "#a855f7", x: newState.player.pos.x, y: newState.player.pos.y });
+  }
+  if (prevAttunement < 50 && newState.voidAttunement >= 50) {
+    newState.messages.push({ text: "Null Attunement 50%: Void energy surges through your strikes... but healing grows faint.", color: "#c084fc" });
+    newState.pendingFloatingTexts.push({ text: "VOID STRIKE", color: "#a855f7", x: newState.player.pos.x, y: newState.player.pos.y });
+  }
+
+  // Pick and apply a random shrine effect
+  const effect = pickShrineEffect();
+  effect.apply(newState);
+
+  // Check for player death from curse effect
+  if (newState.player.hp <= 0) {
+    newState.gameOver = true;
+    newState.runStats.killedBy = "Void Shrine";
+    newState.messages.push({ text: "The void consumes you...", color: MSG_COLORS.DEATH });
+  }
+
   return newState;
 }

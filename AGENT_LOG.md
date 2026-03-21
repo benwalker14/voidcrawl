@@ -523,3 +523,80 @@
 - Helper functions: getAttunementFovRadius, getAttunementDetectBonus, getAttunementAtkBonus (exported), getAttunementHealMultiplier
 - Lint and build both pass clean
 - No money spent
+
+### 2026-03-20 19:30 | developer | Void Shrines implementation
+- Added `TileType.SHRINE` (value 5) to config.ts with purple floor color
+- Added `shrinePrompt: boolean` and `shrinesUsed: Set<string>` to GameState for interaction tracking
+- **Dungeon generation:** 1 shrine placed per non-boss floor in a random room (avoids player start room)
+  - Shrine tiles treated as walkable (like FLOOR) for pathfinding, FOV, and wall-border calculations
+- **Added `spawnEnemyAtPos()` to generation/enemies.ts** for spawning single enemies at specific positions
+- **Shrine interaction (engine.ts):**
+  - When player steps on unused shrine → `shrinePrompt = true`, game pauses for Y/N input
+  - `processShrine(state, accept)` handles accept/decline with full state immutability
+  - Each use adds +15 Null Attunement with threshold crossing notifications (25%, 50%)
+  - 7 weighted random effects (total 100%):
+    - Heal 50% HP (20%), +1 permanent stat (15%), Identify all items (15%), Random item gift (15%), Spawn 2 enemies nearby (15%), Curse equipment (10%), Teleport near stairs (10%)
+  - Declined shrines also marked used (one chance per shrine)
+- **Renderer:** Canvas `$` symbol with pulsing purple glow, used shrines dimmed. Minimap purple dots.
+- **GameCanvas:** Shrine prompt overlay UI with [Y]/[N] keys, blocks movement during prompt
+- **Help overlay:** New "Void Shrines" section documenting all 7 effects with probabilities
+- Lint and build both pass clean
+- No money spent
+
+### 2026-03-20 19:45 | strategist | Launch readiness & first-time player experience audit (seventh strategist session)
+- **Analysis type:** Player Experience (type E, second pass — launch readiness focus)
+- Deep-dived the full player journey: Reddit/HN link → landing page → first game → death → return. Audited every touchpoint for conversion friction and retention gaps.
+- **Context:** Game content is now deep enough for launch (9 enemies + boss, 28 items, 7 runics, 11 consumable effects, identification, Null Attunement + Void Shrines, daily challenge, full SEO). The question is no longer "is there enough content?" but "will a first-time player survive long enough to discover the depth?"
+
+**7 Critical Findings:**
+
+1. **First-run experience is unguided.** Players are dropped into the dungeon with a text welcome message. The help overlay exists (? or H) but new players don't know it exists. ~70% of first-time players in browser games bounce within 30 seconds if they don't understand what to do. Fix: auto-show a brief first-run tutorial on first load (localStorage detection), dismissed with one click. Zero friction, massive clarity improvement.
+
+2. **Landing page has no visual preview of gameplay.** The homepage has text, icons, and CTA buttons — but no screenshot, no GIF, no visual proof the game looks fun. Anyone clicking from Reddit/HN sees a dark page with words and must take it on faith that clicking "ENTER THE VOID" is worth their time. A single screenshot or 3-second looping GIF above the feature grid would dramatically increase click-through. Browser game landing pages with visual previews convert 2-3x better than text-only pages.
+
+3. **Landing page promises features that don't exist.** The feature pill says "Unlock heroes and discover items" — but hero classes aren't implemented. This creates trust damage when players discover there's only one character. Should be reworded to match actual content (e.g., "Collect runic loot and discover items").
+
+4. **Viewport meta tag is STILL missing from layout.tsx.** ~50% of Reddit/HN traffic is mobile. Without `export const viewport = { width: 'device-width', initialScale: 1 }`, mobile browsers don't scale the page properly — the entire layout renders broken. This is a 2-line fix. Even without mobile touch controls, the landing page and death screen should render correctly on phones so mobile users can at least learn about the game and bookmark it.
+
+5. **No win condition — the game goes until you die.** There's no "You escaped the Void!" victory state. Players who reach floor 15 just keep going through stat-scaled enemies with no special reward. Adding a victory condition at floor 15 (or after a final boss) gives players a concrete goal and creates shareable achievement moments ("I beat Nullcrawl!"). This is the difference between "I played until I got bored" and "I'm trying to beat it."
+
+6. **No personal best tracking.** After death, there's zero comparison to previous runs. No "New personal best!" celebration, no record board, no sense of meta-progression. Players have no reason to beat their own records. localStorage-based personal bests (best floor, most kills, fastest boss kill) with a "NEW BEST!" badge on the death screen would cost almost nothing to build and create significant "one more run" motivation.
+
+7. **Late-game content cliff after floor 5 boss.** After defeating the Void Nucleus, floors 6-15 are just stat-scaled regular enemies with no special encounters, no visual change, and no new boss. Players who beat the floor 5 boss have seen the game's best content and hit a wall. Floor themes and the floor 10 boss would fix this. Floor themes should be built before community launch — screenshots with 3 visual zones are dramatically more compelling than one purple palette.
+
+**Launch readiness verdict:** The game is mechanically ready but has 4 "first-5-minutes" gaps that will cause unnecessary bounce: no tutorial (high bounce risk), no gameplay visual on landing page (conversion loss), broken mobile rendering (50% of traffic affected), no win condition (goal-less play reduces motivation).
+
+**Recommended pre-launch task order:**
+1. Viewport meta tag (2 lines)
+2. Fix landing page copy (1 line)
+3. First-run tutorial overlay (small component)
+4. Floor themes (data-driven visual variety)
+5. Personal best tracking (localStorage)
+6. Victory condition at floor 15 (win screen)
+7. Gameplay screenshot/GIF on landing page (conversion)
+8. Domain purchase + itch.io/RogueBasin pages
+9. Community launch (Reddit/HN posts)
+
+- Added 4 new P1 tasks and elevated 2 existing P2 tasks to P1 on TASK_BOARD.md
+- Wrote findings to HUMAN_INBOX.md
+- No money spent
+
+### 2026-03-20 20:30 | developer | Floor themes (3 visual zones) + viewport fix + landing page copy fix
+
+**Floor Themes — 3 Visual Zones:**
+- Added `ZoneTheme` interface and `ZONE_THEMES` array to `config.ts` with `getZoneTheme()` and `getZoneTileColors()` helpers
+- **Null Tunnels** (floors 1-4): Original purple palette — `#1a1a2e` floors, `#2d2d44` walls, cyan stairs
+- **Crystal Depths** (floors 5-9): Cyan/blue palette — `#0f1a2e` floors, `#1a3a5c` walls, bright cyan stairs
+- **Shadow Realm** (floors 10+): Dark red/black palette — `#1a0f0f` floors, `#3d1a1a` walls, red stairs, **-2 FOV radius**
+- Updated `renderer.ts`: main render uses `getZoneTileColors()` for all tile drawing, zone background color, zone-tinted boss HP bar
+- Updated `renderMinimap()`: minimap colors derived from zone palette using `lightenColor()` helper, zone-tinted border
+- Updated `engine.ts`: floor descent message now shows zone name ("Floor 5 — Crystal Depths"), zone transition messages with atmospheric text and floating text announcements
+- Updated `getAttunementFovRadius()` to incorporate `zone.fovModifier` — Shadow Realm stacks -2 FOV with Void Sight +2
+- Added "Dungeon Zones" section to HelpOverlay with colored wall swatches and descriptions
+
+**Quick Fixes:**
+- Added `export const viewport: Viewport` to `layout.tsx` — fixes broken mobile rendering (launch blocker)
+- Fixed "Unlock heroes and discover items" → "Collect runic loot and discover items" on landing page
+
+**Build:** `npm run build` passes clean
+- No money spent

@@ -109,7 +109,7 @@ function generateBossRoom(): DungeonResult {
             const ny = y + dy;
             const nx = x + dx;
             if (ny >= 0 && ny < MAP_HEIGHT && nx >= 0 && nx < MAP_WIDTH) {
-              if (map[ny][nx] === TileType.FLOOR || map[ny][nx] === TileType.STAIRS_DOWN) {
+              if (map[ny][nx] === TileType.FLOOR || map[ny][nx] === TileType.STAIRS_DOWN || map[ny][nx] === TileType.SHRINE) {
                 adjacentToFloor = true;
               }
             }
@@ -185,6 +185,21 @@ export function generateDungeon(floor: number): DungeonResult {
     y: Math.floor(firstRoom.y + firstRoom.height / 2),
   };
 
+  // Place 1 void shrine per floor in a random room (avoid player start room if possible)
+  if (rooms.length >= 2) {
+    // Pick a room that isn't the first (player) or last (stairs), if we have enough rooms
+    const candidateRooms = rooms.length >= 3
+      ? rooms.slice(1, -1)
+      : [rooms[rooms.length - 1]];
+    const shrineRoom = candidateRooms[Math.floor(random() * candidateRooms.length)];
+    // Pick a random floor tile inside the room, avoiding the center (where stairs might be)
+    const sx = shrineRoom.x + 1 + Math.floor(random() * (shrineRoom.width - 2));
+    const sy = shrineRoom.y + 1 + Math.floor(random() * (shrineRoom.height - 2));
+    if (map[sy][sx] === TileType.FLOOR) {
+      map[sy][sx] = TileType.SHRINE;
+    }
+  }
+
   // Add walls around floors (ensure proper wall borders)
   for (let y = 0; y < MAP_HEIGHT; y++) {
     for (let x = 0; x < MAP_WIDTH; x++) {
@@ -196,7 +211,7 @@ export function generateDungeon(floor: number): DungeonResult {
             const ny = y + dy;
             const nx = x + dx;
             if (ny >= 0 && ny < MAP_HEIGHT && nx >= 0 && nx < MAP_WIDTH) {
-              if (map[ny][nx] === TileType.FLOOR || map[ny][nx] === TileType.STAIRS_DOWN) {
+              if (map[ny][nx] === TileType.FLOOR || map[ny][nx] === TileType.STAIRS_DOWN || map[ny][nx] === TileType.SHRINE) {
                 adjacentToFloor = true;
               }
             }

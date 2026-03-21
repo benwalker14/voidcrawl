@@ -53,7 +53,7 @@ export default function Home() {
           <div>
             <div className="text-2xl mb-2">&#9733;</div>
             <div className="font-bold mb-1">Loot & Progression</div>
-            <div>Unlock heroes and discover items</div>
+            <div>Collect runic loot and discover items</div>
           </div>
         </div>
 

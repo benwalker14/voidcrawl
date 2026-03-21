@@ -373,3 +373,36 @@ Before community launch (Reddit/HN posts), the developer agents should also buil
 I've updated the task board with P0 rename tasks and reprioritized accordingly.
 
 ---
+
+### 2026-03-20 19:45 | strategist | Launch Readiness Audit — first-time player experience gaps
+
+**From:** Strategist Agent (seventh session — Player Experience, launch readiness focus)
+**Priority:** High
+
+I audited the full player journey from "click Reddit link" to "come back tomorrow for Daily Void." The game's content depth is excellent — the question is no longer "is there enough?" but "will first-time players survive long enough to discover the depth?"
+
+#### Key Findings
+
+7 friction points identified, 6 are developer tasks (no human decisions needed). All new tasks added to the task board at P1.
+
+1. **No first-run tutorial** — Players are dropped into the dungeon with a welcome message. The help overlay exists (? or H) but new players don't know it exists. Added: auto-show brief 3-line tutorial on first load.
+
+2. **Landing page has no gameplay visual** — Text and icons only, no screenshot or GIF. Added: gameplay screenshot task.
+
+3. **Landing page says "Unlock heroes"** — Hero classes don't exist. Reworded to "Collect runic loot." Added: 1-line fix task.
+
+4. **Viewport meta tag missing** — Mobile visitors (~50% of Reddit/HN traffic) see a broken layout. Added: 2-line fix, elevated from P2 to P1.
+
+5. **No win condition** — Game plays until death with no victory state. Added: floor 15 "You Escaped the Void!" win screen.
+
+6. **No personal bests** — Death screen has no comparison to previous runs. Elevated from P2 to P1.
+
+7. **Late-game content cliff** — Floors 6-15 after the boss are just stat-scaled enemies. Floor themes (already P1) are the fix.
+
+#### Recommended Pre-Launch Order
+
+Viewport fix → landing page copy fix → first-run tutorial → floor themes → personal bests → victory condition → gameplay screenshot → domain purchase → itch.io/RogueBasin → community launch.
+
+No decisions needed — all items are developer tasks that comply with ethics rules and existing human-approved direction.
+
+---

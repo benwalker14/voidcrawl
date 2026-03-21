@@ -89,6 +89,28 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
           </p>
         </Section>
 
+        {/* Dungeon Zones */}
+        <Section title="Dungeon Zones">
+          <p className="mb-1">The dungeon changes as you descend deeper. Each zone has a distinct appearance and hazards.</p>
+          <div className="space-y-1 mt-1">
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: "#2d2d44" }} />
+              <span style={{ color: "#a78bfa" }}>Null Tunnels</span>
+              <span style={{ color: "var(--void-muted)" }}>— Floors 1-4. Ancient purple corridors where the void seeps through stone.</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: "#1a3a5c" }} />
+              <span style={{ color: "#38bdf8" }}>Crystal Depths</span>
+              <span style={{ color: "var(--void-muted)" }}>— Floors 5-9. Shimmering crystalline formations pulse with cold energy.</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: "#3d1a1a" }} />
+              <span style={{ color: "#ef4444" }}>Shadow Realm</span>
+              <span style={{ color: "var(--void-muted)" }}>— Floors 10+. Living darkness. Reduced visibility (-2 FOV).</span>
+            </div>
+          </div>
+        </Section>
+
         {/* Map Legend */}
         <Section title="Map Symbols">
           <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
@@ -151,6 +173,24 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
             <div><span style={{ color: "#22c55e" }}>Enchanting</span> — +2 to equipped weapon ATK or armor DEF</div>
             <div><span style={{ color: "#22c55e" }}>Fear</span> — All visible enemies flee for 6 turns</div>
             <div><span style={{ color: "#22c55e" }}>Summoning</span> — Summons a Void Spirit ally for 15 turns</div>
+          </div>
+        </Section>
+
+        {/* Void Shrines */}
+        <Section title="Void Shrines">
+          <p className="mb-1">
+            <span style={{ color: "#c084fc" }}>$</span> Purple shrines appear once per floor. Step on one and press
+            <Hl> Y</Hl> to commune or <Hl>N</Hl> to decline.
+          </p>
+          <p className="mb-1">Each use adds <span style={{ color: "#c084fc" }}>+15 Null Attunement</span> and triggers a random effect:</p>
+          <div className="space-y-0.5 ml-2">
+            <div><span style={{ color: "#22c55e" }}>Heal 50% HP</span> <span style={{ color: "var(--void-muted)" }}>(20%)</span></div>
+            <div><span style={{ color: "#c084fc" }}>+1 permanent stat (ATK, DEF, or Max HP)</span> <span style={{ color: "var(--void-muted)" }}>(15%)</span></div>
+            <div><span style={{ color: "#06b6d4" }}>Identify all items</span> <span style={{ color: "var(--void-muted)" }}>(15%)</span></div>
+            <div><span style={{ color: "#06b6d4" }}>Random item gift</span> <span style={{ color: "var(--void-muted)" }}>(15%)</span></div>
+            <div><span style={{ color: "#ef4444" }}>Spawn 2 enemies nearby</span> <span style={{ color: "var(--void-muted)" }}>(15%)</span></div>
+            <div><span style={{ color: "#ef4444" }}>Curse equipped weapon or armor</span> <span style={{ color: "var(--void-muted)" }}>(10%)</span></div>
+            <div><span style={{ color: "#06b6d4" }}>Teleport near stairs</span> <span style={{ color: "var(--void-muted)" }}>(10%)</span></div>
           </div>
         </Section>
 

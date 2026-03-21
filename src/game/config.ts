@@ -16,15 +16,89 @@ export enum TileType {
   WALL = 2,
   STAIRS_DOWN = 3,
   DOOR = 4,
+  SHRINE = 5,
 }
 
-// Colors for rendering tiles (before we have sprites)
+// Zone themes — visual palettes that change by floor depth
+export interface ZoneTheme {
+  name: string;
+  bgColor: string;      // void/background
+  floorColor: string;    // walkable floor
+  wallColor: string;     // walls
+  stairsColor: string;   // stairs down
+  doorColor: string;     // doors
+  shrineFloor: string;   // shrine base (same as floor)
+  accentColor: string;   // zone accent for messages/UI
+  fovModifier: number;   // FOV radius modifier (0 = normal, negative = reduced)
+}
+
+export const ZONE_THEMES: ZoneTheme[] = [
+  {
+    // Floors 1-4: Null Tunnels (purple, the original palette)
+    name: "Null Tunnels",
+    bgColor: "#0a0a0f",
+    floorColor: "#1a1a2e",
+    wallColor: "#2d2d44",
+    stairsColor: "#06b6d4",
+    doorColor: "#854d0e",
+    shrineFloor: "#1a1a2e",
+    accentColor: "#a78bfa",
+    fovModifier: 0,
+  },
+  {
+    // Floors 5-9: Crystal Depths (cyan/blue)
+    name: "Crystal Depths",
+    bgColor: "#050a10",
+    floorColor: "#0f1a2e",
+    wallColor: "#1a3a5c",
+    stairsColor: "#22d3ee",
+    doorColor: "#2563eb",
+    shrineFloor: "#0f1a2e",
+    accentColor: "#38bdf8",
+    fovModifier: 0,
+  },
+  {
+    // Floors 10+: Shadow Realm (dark red/black, reduced FOV)
+    name: "Shadow Realm",
+    bgColor: "#0a0505",
+    floorColor: "#1a0f0f",
+    wallColor: "#3d1a1a",
+    stairsColor: "#f87171",
+    doorColor: "#92400e",
+    shrineFloor: "#1a0f0f",
+    accentColor: "#ef4444",
+    fovModifier: -2,
+  },
+];
+
+/** Get the zone theme for a given floor number */
+export function getZoneTheme(floor: number): ZoneTheme {
+  if (floor <= 4) return ZONE_THEMES[0];
+  if (floor <= 9) return ZONE_THEMES[1];
+  return ZONE_THEMES[2];
+}
+
+/** Get tile colors for the current zone (replaces static TILE_COLORS for rendering) */
+export function getZoneTileColors(floor: number): Record<TileType, string> {
+  const zone = getZoneTheme(floor);
+  return {
+    [TileType.VOID]: zone.bgColor,
+    [TileType.FLOOR]: zone.floorColor,
+    [TileType.WALL]: zone.wallColor,
+    [TileType.STAIRS_DOWN]: zone.stairsColor,
+    [TileType.DOOR]: zone.doorColor,
+    [TileType.SHRINE]: zone.shrineFloor,
+  };
+}
+
+// Default colors (Null Tunnels) — kept for backwards compatibility
 export const TILE_COLORS: Record<TileType, string> = {
   [TileType.VOID]: "#0a0a0f",
   [TileType.FLOOR]: "#1a1a2e",
   [TileType.WALL]: "#2d2d44",
   [TileType.STAIRS_DOWN]: "#06b6d4",
   [TileType.DOOR]: "#854d0e",
+  [TileType.SHRINE]: "#1a1a2e",
 };
 
 // Entity types
@@ -281,6 +355,8 @@ export interface GameState {
   identified: Record<string, boolean>;           // ConsumableEffect -> whether identified this run
   consumableAppearances: Record<string, string>;  // ConsumableEffect -> randomized appearance descriptor
   voidAttunement: number;                         // 0-100 corruption/power meter
+  shrinePrompt: boolean;                          // true when player is standing on unused shrine, awaiting Y/N
+  shrinesUsed: Set<string>;                       // "x,y" keys of shrines already used this floor
   gameMode: GameMode;
   seed?: string;                                  // Seed string for daily challenge mode
 }

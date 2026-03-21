@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES, CONSUMABLE_EFFECT_NAMES } from "@/game/config";
-import { initGame, processPlayerTurn, applyInventoryItem, MoveDirection, getAttunementAtkBonus } from "@/game/engine";
+import { initGame, processPlayerTurn, applyInventoryItem, processShrine, MoveDirection, getAttunementAtkBonus } from "@/game/engine";
 import { render, renderMinimap, renderFloatingTexts, renderHitEffects, FLOAT_DURATION, HIT_EFFECT_DURATION } from "@/game/renderer";
 import type { ActiveFloatingText, ActiveHitEffect } from "@/game/renderer";
 import type { GameState, GameMessage, PlayerInventory, RunStats, StatusEffect, GameEntity, DailyResult } from "@/game/config";
@@ -108,6 +108,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
   const showHelpRef = useRef(false);
   const [showPause, setShowPause] = useState(false);
   const showPauseRef = useRef(false);
+  const [shrinePrompt, setShrinePrompt] = useState(false);
   const showMinimapRef = useRef(true);
   const floatingTextsRef = useRef<ActiveFloatingText[]>([]);
   const hitEffectsRef = useRef<ActiveHitEffect[]>([]);
@@ -161,6 +162,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
     setVoidAttunement(state.voidAttunement ?? 0);
     setIdentified(state.identified);
     setConsumableAppearances(state.consumableAppearances);
+    setShrinePrompt(state.shrinePrompt ?? false);
     const boss = state.entities.find((e) => e.isBoss && e.hp > 0);
     setBossInfo(boss ?? null);
     if (state.messages.length > 0) {
@@ -277,6 +279,26 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
       if (showHelpRef.current || showPauseRef.current) return;
 
       if (!gameRef.current || gameRef.current.gameOver) return;
+
+      // Handle shrine prompt Y/N
+      if (gameRef.current.shrinePrompt) {
+        if (e.key === "y" || e.key === "Y") {
+          e.preventDefault();
+          const newState = processShrine(gameRef.current, true);
+          gameRef.current = newState;
+          updateUI(newState);
+          draw();
+          startAnimations(newState);
+        } else if (e.key === "n" || e.key === "N" || e.key === "Escape") {
+          e.preventDefault();
+          const newState = processShrine(gameRef.current, false);
+          gameRef.current = newState;
+          updateUI(newState);
+          draw();
+          startAnimations(newState);
+        }
+        return;
+      }
 
       let dir: MoveDirection | null = null;
 
@@ -576,6 +598,29 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
           className="border border-gray-800"
           tabIndex={0}
         />
+
+        {shrinePrompt && (
+          <div className="absolute inset-0 flex items-end justify-center pb-16 pointer-events-none">
+            <div className="pointer-events-auto px-6 py-3 rounded border-2 text-center"
+              style={{
+                backgroundColor: "rgba(10, 10, 15, 0.95)",
+                borderColor: "#a855f7",
+                boxShadow: "0 0 20px rgba(168, 85, 247, 0.4)",
+              }}
+            >
+              <p className="text-sm font-bold mb-1" style={{ color: "#c084fc" }}>
+                Void Shrine
+              </p>
+              <p className="text-xs mb-2" style={{ color: "#e2e8f0" }}>
+                Commune with the Void? <span style={{ color: "#c084fc" }}>(+15 Null Attunement)</span>
+              </p>
+              <div className="flex gap-4 justify-center text-xs font-bold">
+                <span style={{ color: "#22c55e" }}>[Y] Accept</span>
+                <span style={{ color: "#ef4444" }}>[N] Decline</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {showPause && (
           <PauseMenu

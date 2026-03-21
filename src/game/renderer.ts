@@ -1,7 +1,6 @@
 import {
   GameState,
   TileType,
-  TILE_COLORS,
   TILE_SIZE,
   SCALE,
   VIEWPORT_TILES_X,
@@ -10,6 +9,8 @@ import {
   MAP_HEIGHT,
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
+  getZoneTileColors,
+  getZoneTheme,
 } from "./config";
 
 export const FLOAT_DURATION = 800;
@@ -33,13 +34,31 @@ export interface ActiveHitEffect {
 
 const SCALED_TILE = TILE_SIZE * SCALE;
 
+/** Lighten or darken a hex color by a factor (-1 to 1). Positive = lighter, negative = darker. */
+function lightenColor(hex: string, factor: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const adjust = (c: number) => {
+    if (factor > 0) return Math.min(255, Math.round(c + (255 - c) * factor));
+    return Math.max(0, Math.round(c * (1 + factor)));
+  };
+  const rr = adjust(r).toString(16).padStart(2, "0");
+  const gg = adjust(g).toString(16).padStart(2, "0");
+  const bb = adjust(b).toString(16).padStart(2, "0");
+  return `#${rr}${gg}${bb}`;
+}
+
 // Mini-map constants
 const MINIMAP_TILE = 3; // pixels per tile on minimap
 const MINIMAP_PADDING = 8;
 
 export function render(ctx: CanvasRenderingContext2D, state: GameState) {
-  // Clear
-  ctx.fillStyle = "#0a0a0f";
+  const zoneTileColors = getZoneTileColors(state.floor);
+  const zone = getZoneTheme(state.floor);
+
+  // Clear with zone background color
+  ctx.fillStyle = zone.bgColor;
   ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
   // Camera centered on player
@@ -70,7 +89,7 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState) {
       const screenY = vy * SCALED_TILE;
 
       // Draw tile
-      ctx.fillStyle = TILE_COLORS[tile as TileType] || TILE_COLORS[TileType.VOID];
+      ctx.fillStyle = zoneTileColors[tile as TileType] || zone.bgColor;
       if (!isVisible) {
         // Dim explored but not visible tiles
         ctx.globalAlpha = 0.3;
@@ -80,11 +99,32 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState) {
 
       // Draw stairs symbol
       if (tile === TileType.STAIRS_DOWN && isVisible) {
-        ctx.fillStyle = "#06b6d4";
+        ctx.fillStyle = zone.stairsColor;
         ctx.font = `bold ${SCALED_TILE - 4}px monospace`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(">", screenX + SCALED_TILE / 2, screenY + SCALED_TILE / 2);
+      }
+
+      // Draw shrine symbol with pulsing glow
+      if (tile === TileType.SHRINE && isVisible) {
+        const shrineKey = `${mapX},${mapY}`;
+        const isUsed = state.shrinesUsed?.has(shrineKey);
+        if (!isUsed) {
+          // Pulsing purple glow behind the symbol
+          const pulse = 0.3 + 0.2 * Math.sin(Date.now() / 400);
+          ctx.fillStyle = `rgba(168, 85, 247, ${pulse})`;
+          ctx.beginPath();
+          ctx.arc(screenX + SCALED_TILE / 2, screenY + SCALED_TILE / 2, SCALED_TILE * 0.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#c084fc";
+        } else {
+          ctx.fillStyle = "#4a3860"; // Dim for used shrines
+        }
+        ctx.font = `bold ${SCALED_TILE - 4}px monospace`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("$", screenX + SCALED_TILE / 2, screenY + SCALED_TILE / 2);
       }
     }
   }
@@ -132,9 +172,9 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState) {
       const barX = screenX + SCALED_TILE / 2 - barWidth / 2;
       const barY = screenY + SCALED_TILE + 2;
       const hpRatio = entity.hp / entity.maxHp;
-      ctx.fillStyle = "#1a1a2e";
+      ctx.fillStyle = zone.floorColor;
       ctx.fillRect(barX, barY, barWidth, barHeight);
-      ctx.fillStyle = hpRatio > 0.5 ? "#06b6d4" : hpRatio > 0.25 ? "#eab308" : "#ef4444";
+      ctx.fillStyle = hpRatio > 0.5 ? zone.stairsColor : hpRatio > 0.25 ? "#eab308" : "#ef4444";
       ctx.fillRect(barX, barY, barWidth * hpRatio, barHeight);
     }
 
@@ -157,6 +197,7 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState) {
 }
 
 export function renderMinimap(ctx: CanvasRenderingContext2D, state: GameState) {
+  const zone = getZoneTheme(state.floor);
   const mmWidth = MAP_WIDTH * MINIMAP_TILE;
   const mmHeight = MAP_HEIGHT * MINIMAP_TILE;
   const mx = CANVAS_WIDTH - mmWidth - MINIMAP_PADDING;
@@ -166,10 +207,18 @@ export function renderMinimap(ctx: CanvasRenderingContext2D, state: GameState) {
   ctx.fillStyle = "rgba(10, 10, 15, 0.85)";
   ctx.fillRect(mx - 2, my - 2, mmWidth + 4, mmHeight + 4);
 
-  // Border
-  ctx.strokeStyle = "#444";
+  // Border — tinted by zone accent
+  ctx.strokeStyle = zone.accentColor + "44";
   ctx.lineWidth = 1;
   ctx.strokeRect(mx - 2, my - 2, mmWidth + 4, mmHeight + 4);
+
+  // Minimap colors derived from zone palette (brighter versions for visibility)
+  const wallVis = lightenColor(zone.wallColor, 0.3);
+  const wallDim = lightenColor(zone.wallColor, -0.1);
+  const floorVis = lightenColor(zone.floorColor, 0.3);
+  const floorDim = lightenColor(zone.floorColor, -0.1);
+  const stairsVis = zone.stairsColor;
+  const stairsDim = lightenColor(zone.stairsColor, -0.4);
 
   // Draw tiles
   for (let y = 0; y < MAP_HEIGHT; y++) {
@@ -185,13 +234,19 @@ export function renderMinimap(ctx: CanvasRenderingContext2D, state: GameState) {
       const py = my + y * MINIMAP_TILE;
 
       if (tile === TileType.WALL) {
-        ctx.fillStyle = isVisible ? "#4a4a66" : "#2a2a3e";
+        ctx.fillStyle = isVisible ? wallVis : wallDim;
       } else if (tile === TileType.FLOOR) {
-        ctx.fillStyle = isVisible ? "#2a2a4e" : "#161628";
+        ctx.fillStyle = isVisible ? floorVis : floorDim;
       } else if (tile === TileType.STAIRS_DOWN) {
-        ctx.fillStyle = isVisible ? "#06b6d4" : "#044a5a";
+        ctx.fillStyle = isVisible ? stairsVis : stairsDim;
+      } else if (tile === TileType.SHRINE) {
+        const shrineKey = `${x},${y}`;
+        const isUsed = state.shrinesUsed?.has(shrineKey);
+        ctx.fillStyle = isVisible
+          ? (isUsed ? "#2a1a3e" : "#a855f7")
+          : (isUsed ? "#1a1028" : "#6b21a8");
       } else {
-        ctx.fillStyle = isVisible ? "#2a2a4e" : "#161628";
+        ctx.fillStyle = isVisible ? floorVis : floorDim;
       }
 
       ctx.fillRect(px, py, MINIMAP_TILE, MINIMAP_TILE);
