@@ -1,4 +1,4 @@
-import { Item, ItemCategory, ItemRarity, ConsumableEffect, RARITY_COLORS, GroundItem, Position, RunicEffect, WEAPON_RUNICS, ARMOR_RUNICS, RUNIC_NAMES, CurseEffect, WEAPON_CURSES, ARMOR_CURSES, CURSE_NAMES } from "../config";
+import { Item, ItemCategory, ItemRarity, ConsumableEffect, RARITY_COLORS, GroundItem, Position, RunicEffect, WEAPON_RUNICS, ARMOR_RUNICS, RUNIC_NAMES, CurseEffect, WEAPON_CURSES, ARMOR_CURSES, CURSE_NAMES, TileType } from "../config";
 import { random } from "../rng";
 
 let nextItemId = 0;
@@ -247,6 +247,106 @@ export function generateBossLoot(floor: number, pos: Position): GroundItem[] {
         description: template.description,
       },
       pos: { x: pos.x + 1, y: pos.y },
+    });
+  }
+
+  return loot;
+}
+
+/**
+ * Guaranteed floor loot (pity mechanic): pre-place items at generation time
+ * so every non-boss floor has at least 1 random item + 1 healing potion.
+ * Items are placed in rooms the player won't start in.
+ */
+export function generateGuaranteedFloorLoot(
+  floor: number,
+  rooms: { x: number; y: number; width: number; height: number }[],
+  map: TileType[][],
+  playerStart: Position,
+): GroundItem[] {
+  if (rooms.length < 2) return [];
+
+  const loot: GroundItem[] = [];
+  const usedPositions = new Set<string>();
+
+  // Helper: pick a random floor tile in a room that isn't the player start room
+  function pickLootPosition(): Position | null {
+    // Candidate rooms: skip the first room (player start)
+    const candidates = rooms.slice(1);
+    // Shuffle candidates so we try different rooms
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const room = candidates[Math.floor(random() * candidates.length)];
+      const x = room.x + 1 + Math.floor(random() * Math.max(1, room.width - 2));
+      const y = room.y + 1 + Math.floor(random() * Math.max(1, room.height - 2));
+      const key = `${x},${y}`;
+      if (
+        !usedPositions.has(key) &&
+        map[y]?.[x] === TileType.FLOOR &&
+        (Math.abs(x - playerStart.x) + Math.abs(y - playerStart.y)) > 3
+      ) {
+        usedPositions.add(key);
+        return { x, y };
+      }
+    }
+    return null;
+  }
+
+  // 1. Guaranteed random item (weapon, armor, or consumable)
+  const pos1 = pickLootPosition();
+  if (pos1) {
+    const rarity = rollRarity(floor);
+    const eligible = ITEM_TEMPLATES.filter(
+      (t) => t.minFloor <= floor && t.rarity === rarity
+    );
+    if (eligible.length > 0) {
+      const template = eligible[Math.floor(random() * eligible.length)];
+      const item = applyRunicToItem({
+        id: `item_${nextItemId++}`,
+        name: template.name,
+        category: template.category,
+        rarity: template.rarity,
+        symbol: template.symbol,
+        color: RARITY_COLORS[template.rarity],
+        attack: template.attack,
+        defense: template.defense,
+        healAmount: template.healAmount,
+        effect: template.effect,
+        effectValue: template.effectValue,
+        minFloor: template.minFloor,
+        description: template.description,
+      });
+      loot.push({ item, pos: pos1 });
+    }
+  }
+
+  // 2. Guaranteed healing potion (scales with floor depth)
+  const pos2 = pickLootPosition();
+  if (pos2) {
+    let healTemplate: ItemTemplate;
+    if (floor >= 6) {
+      healTemplate = ITEM_TEMPLATES.find(t => t.name === "Major Health Potion")!;
+    } else if (floor >= 3) {
+      healTemplate = ITEM_TEMPLATES.find(t => t.name === "Health Potion")!;
+    } else {
+      healTemplate = ITEM_TEMPLATES.find(t => t.name === "Minor Health Potion")!;
+    }
+    loot.push({
+      item: {
+        id: `item_${nextItemId++}`,
+        name: healTemplate.name,
+        category: healTemplate.category,
+        rarity: healTemplate.rarity,
+        symbol: healTemplate.symbol,
+        color: RARITY_COLORS[healTemplate.rarity],
+        attack: healTemplate.attack,
+        defense: healTemplate.defense,
+        healAmount: healTemplate.healAmount,
+        effect: healTemplate.effect,
+        effectValue: healTemplate.effectValue,
+        minFloor: healTemplate.minFloor,
+        description: healTemplate.description,
+      },
+      pos: pos2,
     });
   }
 

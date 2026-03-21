@@ -35,7 +35,7 @@ import { random, seedRngForFloor, unseedRng } from "./rng";
 import { generateDungeon } from "./generation/dungeon";
 import { spawnEnemies, spawnEnemyAtPos, spawnBoss, spawnBossAdd } from "./generation/enemies";
 import { computeFov, FOV_RADIUS } from "./generation/fov";
-import { generateLootDrop, generateBossLoot, initConsumableAppearances, initIdentified } from "./data/items";
+import { generateLootDrop, generateBossLoot, generateGuaranteedFloorLoot, initConsumableAppearances, initIdentified } from "./data/items";
 import { findPath, findFleeStep } from "./pathfinding";
 
 function createPlayer(pos: Position): GameEntity {
@@ -303,7 +303,7 @@ export function generateFloor(
     map: dungeon.map,
     player,
     entities: enemies,
-    items: [],
+    items: isBossFloor ? [] : generateGuaranteedFloorLoot(floor, dungeon.rooms, dungeon.map, dungeon.playerStart),
     inventory: prevInventory ?? createInventory(),
     progression: prevProgression ?? createProgression(),
     messages,

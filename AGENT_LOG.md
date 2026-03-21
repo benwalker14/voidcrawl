@@ -1,5 +1,14 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-20 21:00 | developer | Guaranteed floor loot (pity mechanic)
+- **New `generateGuaranteedFloorLoot()` function in `items.ts`:** Pre-places items at floor generation time so every non-boss floor has a minimum of 2 ground items: 1 random item (weapon/armor/consumable scaled to floor rarity) and 1 healing potion (Minor on floors 1-2, Health Potion on 3-5, Major Health Potion on 6+)
+- **Placement logic:** Items are placed in rooms the player doesn't start in (rooms[1:]), avoiding the player start position by 3+ Manhattan distance. Attempts up to 20 random positions per item to find valid floor tiles
+- **Boss floor exempt:** Floor 5 boss room already has guaranteed rare loot from `generateBossLoot()`, so the pity mechanic skips boss floors
+- **Impact:** Prevents frustrating dry-streak runs where enemy RNG drops nothing. Every floor now guarantees at least one loot discovery and one healing opportunity (healing potion + void shrine)
+- **Engine integration:** `generateFloor()` now initializes `state.items` with guaranteed loot instead of an empty array. Enemy drops still add on top of this baseline
+- Lint and build both pass clean
+- No money spent
+
 ### 2026-03-20 20:20 | developer | Attunement escape valve on boss kills
 - **Boss kill attunement reduction:** Defeating a boss now reduces Null Attunement by 15 (minimum 0). Creates a natural reset point at floor 5 boss that prevents attunement from feeling inevitably oppressive
 - **Threshold de-crossing notifications:** If the reduction drops attunement below 50% or 25%, players see messages about Void Strike / Void Sight fading
