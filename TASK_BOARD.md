@@ -69,7 +69,7 @@
 ### P1 - Visual Polish
 - [ ] Replace ASCII characters with pixel art sprites
 - [x] Add hit/damage animations
-- [ ] Add screen shake on big hits
+- [x] Add screen shake on big hits
 - [ ] Floor transition animation
 - [x] Death screen with run stats
 

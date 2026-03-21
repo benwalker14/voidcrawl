@@ -256,11 +256,21 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
     }
   }, [saveDailyOnDeath]);
 
+  const SHAKE_DURATION = 250; // ms
+
   const startAnimations = useCallback((state: GameState) => {
     const now = performance.now();
     const pendingFloats = state.pendingFloatingTexts;
     const pendingHits = state.pendingHitEffects;
-    if (pendingFloats.length === 0 && pendingHits.length === 0) return;
+    const pendingShake = state.pendingShake ?? 0;
+
+    // Start shake if pending
+    if (pendingShake > 0) {
+      shakeRef.current = { intensity: pendingShake, startTime: now };
+    }
+
+    const hasNew = pendingFloats.length > 0 || pendingHits.length > 0 || pendingShake > 0;
+    if (!hasNew) return;
 
     for (const ft of pendingFloats) {
       floatingTextsRef.current.push({ ...ft, startTime: now });
@@ -279,6 +289,20 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
         return;
       }
 
+      // Calculate screen shake offset
+      const shake = shakeRef.current;
+      const shakeElapsed = now - shake.startTime;
+      const shakeActive = shake.intensity > 0 && shakeElapsed < SHAKE_DURATION;
+      let shakeX = 0, shakeY = 0;
+      if (shakeActive) {
+        const decay = 1 - shakeElapsed / SHAKE_DURATION;
+        const magnitude = shake.intensity * decay;
+        shakeX = Math.round((Math.random() * 2 - 1) * magnitude);
+        shakeY = Math.round((Math.random() * 2 - 1) * magnitude);
+        ctx.save();
+        ctx.translate(shakeX, shakeY);
+      }
+
       render(ctx, gameRef.current);
       if (showMinimapRef.current) {
         renderMinimap(ctx, gameRef.current);
@@ -291,14 +315,18 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
         (ft) => now - ft.startTime < FLOAT_DURATION
       );
 
-      const hasAnimations = hitEffectsRef.current.length > 0 || floatingTextsRef.current.length > 0;
-
       if (hitEffectsRef.current.length > 0) {
         renderHitEffects(ctx, gameRef.current, hitEffectsRef.current, now);
       }
       if (floatingTextsRef.current.length > 0) {
         renderFloatingTexts(ctx, gameRef.current, floatingTextsRef.current, now);
       }
+
+      if (shakeActive) {
+        ctx.restore();
+      }
+
+      const hasAnimations = hitEffectsRef.current.length > 0 || floatingTextsRef.current.length > 0 || shakeActive;
 
       if (hasAnimations) {
         animFrameRef.current = requestAnimationFrame(animate);

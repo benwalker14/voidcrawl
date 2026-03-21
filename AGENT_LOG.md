@@ -1,5 +1,12 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-21 01:00 | developer | Screen shake on big hits
+- **Implementation:** Connected existing `pendingShake` from engine (already set on damage taken, kills, vorpal/erratic strikes, volatile explosions, boss kills) to the canvas animation loop
+- **Shake effect:** `ctx.translate()` with random X/Y offset based on intensity (0-8 scale), 250ms duration with linear decay. Intensity comes from engine events (2-3 for normal hits, 5-6 for special hits/kills, 7 for boss AoE)
+- **Animation integration:** Shake runs alongside existing floating texts and hit effects in the same `requestAnimationFrame` loop. Uses `ctx.save()/restore()` so minimap and overlays aren't permanently offset
+- Lint and build both pass clean
+- No money spent
+
 ### 2026-03-21 00:30 | developer | Cursed equipment system (dual-edged design)
 - **6 curse effects:** 3 weapon curses (Erratic: -2 ATK but 25% chance 3x damage; Displacing: teleport surviving enemy to random tile; Draining: kills give -1 max HP but +2 ATK for rest of floor) + 3 armor curses (Anti-Entropy: freeze attacker 1 turn but slow player 1 turn; Volatile: 10% chance 4 AoE explosion on hit hurting all; Paranoid: +4 detect range but shrines always negative)
 - **Curse spawning:** 15% of Uncommon and 30% of Rare weapons/armor spawn cursed. Items can have both a runic AND a curse. Curse type names and descriptions defined in config.ts
