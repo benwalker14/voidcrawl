@@ -1,5 +1,14 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-20 20:00 | developer | Add item drop command (Q key)
+- Added `dropItem()` function to engine.ts — removes item from inventory, places as GroundItem at player position
+- Added Q-key drop mode to GameCanvas: press Q to enter drop mode, then 1-8 to drop that slot (D key conflicts with WASD movement)
+- Shows "Drop which item? (1-8)" prompt in message log; any non-number key cancels
+- Drop mode auto-cancels when opening help, pause, or pressing Escape
+- Updated HelpOverlay controls section and Items description with drop instructions
+- Fixed pre-existing lint errors: moved restart/continueToEndless/copyRunSummary to useCallback before the useEffect that references them (react-hooks/immutability violations)
+- Lint and build both pass clean
+
 ### 2026-03-20 19:30 | developer | Add keyboard controls to death/victory screen
 - Added R/Enter to restart, C to copy run summary, E to continue endless mode (victory only)
 - Extracted copy logic into reusable `copyRunSummary` function (DRY refactor)

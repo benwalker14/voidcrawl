@@ -766,6 +766,32 @@ export function applyInventoryItem(state: GameState, index: number): GameState {
   return newState;
 }
 
+export function dropItem(state: GameState, index: number): GameState {
+  if (index < 0 || index >= state.inventory.items.length) return state;
+
+  const newState = {
+    ...state,
+    messages: [] as GameMessage[],
+    inventory: { ...state.inventory, items: [...state.inventory.items] },
+    items: [...state.items],
+    pendingFloatingTexts: [] as FloatingText[],
+    pendingHitEffects: [] as HitEffect[],
+    pendingShake: 0,
+  };
+  const item = newState.inventory.items[index];
+  newState.inventory.items.splice(index, 1);
+
+  // Place item on the ground at player's position
+  newState.items.push({ item, pos: { ...newState.player.pos } });
+
+  const displayName = (item.category === ItemCategory.POTION || item.category === ItemCategory.SCROLL)
+    ? getConsumableDisplayName(newState, item)
+    : item.name;
+  newState.messages.push({ text: `You dropped ${displayName}.`, color: MSG_COLORS.LOOT });
+
+  return newState;
+}
+
 function getBlockedPositions(state: GameState, excludeId: string): Set<string> {
   const blocked = new Set<string>();
   for (const e of state.entities) {

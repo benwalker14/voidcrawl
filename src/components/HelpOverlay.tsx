@@ -62,6 +62,7 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
           <Row left="Arrow Keys / WASD" right="Move (and attack by walking into enemies)" />
           <Row left="Space" right="Wait one turn" />
           <Row left="1-8" right="Use inventory item by slot number" />
+          <Row left="Q then 1-8" right="Drop inventory item onto the floor" />
           <Row left="M" right="Toggle mini-map" />
           <Row left="? / H" right="Toggle this help screen" />
           <Row left="Esc" right="Pause menu" />
@@ -78,7 +79,7 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
             <Hl>Combat:</Hl> Walk into an enemy to attack. Damage = ATK - DEF + random(-1 to 1), minimum 1.
           </p>
           <p className="mb-1">
-            <Hl>Items:</Hl> Walk over items to auto-pickup. Better weapons/armor auto-equip. Potions and scrolls go to inventory — press 1-8 to use.
+            <Hl>Items:</Hl> Walk over items to auto-pickup. Better weapons/armor auto-equip. Potions and scrolls go to inventory — press 1-8 to use. Press Q then 1-8 to drop an item.
           </p>
           <p className="mb-1">
             <Hl>Identification:</Hl> Potions and scrolls have randomized appearances each run. Their true effect is unknown until you use one — then all items of that type are identified for the rest of the run.

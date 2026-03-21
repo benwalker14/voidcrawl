@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES, CONSUMABLE_EFFECT_NAMES, VICTORY_FLOOR } from "@/game/config";
-import { initGame, processPlayerTurn, applyInventoryItem, processShrine, continueEndless, MoveDirection, getAttunementAtkBonus } from "@/game/engine";
+import { initGame, processPlayerTurn, applyInventoryItem, dropItem, processShrine, continueEndless, MoveDirection, getAttunementAtkBonus } from "@/game/engine";
 import { render, renderMinimap, renderFloatingTexts, renderHitEffects, FLOAT_DURATION, HIT_EFFECT_DURATION } from "@/game/renderer";
 import type { ActiveFloatingText, ActiveHitEffect } from "@/game/renderer";
 import type { GameState, GameMessage, PlayerInventory, RunStats, StatusEffect, GameEntity, DailyResult } from "@/game/config";
@@ -120,6 +120,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
   const showPauseRef = useRef(false);
   const [shrinePrompt, setShrinePrompt] = useState(false);
   const showMinimapRef = useRef(true);
+  const dropModeRef = useRef(false);
   const floatingTextsRef = useRef<ActiveFloatingText[]>([]);
   const hitEffectsRef = useRef<ActiveHitEffect[]>([]);
   const animFrameRef = useRef<number>(0);
@@ -257,6 +258,68 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
     };
   }, []);
 
+  const restart = useCallback(() => {
+    // Daily mode: no restart, redirect to regular play
+    if (isDaily) {
+      router.push("/play");
+      return;
+    }
+    const state = initGame();
+    gameRef.current = state;
+    floatingTextsRef.current = [];
+    hitEffectsRef.current = [];
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = 0;
+    }
+    setGameOver(false);
+    setVictory(false);
+    setCopied(false);
+    setStatusEffects([]);
+    setIdentified(state.identified);
+    setConsumableAppearances(state.consumableAppearances);
+    setInventory({ items: [], equippedWeapon: null, equippedArmor: null });
+    setMessages([{ text: "A new journey begins...", color: "#e2e8f0" }]);
+    updateUI(state);
+    draw();
+  }, [isDaily, router, updateUI, draw]);
+
+  const continueToEndless = useCallback(() => {
+    const state = continueEndless(gameRef.current);
+    gameRef.current = state;
+    setGameOver(false);
+    setCopied(false);
+    updateUI(state);
+    draw();
+  }, [updateUI, draw]);
+
+  const copyRunSummary = useCallback(() => {
+    const state = gameRef.current;
+    if (!state) return;
+    const currentStats = getStatsFromState(state);
+    const rs = state.runStats;
+    const maxFloor = VICTORY_FLOOR;
+    const filled = Math.min(maxFloor, Math.round((rs.deepestFloor / maxFloor) * maxFloor));
+    const bar = "\u2593".repeat(filled) + "\u2591".repeat(maxFloor - filled);
+    const dailyTag = isDaily ? ` (Daily ${dailySeed})` : "";
+    const isVictory = state.victory;
+    const summary = isVictory
+      ? [
+          `\uD83C\uDFC6 NULLCRAWL \uD83C\uDFC6 ESCAPED!${dailyTag}`,
+          `Floor ${rs.deepestFloor} | Level ${currentStats.level} | ${rs.enemiesKilled} kills | ${formatPlayTime(rs.startTime)}`,
+          `${bar} Floor ${rs.deepestFloor}/${maxFloor}`,
+        ].join("\n")
+      : [
+          `\u2620 NULLCRAWL \u2620${dailyTag}`,
+          `Floor ${rs.deepestFloor} | Level ${currentStats.level} | ${rs.enemiesKilled} kills | ${formatPlayTime(rs.startTime)}${rs.killedBy ? ` | Killed by ${rs.killedBy}` : ""}`,
+          `${bar} Floor ${rs.deepestFloor}/${maxFloor}`,
+        ].join("\n");
+    navigator.clipboard.writeText(summary).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [isDaily, dailySeed]);
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       // Dismiss tutorial overlay
@@ -273,6 +336,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
       // Help toggle: ? or h/H to open/close
       if (e.key === "?" || e.key === "h" || e.key === "H") {
         e.preventDefault();
+        dropModeRef.current = false;
         const next = !showHelpRef.current;
         showHelpRef.current = next;
         setShowHelp(next);
@@ -286,6 +350,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
       // Escape: close help if open, otherwise toggle pause menu
       if (e.key === "Escape") {
         e.preventDefault();
+        dropModeRef.current = false;
         if (showHelpRef.current) {
           showHelpRef.current = false;
           setShowHelp(false);
@@ -347,6 +412,38 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
         return;
       }
 
+      // Drop mode: Q enters drop mode, then 1-8 drops that item
+      if (dropModeRef.current) {
+        e.preventDefault();
+        if (e.key >= "1" && e.key <= "8") {
+          const index = parseInt(e.key) - 1;
+          const newState = dropItem(gameRef.current, index);
+          gameRef.current = newState;
+          updateUI(newState);
+          draw();
+          startAnimations(newState);
+        } else {
+          // Any other key cancels drop mode
+          gameRef.current.messages = [{ text: "Drop cancelled.", color: "#9ca3af" }];
+          updateUI(gameRef.current);
+        }
+        dropModeRef.current = false;
+        return;
+      }
+
+      if (e.key === "q" || e.key === "Q") {
+        e.preventDefault();
+        if (gameRef.current.inventory.items.length === 0) {
+          gameRef.current.messages = [{ text: "Nothing to drop.", color: "#9ca3af" }];
+          updateUI(gameRef.current);
+          return;
+        }
+        dropModeRef.current = true;
+        gameRef.current.messages = [{ text: "Drop which item? (1-8, any other key to cancel)", color: "#eab308" }];
+        updateUI(gameRef.current);
+        return;
+      }
+
       let dir: MoveDirection | null = null;
 
       // Number keys 1-8 to use inventory items
@@ -399,69 +496,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
 
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [draw, updateUI, startAnimations]);
-
-  const restart = () => {
-    // Daily mode: no restart, redirect to regular play
-    if (isDaily) {
-      router.push("/play");
-      return;
-    }
-    const state = initGame();
-    gameRef.current = state;
-    floatingTextsRef.current = [];
-    hitEffectsRef.current = [];
-    if (animFrameRef.current) {
-      cancelAnimationFrame(animFrameRef.current);
-      animFrameRef.current = 0;
-    }
-    setGameOver(false);
-    setVictory(false);
-    setCopied(false);
-    setStatusEffects([]);
-    setIdentified(state.identified);
-    setConsumableAppearances(state.consumableAppearances);
-    setInventory({ items: [], equippedWeapon: null, equippedArmor: null });
-    setMessages([{ text: "A new journey begins...", color: "#e2e8f0" }]);
-    updateUI(state);
-    draw();
-  };
-
-  const continueToEndless = () => {
-    const state = continueEndless(gameRef.current);
-    gameRef.current = state;
-    setGameOver(false);
-    setCopied(false);
-    updateUI(state);
-    draw();
-  };
-
-  const copyRunSummary = () => {
-    const state = gameRef.current;
-    if (!state) return;
-    const currentStats = getStatsFromState(state);
-    const rs = state.runStats;
-    const maxFloor = VICTORY_FLOOR;
-    const filled = Math.min(maxFloor, Math.round((rs.deepestFloor / maxFloor) * maxFloor));
-    const bar = "\u2593".repeat(filled) + "\u2591".repeat(maxFloor - filled);
-    const dailyTag = isDaily ? ` (Daily ${dailySeed})` : "";
-    const isVictory = state.victory;
-    const summary = isVictory
-      ? [
-          `\uD83C\uDFC6 NULLCRAWL \uD83C\uDFC6 ESCAPED!${dailyTag}`,
-          `Floor ${rs.deepestFloor} | Level ${currentStats.level} | ${rs.enemiesKilled} kills | ${formatPlayTime(rs.startTime)}`,
-          `${bar} Floor ${rs.deepestFloor}/${maxFloor}`,
-        ].join("\n")
-      : [
-          `\u2620 NULLCRAWL \u2620${dailyTag}`,
-          `Floor ${rs.deepestFloor} | Level ${currentStats.level} | ${rs.enemiesKilled} kills | ${formatPlayTime(rs.startTime)}${rs.killedBy ? ` | Killed by ${rs.killedBy}` : ""}`,
-          `${bar} Floor ${rs.deepestFloor}/${maxFloor}`,
-        ].join("\n");
-    navigator.clipboard.writeText(summary).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
+  }, [draw, updateUI, startAnimations, restart, copyRunSummary, continueToEndless]);
 
   // If daily was already completed, show result screen instead of game
   if (isDaily && dailyCompleted && !gameOver) {
