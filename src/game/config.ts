@@ -410,6 +410,9 @@ export interface GameState {
   drainingAtkBonus: number;                        // Draining curse: accumulated +2 ATK per kill this floor
   playerSlowed: boolean;                           // Anti-Entropy curse: player skips next move action
   pendingFloorTransition: boolean;                 // Triggers fade-in animation when entering a new floor
+  voidPhaseCooldown: number;                       // Void Phase (75%): turns until wall-walk available again (0 = ready)
+  voidPhaseUsedThisTurn: boolean;                  // Tracks if phase-walk was used this turn
+  maxHpReduced: boolean;                           // Whether 75% max HP reduction has been applied
 }
 
 export interface DailyResult {

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES, CONSUMABLE_EFFECT_NAMES, VICTORY_FLOOR, CURSE_NAMES, CURSE_DESCRIPTIONS, getZoneTheme } from "@/game/config";
-import { initGame, processPlayerTurn, applyInventoryItem, dropItem, processShrine, continueEndless, MoveDirection, getAttunementAtkBonus } from "@/game/engine";
+import { initGame, processPlayerTurn, applyInventoryItem, dropItem, processShrine, continueEndless, MoveDirection, getAttunementAtkBonus, getAttunementDefBonus } from "@/game/engine";
 import { render, renderMinimap, renderFloatingTexts, renderHitEffects, FLOAT_DURATION, HIT_EFFECT_DURATION } from "@/game/renderer";
 import type { ActiveFloatingText, ActiveHitEffect } from "@/game/renderer";
 import type { GameState, GameMessage, PlayerInventory, RunStats, StatusEffect, GameEntity, DailyResult } from "@/game/config";
@@ -28,7 +28,7 @@ function getStatsFromState(state: GameState) {
     floor: state.floor,
     turns: state.turnCount,
     attack: state.player.attack + weaponAtk + getAttunementAtkBonus(state.voidAttunement),
-    defense: state.player.defense + armorDef,
+    defense: state.player.defense + armorDef + getAttunementDefBonus(state.voidAttunement),
     level: state.progression.level,
     xp: state.progression.xp,
     xpToNext: state.progression.xpToNext,
@@ -148,6 +148,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
   const [runStats, setRunStats] = useState<RunStats>(initializedState.runStats);
   const [statusEffects, setStatusEffects] = useState<StatusEffect[]>([]);
   const [voidAttunement, setVoidAttunement] = useState(0);
+  const [voidPhaseCooldown, setVoidPhaseCooldown] = useState(0);
   const [bossInfo, setBossInfo] = useState<GameEntity | null>(null);
   const [identified, setIdentified] = useState<Record<string, boolean>>(initializedState.identified);
   const [consumableAppearances, setConsumableAppearances] = useState<Record<string, string>>(initializedState.consumableAppearances);
@@ -223,6 +224,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
     setRunStats(state.runStats);
     setStatusEffects(state.statusEffects ?? []);
     setVoidAttunement(state.voidAttunement ?? 0);
+    setVoidPhaseCooldown(state.voidPhaseCooldown ?? 0);
     setIdentified(state.identified);
     setConsumableAppearances(state.consumableAppearances);
     setShrinePrompt(state.shrinePrompt ?? false);
@@ -748,23 +750,24 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
       {voidAttunement > 0 && (
         <div className="w-full max-w-[640px] mb-1 px-2">
           <div className="flex items-center gap-2 text-xs font-mono">
-            <span style={{ color: "#c084fc" }} className="font-bold">NULL</span>
+            <span style={{ color: voidAttunement >= 100 ? "#7c3aed" : "#c084fc" }} className="font-bold">NULL</span>
             <div className="relative flex-1 h-2 rounded-sm overflow-hidden" style={{ backgroundColor: "#1a1a2e" }}>
               <div
                 className="h-full rounded-sm transition-all duration-300"
                 style={{
                   width: `${voidAttunement}%`,
-                  backgroundColor: voidAttunement >= 50 ? "#a855f7" : voidAttunement >= 25 ? "#c084fc" : "#7c3aed",
+                  backgroundColor: voidAttunement >= 100 ? "#7c3aed" : voidAttunement >= 75 ? "#9333ea" : voidAttunement >= 50 ? "#a855f7" : voidAttunement >= 25 ? "#c084fc" : "#7c3aed",
                 }}
               />
               {/* Threshold markers */}
               <div className="absolute top-0 bottom-0 w-px" style={{ left: "25%", backgroundColor: "#4c1d95" }} />
               <div className="absolute top-0 bottom-0 w-px" style={{ left: "50%", backgroundColor: "#4c1d95" }} />
+              <div className="absolute top-0 bottom-0 w-px" style={{ left: "75%", backgroundColor: "#4c1d95" }} />
             </div>
             <span style={{ color: "var(--void-muted)" }}>{voidAttunement}/100</span>
           </div>
           {/* Active attunement effects */}
-          <div className="flex gap-3 mt-0.5 text-xs font-mono">
+          <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5 text-xs font-mono">
             {voidAttunement >= 25 && (
               <>
                 <span style={{ color: "#a855f7" }}>Void Sight (+2 FOV)</span>
@@ -775,6 +778,21 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
               <>
                 <span style={{ color: "#a855f7" }}>Void Strike (+{getAttunementAtkBonus(voidAttunement)} ATK)</span>
                 <span style={{ color: "#ef4444" }}>Weakened Healing (50%)</span>
+              </>
+            )}
+            {voidAttunement >= 75 && (
+              <>
+                <span style={{ color: "#a855f7" }}>
+                  Void Phase {voidPhaseCooldown === 0 ? "(Ready)" : `(${voidPhaseCooldown}t)`}
+                </span>
+                <span style={{ color: "#ef4444" }}>-25% Max HP</span>
+              </>
+            )}
+            {voidAttunement >= 100 && (
+              <>
+                <span style={{ color: "#7c3aed" }}>Void Mastery (+{getAttunementDefBonus(voidAttunement)} DEF)</span>
+                <span style={{ color: "#ef4444" }}>Void Aura (1 dmg/turn to enemies in FOV)</span>
+                <span style={{ color: "#ef4444" }}>Life Drain (-1 HP/turn)</span>
               </>
             )}
           </div>

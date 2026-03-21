@@ -108,8 +108,9 @@ function createRunStats(): RunStats {
   };
 }
 
-// Void Attunement helpers — prototype has 2 thresholds at 25% and 50%
+// Void Attunement helpers — 4 thresholds at 25%, 50%, 75%, 100%
 const ATTUNEMENT_FLOOR_GAIN = 5;  // +5 per floor descended
+const VOID_PHASE_COOLDOWN = 5;    // Void Phase: 1 wall-walk every 5 turns
 
 /** FOV radius bonus from Void Sight (attunement >= 25), reduced by zone modifier */
 function getAttunementFovRadius(attunement: number, floor: number = 1): number {
@@ -123,14 +124,32 @@ function getAttunementDetectBonus(attunement: number): number {
   return attunement >= 25 ? 3 : 0;
 }
 
-/** ATK bonus from Void Strike (attunement >= 50) */
+/** ATK bonus from Void Strike (attunement >= 50) + Void Mastery (attunement >= 100) */
 export function getAttunementAtkBonus(attunement: number): number {
-  return attunement >= 50 ? 3 : 0;
+  if (attunement >= 100) return 8; // +3 from Void Strike + +5 from Void Mastery
+  if (attunement >= 50) return 3;
+  return 0;
+}
+
+/** DEF bonus from Void Mastery (attunement >= 100) */
+export function getAttunementDefBonus(attunement: number): number {
+  return attunement >= 100 ? 3 : 0;
 }
 
 /** Healing multiplier from attunement curse (>= 50) */
 function getAttunementHealMultiplier(attunement: number): number {
   return attunement >= 50 ? 0.5 : 1.0;
+}
+
+/** Whether Void Phase wall-walking is available (attunement >= 75, cooldown 0) */
+export function isVoidPhaseReady(state: GameState): boolean {
+  return state.voidAttunement >= 75 && state.voidPhaseCooldown === 0;
+}
+
+/** Whether a tile is a wall that can be phase-walked through (WALL only, not VOID/map edges) */
+function canPhaseThrough(state: GameState, x: number, y: number): boolean {
+  if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_HEIGHT) return false;
+  return state.map[y][x] === TileType.WALL;
 }
 
 /** Get display name for a consumable based on identification state */
@@ -231,6 +250,7 @@ export function generateFloor(
     { text: `You descend to floor ${floor} — ${zone.name}.`, color: MSG_COLORS.INFO },
   ];
   const pendingFloats: FloatingText[] = [];
+  let maxHpWasReduced = false;
 
   // Zone transition message when entering a new zone
   if (prevZone && prevZone.name !== zone.name) {
@@ -259,6 +279,22 @@ export function generateFloor(
     if (prevAttunement < 50 && voidAttunement >= 50) {
       messages.push({ text: "Null Attunement 50%: Void energy surges through your strikes... but healing grows faint.", color: "#c084fc" });
       pendingFloats.push({ text: "VOID STRIKE", color: "#a855f7", x: player.pos.x, y: player.pos.y });
+    }
+    if (prevAttunement < 75 && voidAttunement >= 75) {
+      messages.push({ text: "Null Attunement 75%: You can phase through walls... but the void drains your vitality.", color: "#c084fc" });
+      pendingFloats.push({ text: "VOID PHASE", color: "#a855f7", x: player.pos.x, y: player.pos.y });
+      // Apply 25% max HP reduction (permanent for the rest of this run)
+      const reduction = Math.floor(player.maxHp * 0.25);
+      const newMaxHp = Math.max(5, player.maxHp - reduction);
+      player.hp = Math.min(player.hp, newMaxHp);
+      player.maxHp = newMaxHp;
+      maxHpWasReduced = true;
+      messages.push({ text: `The void saps your vitality! Max HP reduced by ${reduction}.`, color: "#ef4444" });
+      pendingFloats.push({ text: `-${reduction} MAX HP`, color: "#ef4444", x: player.pos.x, y: player.pos.y });
+    }
+    if (prevAttunement < 100 && voidAttunement >= 100) {
+      messages.push({ text: "Null Attunement 100%: VOID MASTERY — absolute power at the cost of your life force.", color: "#c084fc" });
+      pendingFloats.push({ text: "VOID MASTERY", color: "#7c3aed", x: player.pos.x, y: player.pos.y });
     }
   }
 
@@ -291,6 +327,9 @@ export function generateFloor(
     drainingAtkBonus: 0,  // Reset per floor (Draining curse grants +2 ATK per kill this floor)
     playerSlowed: false,   // Anti-Entropy curse: player skips next move
     pendingFloorTransition: floor > 1,  // Trigger fade-in on floor transitions (not on game start)
+    voidPhaseCooldown: 0,  // Void Phase (75%): ready immediately
+    voidPhaseUsedThisTurn: false,
+    maxHpReduced: maxHpWasReduced,  // Track if 75% HP reduction was applied
   };
 
   // Compute initial enemy intents so they display from turn 1
@@ -1460,8 +1499,10 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
   // Add strength potion bonus
   const strengthEffect = newState.statusEffects.find((e) => e.type === StatusEffectType.STRENGTH);
   if (strengthEffect) bonuses.attack += strengthEffect.value;
-  // Add Void Strike bonus (attunement >= 50)
+  // Add Void Strike bonus (attunement >= 50) + Void Mastery bonus (attunement >= 100)
   bonuses.attack += getAttunementAtkBonus(newState.voidAttunement);
+  // Add Void Mastery DEF bonus (attunement >= 100)
+  bonuses.defense += getAttunementDefBonus(newState.voidAttunement);
   // Add Draining curse accumulated ATK bonus
   bonuses.attack += newState.drainingAtkBonus;
   // ERRATIC curse: -2 ATK penalty (compensated by 25% chance 3x damage)
@@ -1637,6 +1678,14 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
         newState.turnCount++;
         return newState;
       }
+    } else if (canPhaseThrough(newState, newX, newY) && isVoidPhaseReady(newState)) {
+      // Void Phase (75% attunement): walk through a wall tile
+      newState.player = { ...newState.player, pos: { x: newX, y: newY } };
+      newState.voidPhaseCooldown = VOID_PHASE_COOLDOWN;
+      newState.voidPhaseUsedThisTurn = true;
+      newState.messages.push({ text: "You phase through solid stone!", color: "#c084fc" });
+      newState.pendingFloatingTexts.push({ text: "VOID PHASE", color: "#a855f7", x: newX, y: newY });
+      newState.pendingShake = Math.max(newState.pendingShake, 2);
     }
   }
 
@@ -1736,6 +1785,50 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       }
       return true;
     });
+
+  // Void Phase cooldown tick (75% attunement)
+  if (newState.voidPhaseCooldown > 0) {
+    newState.voidPhaseCooldown--;
+    if (newState.voidPhaseCooldown === 0 && newState.voidAttunement >= 75) {
+      newState.messages.push({ text: "Void Phase ready.", color: "#c084fc" });
+    }
+  }
+  newState.voidPhaseUsedThisTurn = false;
+
+  // Void Mastery (100% attunement): void aura damages all enemies in FOV
+  if (newState.voidAttunement >= 100) {
+    for (const enemy of newState.entities) {
+      if (enemy.hp <= 0 || enemy.friendly) continue;
+      if (newState.fov[enemy.pos.y]?.[enemy.pos.x]) {
+        enemy.hp -= 1;
+        newState.pendingFloatingTexts.push({ text: "-1", color: "#c084fc", x: enemy.pos.x, y: enemy.pos.y });
+        if (enemy.hp <= 0) {
+          newState.messages.push({ text: `${enemy.name} is consumed by your void aura!`, color: MSG_COLORS.KILL });
+          spawnSplitSlimes(newState, enemy);
+          newState.runStats.enemiesKilled++;
+          newState.runStats.damageDealt += 1;
+          awardXp(newState, enemy.xpReward ?? 5);
+          const loot = generateLootDrop(newState.floor, enemy.pos);
+          if (loot) {
+            newState.items.push(loot);
+            newState.messages.push({ text: `${enemy.name} dropped ${loot.item.name}!`, color: MSG_COLORS.LOOT });
+          }
+        }
+      }
+    }
+    newState.entities = newState.entities.filter((e) => e.hp > 0);
+  }
+
+  // Void Mastery (100% attunement): constant -1 HP drain per turn
+  if (newState.voidAttunement >= 100) {
+    newState.player = { ...newState.player, hp: newState.player.hp - 1 };
+    newState.pendingFloatingTexts.push({ text: "-1 HP", color: "#7c3aed", x: newState.player.pos.x, y: newState.player.pos.y });
+    if (newState.player.hp <= 0) {
+      newState.gameOver = true;
+      newState.runStats.killedBy = "Void Mastery";
+      newState.messages.push({ text: "The void consumes you from within...", color: MSG_COLORS.DEATH });
+    }
+  }
 
   // Update FOV (Void Sight at 25%+ attunement gives +2 radius)
   const fovRadius = getAttunementFovRadius(newState.voidAttunement, newState.floor);
@@ -2005,6 +2098,23 @@ export function processShrine(state: GameState, accept: boolean): GameState {
   if (prevAttunement < 50 && newState.voidAttunement >= 50) {
     newState.messages.push({ text: "Null Attunement 50%: Void energy surges through your strikes... but healing grows faint.", color: "#c084fc" });
     newState.pendingFloatingTexts.push({ text: "VOID STRIKE", color: "#a855f7", x: newState.player.pos.x, y: newState.player.pos.y });
+  }
+  if (prevAttunement < 75 && newState.voidAttunement >= 75) {
+    newState.messages.push({ text: "Null Attunement 75%: You can phase through walls... but the void drains your vitality.", color: "#c084fc" });
+    newState.pendingFloatingTexts.push({ text: "VOID PHASE", color: "#a855f7", x: newState.player.pos.x, y: newState.player.pos.y });
+    // Apply 25% max HP reduction (permanent for the rest of this run)
+    if (!newState.maxHpReduced) {
+      const reduction = Math.floor(newState.player.maxHp * 0.25);
+      const newMaxHp = Math.max(5, newState.player.maxHp - reduction);
+      newState.player = { ...newState.player, maxHp: newMaxHp, hp: Math.min(newState.player.hp, newMaxHp) };
+      newState.maxHpReduced = true;
+      newState.messages.push({ text: `The void saps your vitality! Max HP reduced by ${reduction}.`, color: "#ef4444" });
+      newState.pendingFloatingTexts.push({ text: `-${reduction} MAX HP`, color: "#ef4444", x: newState.player.pos.x, y: newState.player.pos.y });
+    }
+  }
+  if (prevAttunement < 100 && newState.voidAttunement >= 100) {
+    newState.messages.push({ text: "Null Attunement 100%: VOID MASTERY — absolute power at the cost of your life force.", color: "#c084fc" });
+    newState.pendingFloatingTexts.push({ text: "VOID MASTERY", color: "#7c3aed", x: newState.player.pos.x, y: newState.player.pos.y });
   }
 
   // PARANOID curse: shrines always give negative effects

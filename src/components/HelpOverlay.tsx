@@ -247,6 +247,16 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
               <span style={{ color: "#22c55e" }}> +3 ATK</span> /
               <span style={{ color: "#ef4444" }}> healing potions 50% less effective</span>
             </div>
+            <div>
+              <span style={{ color: "#a855f7" }}>75% — Void Phase:</span>
+              <span style={{ color: "#22c55e" }}> walk through walls (1 use per 5 turns)</span> /
+              <span style={{ color: "#ef4444" }}> max HP permanently reduced by 25%</span>
+            </div>
+            <div>
+              <span style={{ color: "#7c3aed" }}>100% — Void Mastery:</span>
+              <span style={{ color: "#22c55e" }}> +5 ATK, +3 DEF, void aura (1 dmg/turn to enemies in FOV)</span> /
+              <span style={{ color: "#ef4444" }}> constant -1 HP drain per turn</span>
+            </div>
           </div>
         </Section>
 

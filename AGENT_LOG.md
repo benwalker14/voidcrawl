@@ -1,5 +1,17 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-20 19:55 | developer | Void Attunement full 4-threshold expansion (75% Void Phase + 100% Void Mastery)
+- **75% — Void Phase:** Player can walk through wall tiles (not void/map edges). 5-turn cooldown between uses that auto-recharges. "Phase Ready" / cooldown indicator displayed in HUD. When used: "You phase through solid stone!" message + VOID PHASE floating text + light screen shake
+- **75% Penalty — Max HP reduction:** Crossing 75% permanently reduces max HP by 25% (rounded down, minimum 5). Applies on both floor descent and shrine threshold crossings. Tracked via `maxHpReduced` flag to prevent double-application
+- **100% — Void Mastery:** +5 ATK (total +8 with Void Strike), +3 DEF. Void aura deals 1 damage per turn to all enemies in player's FOV (can kill enemies, awards XP and loot). Final-form god mode
+- **100% Penalty — Life Drain:** Constant -1 HP drain per turn (unstoppable, not mitigated by armor or regen). Death by drain shows "The void consumes you from within..." and credits "Void Mastery" as cause of death
+- **State additions:** Added `voidPhaseCooldown`, `voidPhaseUsedThisTurn`, `maxHpReduced` to GameState in config.ts. Added `canPhaseThrough()`, `isVoidPhaseReady()`, `getAttunementDefBonus()` helpers in engine.ts
+- **HUD updates:** Attunement meter bar color progresses through 4 shades (purple gradient). Added 75% threshold marker. New effect labels for Void Phase (with cooldown timer), -25% Max HP, Void Mastery (+DEF), Void Aura, Life Drain. DEF stat in HUD now includes Void Mastery bonus. Flex-wrap on effect labels to handle 4 thresholds
+- **Help overlay:** Updated Null Attunement section with full 4-threshold documentation
+- **Threshold notifications:** Both floor descent and shrine crossing trigger appropriate messages and floating text for all 4 thresholds
+- Lint and build both pass clean
+- No money spent
+
 ### 2026-03-20 19:50 | strategist | Game Design Research — run variety, attunement expansion, endgame systems
 
 **Analysis type:** A. Game Design Research (second pass — focused on run variety, signature mechanic expansion, meta-progression, and competitive positioning)
