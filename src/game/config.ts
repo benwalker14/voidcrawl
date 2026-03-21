@@ -83,6 +83,21 @@ export enum RunicEffect {
   THORNED = "thorned",         // Deal 1 damage to melee attackers
 }
 
+// Human-readable names for consumable effects (used in identification system)
+export const CONSUMABLE_EFFECT_NAMES: Record<ConsumableEffect, string> = {
+  [ConsumableEffect.HEAL]: "Healing",
+  [ConsumableEffect.HASTE]: "Haste",
+  [ConsumableEffect.INVISIBILITY]: "Invisibility",
+  [ConsumableEffect.TELEPORT]: "Teleport",
+  [ConsumableEffect.FIRE]: "Fire",
+  [ConsumableEffect.POISON]: "Poison",
+  [ConsumableEffect.STRENGTH]: "Strength",
+  [ConsumableEffect.MAGIC_MAPPING]: "Mapping",
+  [ConsumableEffect.ENCHANT]: "Enchanting",
+  [ConsumableEffect.FEAR]: "Fear",
+  [ConsumableEffect.SUMMON]: "Summoning",
+};
+
 export const WEAPON_RUNICS = [RunicEffect.VAMPIRIC, RunicEffect.FLAMING, RunicEffect.STUNNING, RunicEffect.VORPAL];
 export const ARMOR_RUNICS = [RunicEffect.REFLECTIVE, RunicEffect.REGENERATING, RunicEffect.THORNED];
 
@@ -250,4 +265,6 @@ export interface GameState {
   runStats: RunStats;
   statusEffects: StatusEffect[];
   pendingFloatingTexts: FloatingText[];
+  identified: Record<string, boolean>;           // ConsumableEffect -> whether identified this run
+  consumableAppearances: Record<string, string>;  // ConsumableEffect -> randomized appearance descriptor
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES } from "@/game/config";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES, CONSUMABLE_EFFECT_NAMES } from "@/game/config";
 import { initGame, processPlayerTurn, applyInventoryItem, MoveDirection } from "@/game/engine";
 import { render, renderFloatingTexts, FLOAT_DURATION } from "@/game/renderer";
 import type { ActiveFloatingText } from "@/game/renderer";
@@ -55,6 +55,8 @@ export default function GameCanvas() {
   const [runStats, setRunStats] = useState<RunStats>(initialState.runStats);
   const [statusEffects, setStatusEffects] = useState<StatusEffect[]>([]);
   const [bossInfo, setBossInfo] = useState<GameEntity | null>(null);
+  const [identified, setIdentified] = useState<Record<string, boolean>>(initialState.identified);
+  const [consumableAppearances, setConsumableAppearances] = useState<Record<string, string>>(initialState.consumableAppearances);
   const [showHelp, setShowHelp] = useState(false);
   const showHelpRef = useRef(false);
   const [showPause, setShowPause] = useState(false);
@@ -77,6 +79,8 @@ export default function GameCanvas() {
     setInventory(getInventoryFromState(state));
     setRunStats(state.runStats);
     setStatusEffects(state.statusEffects ?? []);
+    setIdentified(state.identified);
+    setConsumableAppearances(state.consumableAppearances);
     const boss = state.entities.find((e) => e.isBoss && e.hp > 0);
     setBossInfo(boss ?? null);
     if (state.messages.length > 0) {
@@ -230,6 +234,8 @@ export default function GameCanvas() {
     }
     setGameOver(false);
     setStatusEffects([]);
+    setIdentified(state.identified);
+    setConsumableAppearances(state.consumableAppearances);
     setInventory({ items: [], equippedWeapon: null, equippedArmor: null });
     setMessages([{ text: "A new journey begins...", color: "#e2e8f0" }]);
     updateUI(state);
@@ -413,22 +419,34 @@ export default function GameCanvas() {
         >
           <div style={{ color: "var(--void-cyan)" }} className="mb-1">Inventory ({inventory.items.length}/8) — press number to use:</div>
           <div className="flex flex-wrap gap-x-4 gap-y-0.5">
-            {inventory.items.map((item, i) => (
-              <span key={item.id}>
-                <span style={{ color: "var(--void-muted)" }}>{i + 1}.</span>{" "}
-                <span style={{ color: item.color }}>{item.name}</span>
-                <span style={{ color: "var(--void-muted)" }}>
-                  {item.attack != null ? ` (+${item.attack} ATK)` : ""}
-                  {item.defense != null ? ` (+${item.defense} DEF)` : ""}
-                  {item.healAmount && item.healAmount > 0 ? ` (+${item.healAmount} HP)` : ""}
-                  {item.category === "potion" && !item.healAmount ? ` [${item.description}]` : ""}
-                  {item.category === "scroll" ? ` [${item.description}]` : ""}
+            {inventory.items.map((item, i) => {
+              const isConsumable = item.category === "potion" || item.category === "scroll";
+              const isIdent = item.effect ? identified[item.effect] ?? false : true;
+              const appearance = item.effect ? consumableAppearances[item.effect] : undefined;
+              const typeLabel = item.category === "potion" ? "Potion" : item.category === "scroll" ? "Scroll" : "";
+              // Build display name for consumables
+              const itemDisplayName = isConsumable && appearance
+                ? isIdent
+                  ? `${appearance} ${typeLabel} (${CONSUMABLE_EFFECT_NAMES[item.effect!]})`
+                  : `${appearance} ${typeLabel} (?)`
+                : item.name;
+              return (
+                <span key={item.id}>
+                  <span style={{ color: "var(--void-muted)" }}>{i + 1}.</span>{" "}
+                  <span style={{ color: item.color }}>{itemDisplayName}</span>
+                  <span style={{ color: "var(--void-muted)" }}>
+                    {item.attack != null ? ` (+${item.attack} ATK)` : ""}
+                    {item.defense != null ? ` (+${item.defense} DEF)` : ""}
+                    {isConsumable && isIdent && item.healAmount && item.healAmount > 0 ? ` (+${item.healAmount} HP)` : ""}
+                    {isConsumable && isIdent && item.category === "potion" && !item.healAmount ? ` [${item.description}]` : ""}
+                    {isConsumable && isIdent && item.category === "scroll" ? ` [${item.description}]` : ""}
+                  </span>
+                  {item.runic && (
+                    <span style={{ color: "#c084fc" }}> [{RUNIC_NAMES[item.runic]}]</span>
+                  )}
                 </span>
-                {item.runic && (
-                  <span style={{ color: "#c084fc" }}> [{RUNIC_NAMES[item.runic]}]</span>
-                )}
-              </span>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

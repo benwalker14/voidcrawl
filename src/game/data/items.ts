@@ -2,6 +2,61 @@ import { Item, ItemCategory, ItemRarity, ConsumableEffect, RARITY_COLORS, Ground
 
 let nextItemId = 0;
 
+// Randomized cosmetic descriptors for potions (12 descriptors for 7 potion effects)
+const POTION_APPEARANCES = [
+  "Fizzing", "Crimson", "Murky", "Glowing", "Swirling", "Iridescent",
+  "Bubbling", "Pale", "Dark", "Viscous", "Sparkling", "Smoky",
+];
+
+// Randomized cosmetic descriptors for scrolls (12 descriptors for 4 scroll effects)
+const SCROLL_APPEARANCES = [
+  "Tattered", "Gilded", "Charred", "Faded", "Ornate", "Crumpled",
+  "Ancient", "Bloodstained", "Shimmering", "Dusty", "Sealed", "Fragile",
+];
+
+const POTION_EFFECTS: ConsumableEffect[] = [
+  ConsumableEffect.HEAL, ConsumableEffect.HASTE, ConsumableEffect.INVISIBILITY,
+  ConsumableEffect.TELEPORT, ConsumableEffect.FIRE, ConsumableEffect.POISON,
+  ConsumableEffect.STRENGTH,
+];
+
+const SCROLL_EFFECTS: ConsumableEffect[] = [
+  ConsumableEffect.MAGIC_MAPPING, ConsumableEffect.ENCHANT,
+  ConsumableEffect.FEAR, ConsumableEffect.SUMMON,
+];
+
+function shuffleArray<T>(arr: T[]): T[] {
+  const result = [...arr];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+/** Create randomized per-run mapping of ConsumableEffect -> appearance descriptor */
+export function initConsumableAppearances(): Record<string, string> {
+  const shuffledPotions = shuffleArray(POTION_APPEARANCES);
+  const shuffledScrolls = shuffleArray(SCROLL_APPEARANCES);
+  const appearances: Record<string, string> = {};
+  POTION_EFFECTS.forEach((effect, i) => {
+    appearances[effect] = shuffledPotions[i];
+  });
+  SCROLL_EFFECTS.forEach((effect, i) => {
+    appearances[effect] = shuffledScrolls[i];
+  });
+  return appearances;
+}
+
+/** Create initial identification state — all consumable effects start unidentified */
+export function initIdentified(): Record<string, boolean> {
+  const identified: Record<string, boolean> = {};
+  for (const effect of [...POTION_EFFECTS, ...SCROLL_EFFECTS]) {
+    identified[effect] = false;
+  }
+  return identified;
+}
+
 interface ItemTemplate {
   name: string;
   category: ItemCategory;

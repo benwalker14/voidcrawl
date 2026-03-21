@@ -302,3 +302,16 @@
 - Full research output saved to `.planning/research/GROWTH_SEO_RESEARCH.md` (770 lines) and `.planning/research/SEO_TECHNICAL_RESEARCH.md` (910 lines)
 - **Growth strategy priority order:** (1) Technical SEO foundation → (2) Shareable death screen → (3) itch.io + RogueBasin pages → (4) Reddit community seeding → (5) Hacker News launch → (6) Daily challenge mode → (7) Platform expansion
 - No money spent
+
+### 2026-03-20 16:00 | developer | Unidentified consumables system
+- Added per-run randomized consumable identification system (NetHack/Shattered PD inspired)
+- 12 potion appearance descriptors (Fizzing, Crimson, Murky, Glowing, Swirling, Iridescent, Bubbling, Pale, Dark, Viscous, Sparkling, Smoky)
+- 12 scroll appearance descriptors (Tattered, Gilded, Charred, Faded, Ornate, Crumpled, Ancient, Bloodstained, Shimmering, Dusty, Sealed, Fragile)
+- 7 potion effects + 4 scroll effects (11 total) start unidentified each run, randomized to appearance names
+- First successful use identifies the effect for the rest of the run, with discovery message
+- Inventory displays "Fizzing Potion (?)" until identified, then "Fizzing Potion (Haste)"
+- Pickup messages show randomized appearance names
+- Identification state persists across floor transitions
+- Help overlay updated to explain the identification mechanic
+- Files modified: config.ts, data/items.ts, engine.ts, GameCanvas.tsx, HelpOverlay.tsx
+- Lint and build both pass clean

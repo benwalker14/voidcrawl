@@ -22,11 +22,12 @@ import {
   SpecialAbility,
   RunicEffect,
   MSG_COLORS,
+  CONSUMABLE_EFFECT_NAMES,
 } from "./config";
 import { generateDungeon } from "./generation/dungeon";
 import { spawnEnemies, spawnBoss, spawnBossAdd } from "./generation/enemies";
 import { computeFov } from "./generation/fov";
-import { generateLootDrop, generateBossLoot } from "./data/items";
+import { generateLootDrop, generateBossLoot, initConsumableAppearances, initIdentified } from "./data/items";
 import { findPath, findFleeStep } from "./pathfinding";
 
 function createPlayer(pos: Position): GameEntity {
@@ -98,6 +99,23 @@ function createRunStats(): RunStats {
   };
 }
 
+/** Get display name for a consumable based on identification state */
+export function getConsumableDisplayName(state: GameState, item: Item): string {
+  if (!item.effect) return item.name;
+  if (item.category !== ItemCategory.POTION && item.category !== ItemCategory.SCROLL) return item.name;
+
+  const appearance = state.consumableAppearances[item.effect];
+  if (!appearance) return item.name;
+
+  const typeLabel = item.category === ItemCategory.POTION ? "Potion" : "Scroll";
+  const isIdentified = state.identified[item.effect] ?? false;
+
+  if (isIdentified) {
+    return `${appearance} ${typeLabel} (${CONSUMABLE_EFFECT_NAMES[item.effect]})`;
+  }
+  return `${appearance} ${typeLabel}`;
+}
+
 export function initGame(): GameState {
   return generateFloor(1, null, null, null, null);
 }
@@ -109,6 +127,8 @@ export function generateFloor(
   prevProgression: PlayerProgression | null,
   prevRunStats: RunStats | null,
   prevStatusEffects: StatusEffect[] | null = null,
+  prevIdentified: Record<string, boolean> | null = null,
+  prevAppearances: Record<string, string> | null = null,
 ): GameState {
   const dungeon = generateDungeon(floor);
 
@@ -170,6 +190,8 @@ export function generateFloor(
     runStats,
     statusEffects: prevStatusEffects ?? [],
     pendingFloatingTexts: [],
+    identified: prevIdentified ?? initIdentified(),
+    consumableAppearances: prevAppearances ?? initConsumableAppearances(),
   };
 }
 
@@ -319,7 +341,9 @@ function pickupItem(state: GameState): void {
       return;
     }
     state.inventory.items.push(item);
-    state.messages.push({ text: `Picked up ${item.name}.`, color: MSG_COLORS.LOOT });
+    const displayName = getConsumableDisplayName(state, item);
+    const unknownHint = (item.effect && !state.identified[item.effect]) ? " (?)" : "";
+    state.messages.push({ text: `Picked up ${displayName}${unknownHint}.`, color: MSG_COLORS.LOOT });
   }
 
   // Remove from ground and track the pickup
@@ -361,6 +385,7 @@ let nextSummonId = 0;
 
 function applyConsumableEffect(state: GameState, item: Item): boolean {
   const effect = item.effect ?? ConsumableEffect.HEAL;
+  const displayName = getConsumableDisplayName(state, item);
 
   switch (effect) {
     case ConsumableEffect.HEAL: {
@@ -370,7 +395,7 @@ function applyConsumableEffect(state: GameState, item: Item): boolean {
       }
       const healed = Math.min(item.healAmount ?? 0, state.player.maxHp - state.player.hp);
       state.player = { ...state.player, hp: state.player.hp + healed };
-      state.messages.push({ text: `Used ${item.name}. Restored ${healed} HP.`, color: MSG_COLORS.HEAL });
+      state.messages.push({ text: `Used ${displayName}. Restored ${healed} HP.`, color: MSG_COLORS.HEAL });
       state.pendingFloatingTexts.push({ text: `+${healed} HP`, color: MSG_COLORS.HEAL, x: state.player.pos.x, y: state.player.pos.y });
       return true;
     }
@@ -378,7 +403,7 @@ function applyConsumableEffect(state: GameState, item: Item): boolean {
     case ConsumableEffect.HASTE: {
       const turns = item.effectValue ?? 8;
       addStatusEffect(state, StatusEffectType.HASTE, turns);
-      state.messages.push({ text: `Used ${item.name}. You feel incredibly fast! (${turns} turns)`, color: MSG_COLORS.HEAL });
+      state.messages.push({ text: `Used ${displayName}. You feel incredibly fast! (${turns} turns)`, color: MSG_COLORS.HEAL });
       state.pendingFloatingTexts.push({ text: "HASTE", color: "#22c55e", x: state.player.pos.x, y: state.player.pos.y });
       return true;
     }
@@ -386,7 +411,7 @@ function applyConsumableEffect(state: GameState, item: Item): boolean {
     case ConsumableEffect.INVISIBILITY: {
       const turns = item.effectValue ?? 10;
       addStatusEffect(state, StatusEffectType.INVISIBLE, turns);
-      state.messages.push({ text: `Used ${item.name}. You fade from sight! (${turns} turns)`, color: MSG_COLORS.HEAL });
+      state.messages.push({ text: `Used ${displayName}. You fade from sight! (${turns} turns)`, color: MSG_COLORS.HEAL });
       state.pendingFloatingTexts.push({ text: "INVISIBLE", color: "#a78bfa", x: state.player.pos.x, y: state.player.pos.y });
       return true;
     }
@@ -398,7 +423,7 @@ function applyConsumableEffect(state: GameState, item: Item): boolean {
         return false;
       }
       state.player = { ...state.player, pos: { ...dest } };
-      state.messages.push({ text: `Used ${item.name}. You teleport to a new location!`, color: MSG_COLORS.INFO });
+      state.messages.push({ text: `Used ${displayName}. You teleport to a new location!`, color: MSG_COLORS.INFO });
       state.pendingFloatingTexts.push({ text: "TELEPORT", color: "#06b6d4", x: dest.x, y: dest.y });
       // Update FOV immediately
       state.fov = computeFov(state.map, state.player.pos.x, state.player.pos.y);
@@ -431,7 +456,7 @@ function applyConsumableEffect(state: GameState, item: Item): boolean {
       }
       state.entities = state.entities.filter((e) => e.hp > 0 || e.friendly);
       state.runStats.damageDealt += damage * hitCount;
-      state.messages.push({ text: `Used ${item.name}. Flames engulf ${hitCount} nearby ${hitCount === 1 ? "enemy" : "enemies"}!`, color: MSG_COLORS.PLAYER_ATK });
+      state.messages.push({ text: `Used ${displayName}. Flames engulf ${hitCount} nearby ${hitCount === 1 ? "enemy" : "enemies"}!`, color: MSG_COLORS.PLAYER_ATK });
       state.pendingFloatingTexts.push({ text: "FIRE", color: "#f97316", x: state.player.pos.x, y: state.player.pos.y });
       return true;
     }
@@ -448,14 +473,14 @@ function applyConsumableEffect(state: GameState, item: Item): boolean {
           state.pendingFloatingTexts.push({ text: "POISON", color: "#22c55e", x: enemy.pos.x, y: enemy.pos.y });
         }
       }
-      state.messages.push({ text: `Used ${item.name}. Poisoned ${hitCount} nearby ${hitCount === 1 ? "enemy" : "enemies"} for ${turns} turns!`, color: MSG_COLORS.HEAL });
+      state.messages.push({ text: `Used ${displayName}. Poisoned ${hitCount} nearby ${hitCount === 1 ? "enemy" : "enemies"} for ${turns} turns!`, color: MSG_COLORS.HEAL });
       return true;
     }
 
     case ConsumableEffect.STRENGTH: {
       const turns = item.effectValue ?? 10;
       addStatusEffect(state, StatusEffectType.STRENGTH, turns, 3);
-      state.messages.push({ text: `Used ${item.name}. Your attacks grow powerful! (+3 ATK for ${turns} turns)`, color: MSG_COLORS.HEAL });
+      state.messages.push({ text: `Used ${displayName}. Your attacks grow powerful! (+3 ATK for ${turns} turns)`, color: MSG_COLORS.HEAL });
       state.pendingFloatingTexts.push({ text: "+3 ATK", color: "#f97316", x: state.player.pos.x, y: state.player.pos.y });
       return true;
     }
@@ -469,7 +494,7 @@ function applyConsumableEffect(state: GameState, item: Item): boolean {
           }
         }
       }
-      state.messages.push({ text: `Used ${item.name}. The entire floor is revealed!`, color: MSG_COLORS.INFO });
+      state.messages.push({ text: `Used ${displayName}. The entire floor is revealed!`, color: MSG_COLORS.INFO });
       state.pendingFloatingTexts.push({ text: "MAPPED", color: "#06b6d4", x: state.player.pos.x, y: state.player.pos.y });
       return true;
     }
@@ -482,17 +507,17 @@ function applyConsumableEffect(state: GameState, item: Item): boolean {
         // Enchant whichever has lower stats
         if ((weapon.attack ?? 0) <= (armor.defense ?? 0)) {
           state.inventory.equippedWeapon = { ...weapon, attack: (weapon.attack ?? 0) + bonus };
-          state.messages.push({ text: `Used ${item.name}. ${weapon.name} glows with power! (+${bonus} ATK)`, color: MSG_COLORS.EQUIP });
+          state.messages.push({ text: `Used ${displayName}. ${weapon.name} glows with power! (+${bonus} ATK)`, color: MSG_COLORS.EQUIP });
         } else {
           state.inventory.equippedArmor = { ...armor, defense: (armor.defense ?? 0) + bonus };
-          state.messages.push({ text: `Used ${item.name}. ${armor.name} hardens! (+${bonus} DEF)`, color: MSG_COLORS.EQUIP });
+          state.messages.push({ text: `Used ${displayName}. ${armor.name} hardens! (+${bonus} DEF)`, color: MSG_COLORS.EQUIP });
         }
       } else if (weapon) {
         state.inventory.equippedWeapon = { ...weapon, attack: (weapon.attack ?? 0) + bonus };
-        state.messages.push({ text: `Used ${item.name}. ${weapon.name} glows with power! (+${bonus} ATK)`, color: MSG_COLORS.EQUIP });
+        state.messages.push({ text: `Used ${displayName}. ${weapon.name} glows with power! (+${bonus} ATK)`, color: MSG_COLORS.EQUIP });
       } else if (armor) {
         state.inventory.equippedArmor = { ...armor, defense: (armor.defense ?? 0) + bonus };
-        state.messages.push({ text: `Used ${item.name}. ${armor.name} hardens! (+${bonus} DEF)`, color: MSG_COLORS.EQUIP });
+        state.messages.push({ text: `Used ${displayName}. ${armor.name} hardens! (+${bonus} DEF)`, color: MSG_COLORS.EQUIP });
       } else {
         state.messages.push({ text: "You have nothing equipped to enchant.", color: MSG_COLORS.WARNING });
         return false;
@@ -511,7 +536,7 @@ function applyConsumableEffect(state: GameState, item: Item): boolean {
           hitCount++;
         }
       }
-      state.messages.push({ text: `Used ${item.name}. ${hitCount} ${hitCount === 1 ? "enemy flees" : "enemies flee"} in terror!`, color: MSG_COLORS.INFO });
+      state.messages.push({ text: `Used ${displayName}. ${hitCount} ${hitCount === 1 ? "enemy flees" : "enemies flee"} in terror!`, color: MSG_COLORS.INFO });
       state.pendingFloatingTexts.push({ text: "FEAR", color: "#eab308", x: state.player.pos.x, y: state.player.pos.y });
       return true;
     }
@@ -554,7 +579,7 @@ function applyConsumableEffect(state: GameState, item: Item): boolean {
         summonTurns: turns,
       };
       state.entities.push(summon);
-      state.messages.push({ text: `Used ${item.name}. A Void Spirit materializes to fight for you! (${turns} turns)`, color: MSG_COLORS.LOOT });
+      state.messages.push({ text: `Used ${displayName}. A Void Spirit materializes to fight for you! (${turns} turns)`, color: MSG_COLORS.LOOT });
       state.pendingFloatingTexts.push({ text: "SUMMONED", color: "#06b6d4", x: spawnPos.x, y: spawnPos.y });
       return true;
     }
@@ -577,9 +602,21 @@ export function applyInventoryItem(state: GameState, index: number): GameState {
   const item = newState.inventory.items[index];
 
   if (item.category === ItemCategory.POTION || item.category === ItemCategory.SCROLL) {
+    const wasIdentified = item.effect ? newState.identified[item.effect] ?? false : true;
     const consumed = applyConsumableEffect(newState, item);
     if (consumed) {
       newState.inventory.items.splice(index, 1);
+      // Identify the effect on first successful use
+      if (item.effect && !wasIdentified) {
+        newState.identified = { ...newState.identified, [item.effect]: true };
+        const effectName = CONSUMABLE_EFFECT_NAMES[item.effect];
+        const appearance = newState.consumableAppearances[item.effect] ?? "";
+        const typeLabel = item.category === ItemCategory.POTION ? "Potions" : "Scrolls";
+        newState.messages.push({
+          text: `You identify it! ${appearance} ${typeLabel} are ${effectName}!`,
+          color: MSG_COLORS.LOOT,
+        });
+      }
     }
   } else if (item.category === ItemCategory.WEAPON) {
     const old = newState.inventory.equippedWeapon;
@@ -1174,7 +1211,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       pickupItem(newState);
       if (newState.map[newY][newX] === TileType.STAIRS_DOWN) {
         newState.messages.push({ text: "You descend deeper into the void...", color: MSG_COLORS.INFO });
-        return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression, newState.runStats, newState.statusEffects);
+        return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression, newState.runStats, newState.statusEffects, newState.identified, newState.consumableAppearances);
       }
     } else if (!isBlocked(newState, newX, newY)) {
       newState.player = { ...newState.player, pos: { x: newX, y: newY } };
@@ -1185,7 +1222,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       // Check for stairs
       if (newState.map[newY][newX] === TileType.STAIRS_DOWN) {
         newState.messages.push({ text: "You descend deeper into the void...", color: MSG_COLORS.INFO });
-        return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression, newState.runStats, newState.statusEffects);
+        return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression, newState.runStats, newState.statusEffects, newState.identified, newState.consumableAppearances);
       }
     }
   }

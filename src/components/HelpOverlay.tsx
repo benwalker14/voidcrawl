@@ -75,6 +75,9 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
             <Hl>Items:</Hl> Walk over items to auto-pickup. Better weapons/armor auto-equip. Potions and scrolls go to inventory — press 1-8 to use.
           </p>
           <p className="mb-1">
+            <Hl>Identification:</Hl> Potions and scrolls have randomized appearances each run. Their true effect is unknown until you use one — then all items of that type are identified for the rest of the run.
+          </p>
+          <p className="mb-1">
             <Hl>Leveling:</Hl> Kill enemies for XP. Each level grants +5 max HP, +1 ATK, +1 DEF and a full heal.
           </p>
           <p className="mb-1">
