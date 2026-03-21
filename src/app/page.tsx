@@ -56,6 +56,18 @@ export default function Home() {
             <div>Unlock heroes and discover items</div>
           </div>
         </div>
+
+        <div className="mt-12 max-w-lg text-sm leading-relaxed" style={{ color: 'var(--void-muted)' }}>
+          <h2 className="font-bold mb-2" style={{ color: 'var(--void-text)' }}>What is Voidcrawl?</h2>
+          <p>
+            Voidcrawl is a free turn-based roguelike dungeon crawler you can play directly
+            in your browser &mdash; no download required. Explore procedurally generated
+            dungeons filled with unique enemies, runic weapons, unidentified potions, and
+            boss encounters. Every run is different thanks to procedural generation, and
+            permadeath means every decision matters. Challenge yourself with the daily seeded
+            dungeon where all players face the same void.
+          </p>
+        </div>
       </div>
     </div>
   );

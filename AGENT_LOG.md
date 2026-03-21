@@ -411,3 +411,9 @@
 - Using `https://voidcrawl.vercel.app` as base URL — update when custom domain is configured
 - Note: og:image not yet set (needs dynamic OG image generation — separate task)
 - Build and lint pass clean
+
+### 2026-03-20 23:40 | developer | SEO landing page text
+- Added "What is Voidcrawl?" section below the feature grid on landing page
+- Natural keyword usage: "free turn-based roguelike", "dungeon crawler", "browser", "no download required", "procedural generation", "permadeath", "daily seeded dungeon"
+- Styled consistently with existing landing page (void-muted text, void-text heading)
+- Build and lint pass clean
