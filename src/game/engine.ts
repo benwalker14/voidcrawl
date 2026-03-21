@@ -18,6 +18,7 @@ import {
   PlayerProgression,
   RunStats,
   FloatingText,
+  HitEffect,
   MAX_INVENTORY_SIZE,
   AIBehavior,
   SpecialAbility,
@@ -205,6 +206,7 @@ export function generateFloor(
     runStats,
     statusEffects: prevStatusEffects ?? [],
     pendingFloatingTexts: [],
+    pendingHitEffects: [],
     identified: prevIdentified ?? initIdentified(),
     consumableAppearances: prevAppearances ?? initConsumableAppearances(),
     gameMode: mode,
@@ -231,6 +233,7 @@ function combat(
   defenseBonus: number = 0,
   floatingTexts?: FloatingText[],
   damageMultiplier: number = 1,
+  hitEffects?: HitEffect[],
 ): { killed: boolean; damage: number; dodged: boolean } {
   const isPlayerAttacking = attacker.type === EntityType.PLAYER;
 
@@ -264,6 +267,16 @@ function combat(
     text: `${attacker.name} hits ${defender.name} for ${damage} damage!`,
     color: isPlayerAttacking ? MSG_COLORS.PLAYER_ATK : MSG_COLORS.ENEMY_ATK,
   });
+
+  // Hit effect: flash + impact burst on the defender
+  if (hitEffects) {
+    hitEffects.push({
+      x: defender.pos.x,
+      y: defender.pos.y,
+      color: isPlayerAttacking ? MSG_COLORS.PLAYER_ATK : MSG_COLORS.ENEMY_ATK,
+      isPlayerAttack: isPlayerAttacking,
+    });
+  }
 
   // LIFE_DRAIN ability: attacker heals 50% of damage dealt
   if (attacker.specialAbility === SpecialAbility.LIFE_DRAIN) {
@@ -615,6 +628,7 @@ export function applyInventoryItem(state: GameState, index: number): GameState {
     inventory: { ...state.inventory, items: [...state.inventory.items] },
     statusEffects: [...state.statusEffects],
     pendingFloatingTexts: [] as FloatingText[],
+    pendingHitEffects: [] as HitEffect[],
   };
   const item = newState.inventory.items[index];
 
@@ -740,6 +754,7 @@ function processBossAI(state: GameState): void {
           state.runStats.damageTaken += dmg;
           state.messages.push({ text: `The Void Nucleus discharges! You take ${dmg} damage!`, color: MSG_COLORS.ENEMY_ATK });
           state.pendingFloatingTexts.push({ text: `-${dmg}`, color: MSG_COLORS.ENEMY_ATK, x: px, y: py });
+          state.pendingHitEffects.push({ x: px, y: py, color: MSG_COLORS.ENEMY_ATK, isPlayerAttack: false });
           if (state.player.hp <= 0) {
             state.gameOver = true;
             state.runStats.killedBy = "Void Nucleus";
@@ -833,7 +848,7 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
 
     // Adjacent — always attack regardless of behavior
     if (dist === 1) {
-      const result = combat(enemy, state.player, state.messages, 0, playerDefenseBonus, state.pendingFloatingTexts);
+      const result = combat(enemy, state.player, state.messages, 0, playerDefenseBonus, state.pendingFloatingTexts, 1, state.pendingHitEffects);
       state.runStats.damageTaken += result.damage;
       if (!result.dodged) {
         state.pendingFloatingTexts.push({
@@ -1011,7 +1026,7 @@ function moveFriendlies(state: GameState) {
 
     // Adjacent to enemy — attack
     if (nearestDist === 1) {
-      const result = combat(ally, nearestEnemy, state.messages, 0, 0, state.pendingFloatingTexts);
+      const result = combat(ally, nearestEnemy, state.messages, 0, 0, state.pendingFloatingTexts, 1, state.pendingHitEffects);
       state.runStats.damageDealt += result.damage;
       if (!result.dodged) {
         state.pendingFloatingTexts.push({ text: `-${result.damage}`, color: "#06b6d4", x: nearestEnemy.pos.x, y: nearestEnemy.pos.y });
@@ -1108,6 +1123,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
     runStats: { ...state.runStats },
     statusEffects: state.statusEffects.map((e) => ({ ...e })),
     pendingFloatingTexts: [] as FloatingText[],
+    pendingHitEffects: [] as HitEffect[],
   };
   let dx = 0;
   let dy = 0;
@@ -1153,7 +1169,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
           newState.pendingFloatingTexts.push({ text: "VORPAL!", color: "#dc2626", x: newX, y: newY });
         }
 
-        const result = combat(newState.player, enemy, newState.messages, bonuses.attack, 0, newState.pendingFloatingTexts, vorpalMultiplier);
+        const result = combat(newState.player, enemy, newState.messages, bonuses.attack, 0, newState.pendingFloatingTexts, vorpalMultiplier, newState.pendingHitEffects);
         newState.runStats.damageDealt += result.damage;
         if (!result.dodged) {
           newState.pendingFloatingTexts.push({

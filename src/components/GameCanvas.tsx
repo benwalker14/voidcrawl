@@ -4,8 +4,8 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES, CONSUMABLE_EFFECT_NAMES } from "@/game/config";
 import { initGame, processPlayerTurn, applyInventoryItem, MoveDirection } from "@/game/engine";
-import { render, renderMinimap, renderFloatingTexts, FLOAT_DURATION } from "@/game/renderer";
-import type { ActiveFloatingText } from "@/game/renderer";
+import { render, renderMinimap, renderFloatingTexts, renderHitEffects, FLOAT_DURATION, HIT_EFFECT_DURATION } from "@/game/renderer";
+import type { ActiveFloatingText, ActiveHitEffect } from "@/game/renderer";
 import type { GameState, GameMessage, PlayerInventory, RunStats, StatusEffect, GameEntity, DailyResult } from "@/game/config";
 import { getDailySeed, formatDailyDate } from "@/game/rng";
 import HelpOverlay from "./HelpOverlay";
@@ -109,6 +109,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
   const showPauseRef = useRef(false);
   const showMinimapRef = useRef(true);
   const floatingTextsRef = useRef<ActiveFloatingText[]>([]);
+  const hitEffectsRef = useRef<ActiveHitEffect[]>([]);
   const animFrameRef = useRef<number>(0);
 
   const draw = useCallback(() => {
@@ -119,8 +120,12 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
     if (showMinimapRef.current) {
       renderMinimap(ctx, gameRef.current);
     }
+    const now = performance.now();
+    if (hitEffectsRef.current.length > 0) {
+      renderHitEffects(ctx, gameRef.current, hitEffectsRef.current, now);
+    }
     if (floatingTextsRef.current.length > 0) {
-      renderFloatingTexts(ctx, gameRef.current, floatingTextsRef.current, performance.now());
+      renderFloatingTexts(ctx, gameRef.current, floatingTextsRef.current, now);
     }
   }, []);
 
@@ -163,12 +168,17 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
     }
   }, [saveDailyOnDeath]);
 
-  const startFloatingTexts = useCallback((state: GameState) => {
-    const pending = state.pendingFloatingTexts;
-    if (pending.length === 0) return;
+  const startAnimations = useCallback((state: GameState) => {
     const now = performance.now();
-    for (const ft of pending) {
+    const pendingFloats = state.pendingFloatingTexts;
+    const pendingHits = state.pendingHitEffects;
+    if (pendingFloats.length === 0 && pendingHits.length === 0) return;
+
+    for (const ft of pendingFloats) {
       floatingTextsRef.current.push({ ...ft, startTime: now });
+    }
+    for (const hf of pendingHits) {
+      hitEffectsRef.current.push({ ...hf, startTime: now });
     }
     if (animFrameRef.current) return; // animation already running
 
@@ -186,12 +196,23 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
         renderMinimap(ctx, gameRef.current);
       }
 
+      hitEffectsRef.current = hitEffectsRef.current.filter(
+        (hf) => now - hf.startTime < HIT_EFFECT_DURATION
+      );
       floatingTextsRef.current = floatingTextsRef.current.filter(
         (ft) => now - ft.startTime < FLOAT_DURATION
       );
 
+      const hasAnimations = hitEffectsRef.current.length > 0 || floatingTextsRef.current.length > 0;
+
+      if (hitEffectsRef.current.length > 0) {
+        renderHitEffects(ctx, gameRef.current, hitEffectsRef.current, now);
+      }
       if (floatingTextsRef.current.length > 0) {
         renderFloatingTexts(ctx, gameRef.current, floatingTextsRef.current, now);
+      }
+
+      if (hasAnimations) {
         animFrameRef.current = requestAnimationFrame(animate);
       } else {
         animFrameRef.current = 0;
@@ -263,7 +284,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
         gameRef.current = newState;
         updateUI(newState);
         draw();
-        startFloatingTexts(newState);
+        startAnimations(newState);
         return;
       }
 
@@ -300,12 +321,12 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
       gameRef.current = newState;
       updateUI(newState);
       draw();
-      startFloatingTexts(newState);
+      startAnimations(newState);
     };
 
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [draw, updateUI, startFloatingTexts]);
+  }, [draw, updateUI, startAnimations]);
 
   const restart = () => {
     // Daily mode: no restart, redirect to regular play
@@ -316,6 +337,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
     const state = initGame();
     gameRef.current = state;
     floatingTextsRef.current = [];
+    hitEffectsRef.current = [];
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
       animFrameRef.current = 0;

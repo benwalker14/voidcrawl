@@ -430,3 +430,17 @@
 - Injected via `<script type="application/ld+json">` in body for all pages
 - Enables Google rich results with price, platform, and genre display in search
 - Build and lint pass clean
+
+### 2026-03-20 24:00 | developer | Hit/damage animations
+- Added `HitEffect` interface to config.ts with position, color, and attack direction
+- Added `pendingHitEffects: HitEffect[]` to `GameState` (same pattern as `pendingFloatingTexts`)
+- Added `renderHitEffects()` to renderer.ts with 250ms two-phase animation:
+  - Phase 1 (0-40%): bright white flash overlay on the hit tile, fading out
+  - Phase 2 (0-100%): colored impact burst — 4 diagonal lines radiating outward from center, with a bright center dot
+  - Orange burst for player attacks, red burst for enemy attacks
+- Wired hit effects into `combat()` function — fires automatically for all combat interactions
+- Added hit effect for boss AoE damage (Void Nucleus discharge)
+- Renamed `startFloatingTexts` → `startAnimations` in GameCanvas.tsx to handle both floating texts and hit effects in the unified animation loop
+- Hit effects render before floating texts (flash under the damage numbers)
+- Hit effects cleared on game restart
+- Build and lint pass clean

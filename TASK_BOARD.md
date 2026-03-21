@@ -53,7 +53,7 @@
 
 ### P1 - Visual Polish
 - [ ] Replace ASCII characters with pixel art sprites
-- [ ] Add hit/damage animations
+- [x] Add hit/damage animations
 - [ ] Add screen shake on big hits
 - [ ] Floor transition animation
 - [ ] Death screen with run stats
@@ -159,3 +159,4 @@
 - [x] Unidentified consumables: 12 potion descriptors + 12 scroll descriptors randomly assigned per run. 7 potion effects and 4 scroll effects start unidentified. First use reveals the type for the rest of the run. Inventory shows "Fizzing Potion (?)" until identified, then "Fizzing Potion (Haste)". Identification state persists across floors. Help overlay explains the system.
 - [x] Mini-map: canvas overlay in top-right corner showing full 40x30 dungeon. Explored tiles dimmed, visible tiles bright, player as cyan dot, enemies in red, boss in yellow, stairs in cyan. Viewport rectangle shows current camera view. Toggle with M key. On by default.
 - [x] Daily seeded challenge: "Daily Void" mode accessible from main menu. Uses date string as RNG seed (mulberry32 PRNG) so all players get identical floor layouts, enemy spawns, item drops, and consumable appearances. One attempt per day stored in localStorage. Completion screen shows stats and prevents replay. Seeded RNG re-seeds per floor for deterministic generation. Death screen includes daily tag in share text.
+- [x] Hit/damage animations: white flash overlay + colored impact burst (4 diagonal lines radiating from center) on every combat hit. Player attacks show orange bursts, enemy attacks show red bursts. 250ms duration with phased flash→burst→fade. Integrated into existing animation loop alongside floating damage numbers. Fires on all combat: player melee, enemy melee, boss AoE, ally attacks.

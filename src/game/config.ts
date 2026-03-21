@@ -240,6 +240,13 @@ export interface FloatingText {
   y: number;
 }
 
+export interface HitEffect {
+  x: number;
+  y: number;
+  color: string;         // flash color (orange for player attack, red for enemy attack)
+  isPlayerAttack: boolean; // true = player hit enemy, false = enemy hit player
+}
+
 export interface RunStats {
   enemiesKilled: number;
   itemsFound: number;
@@ -269,6 +276,7 @@ export interface GameState {
   runStats: RunStats;
   statusEffects: StatusEffect[];
   pendingFloatingTexts: FloatingText[];
+  pendingHitEffects: HitEffect[];
   identified: Record<string, boolean>;           // ConsumableEffect -> whether identified this run
   consumableAppearances: Record<string, string>;  // ConsumableEffect -> randomized appearance descriptor
   gameMode: GameMode;

@@ -13,12 +13,21 @@ import {
 } from "./config";
 
 export const FLOAT_DURATION = 800;
+export const HIT_EFFECT_DURATION = 250;
 
 export interface ActiveFloatingText {
   text: string;
   color: string;
   x: number;
   y: number;
+  startTime: number;
+}
+
+export interface ActiveHitEffect {
+  x: number;
+  y: number;
+  color: string;
+  isPlayerAttack: boolean;
   startTime: number;
 }
 
@@ -272,6 +281,68 @@ export function renderFloatingTexts(
     ctx.strokeText(ft.text, screenX, drawY);
     ctx.fillStyle = ft.color;
     ctx.fillText(ft.text, screenX, drawY);
+  }
+
+  ctx.globalAlpha = 1.0;
+}
+
+export function renderHitEffects(
+  ctx: CanvasRenderingContext2D,
+  state: GameState,
+  effects: ActiveHitEffect[],
+  now: number,
+) {
+  const camX = Math.max(
+    0,
+    Math.min(state.player.pos.x - Math.floor(VIEWPORT_TILES_X / 2), MAP_WIDTH - VIEWPORT_TILES_X)
+  );
+  const camY = Math.max(
+    0,
+    Math.min(state.player.pos.y - Math.floor(VIEWPORT_TILES_Y / 2), MAP_HEIGHT - VIEWPORT_TILES_Y)
+  );
+
+  for (const fx of effects) {
+    const age = now - fx.startTime;
+    const progress = Math.min(age / HIT_EFFECT_DURATION, 1);
+
+    const screenX = (fx.x - camX) * SCALED_TILE;
+    const screenY = (fx.y - camY) * SCALED_TILE;
+    const cx = screenX + SCALED_TILE / 2;
+    const cy = screenY + SCALED_TILE / 2;
+
+    // Phase 1 (0-40%): bright white flash on the tile
+    if (progress < 0.4) {
+      const flashAlpha = 0.6 * (1 - progress / 0.4);
+      ctx.globalAlpha = flashAlpha;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(screenX, screenY, SCALED_TILE, SCALED_TILE);
+    }
+
+    // Phase 2 (0-100%): colored impact burst — 4 diagonal lines radiating outward
+    const burstAlpha = progress < 0.3 ? 1.0 : Math.max(0, 1.0 - (progress - 0.3) / 0.7);
+    const burstRadius = SCALED_TILE * 0.2 + SCALED_TILE * 0.5 * progress;
+    ctx.globalAlpha = burstAlpha;
+    ctx.strokeStyle = fx.color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    // 4 diagonal lines from center outward
+    for (let angle = Math.PI / 4; angle < Math.PI * 2; angle += Math.PI / 2) {
+      const innerR = burstRadius * 0.3;
+      const outerR = burstRadius;
+      ctx.moveTo(cx + Math.cos(angle) * innerR, cy + Math.sin(angle) * innerR);
+      ctx.lineTo(cx + Math.cos(angle) * outerR, cy + Math.sin(angle) * outerR);
+    }
+    ctx.stroke();
+
+    // Phase 1 extra (0-25%): bright center dot
+    if (progress < 0.25) {
+      const dotAlpha = 0.8 * (1 - progress / 0.25);
+      ctx.globalAlpha = dotAlpha;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   ctx.globalAlpha = 1.0;
