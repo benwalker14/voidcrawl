@@ -494,3 +494,32 @@
 - Preserved: filesystem paths (D:\development\voidcrawl) — directory name unchanged
 - Build passes clean
 - No money spent
+
+### 2026-03-20 20:00 | developer | Null Attunement prototype: corruption meter with 2 thresholds
+- Added `voidAttunement` field (0-100) to GameState in config.ts
+- Modified FOV system (fov.ts) to accept optional radius override, exported FOV_RADIUS constant
+- **Attunement sources:**
+  - +5 per floor descended (starting from floor 2)
+  - Infrastructure ready for void shrines (+15) — will be connected when shrines are built
+- **Threshold 1 — Void Sight (25%):**
+  - Benefit: +2 FOV radius (7→9 tiles), applied in generateFloor, processPlayerTurn, and teleport
+  - Curse: enemies detect player from +3 further range, applied in moveEnemies
+- **Threshold 2 — Void Strike (50%):**
+  - Benefit: +3 ATK bonus, applied alongside equipment and strength potion bonuses in processPlayerTurn
+  - Curse: healing potions 50% less effective (minimum 1 HP heal), with "(weakened by void)" message
+- **Attunement propagation:**
+  - Passed through generateFloor as prevVoidAttunement parameter
+  - Carried across floor transitions via all stair descent paths (normal + friendly swap)
+  - Preserved in applyInventoryItem and processPlayerTurn via spread operator
+- **HUD rendering (GameCanvas.tsx):**
+  - Purple meter bar between XP bar and equipment bar (only visible when attunement > 0)
+  - Bar color intensifies with attunement level (dark → medium → bright purple)
+  - Threshold markers at 25% and 50% positions
+  - Active effects displayed below bar with green (benefits) and red (curses)
+- **Threshold crossing notifications:**
+  - Purple floating text "NULL +5" on each floor descent
+  - Special messages and floating text when crossing 25% and 50% thresholds
+- **Help overlay:** New "Null Attunement" section explaining sources, thresholds, and effects
+- Helper functions: getAttunementFovRadius, getAttunementDetectBonus, getAttunementAtkBonus (exported), getAttunementHealMultiplier
+- Lint and build both pass clean
+- No money spent

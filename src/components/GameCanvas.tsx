@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES, CONSUMABLE_EFFECT_NAMES } from "@/game/config";
-import { initGame, processPlayerTurn, applyInventoryItem, MoveDirection } from "@/game/engine";
+import { initGame, processPlayerTurn, applyInventoryItem, MoveDirection, getAttunementAtkBonus } from "@/game/engine";
 import { render, renderMinimap, renderFloatingTexts, renderHitEffects, FLOAT_DURATION, HIT_EFFECT_DURATION } from "@/game/renderer";
 import type { ActiveFloatingText, ActiveHitEffect } from "@/game/renderer";
 import type { GameState, GameMessage, PlayerInventory, RunStats, StatusEffect, GameEntity, DailyResult } from "@/game/config";
@@ -99,6 +99,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
   const [gameOver, setGameOver] = useState(false);
   const [runStats, setRunStats] = useState<RunStats>(initializedState.runStats);
   const [statusEffects, setStatusEffects] = useState<StatusEffect[]>([]);
+  const [voidAttunement, setVoidAttunement] = useState(0);
   const [bossInfo, setBossInfo] = useState<GameEntity | null>(null);
   const [identified, setIdentified] = useState<Record<string, boolean>>(initializedState.identified);
   const [consumableAppearances, setConsumableAppearances] = useState<Record<string, string>>(initializedState.consumableAppearances);
@@ -157,6 +158,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
     setInventory(getInventoryFromState(state));
     setRunStats(state.runStats);
     setStatusEffects(state.statusEffects ?? []);
+    setVoidAttunement(state.voidAttunement ?? 0);
     setIdentified(state.identified);
     setConsumableAppearances(state.consumableAppearances);
     const boss = state.entities.find((e) => e.isBoss && e.hp > 0);
@@ -462,6 +464,42 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
         </div>
         <span style={{ color: "var(--void-muted)" }}>{stats.xp}/{stats.xpToNext}</span>
       </div>
+      {/* Null Attunement Meter */}
+      {voidAttunement > 0 && (
+        <div className="w-full max-w-[640px] mb-1 px-2">
+          <div className="flex items-center gap-2 text-xs font-mono">
+            <span style={{ color: "#c084fc" }} className="font-bold">NULL</span>
+            <div className="relative flex-1 h-2 rounded-sm overflow-hidden" style={{ backgroundColor: "#1a1a2e" }}>
+              <div
+                className="h-full rounded-sm transition-all duration-300"
+                style={{
+                  width: `${voidAttunement}%`,
+                  backgroundColor: voidAttunement >= 50 ? "#a855f7" : voidAttunement >= 25 ? "#c084fc" : "#7c3aed",
+                }}
+              />
+              {/* Threshold markers */}
+              <div className="absolute top-0 bottom-0 w-px" style={{ left: "25%", backgroundColor: "#4c1d95" }} />
+              <div className="absolute top-0 bottom-0 w-px" style={{ left: "50%", backgroundColor: "#4c1d95" }} />
+            </div>
+            <span style={{ color: "var(--void-muted)" }}>{voidAttunement}/100</span>
+          </div>
+          {/* Active attunement effects */}
+          <div className="flex gap-3 mt-0.5 text-xs font-mono">
+            {voidAttunement >= 25 && (
+              <>
+                <span style={{ color: "#a855f7" }}>Void Sight (+2 FOV)</span>
+                <span style={{ color: "#ef4444" }}>Enhanced Detection (+3)</span>
+              </>
+            )}
+            {voidAttunement >= 50 && (
+              <>
+                <span style={{ color: "#a855f7" }}>Void Strike (+{getAttunementAtkBonus(voidAttunement)} ATK)</span>
+                <span style={{ color: "#ef4444" }}>Weakened Healing (50%)</span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
       {/* Equipment bar */}
       <div className="w-full max-w-[640px] flex gap-4 mb-2 px-2 text-xs font-mono" style={{ color: "var(--void-muted)" }}>
         <span>

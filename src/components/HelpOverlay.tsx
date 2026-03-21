@@ -154,6 +154,26 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
           </div>
         </Section>
 
+        {/* Null Attunement */}
+        <Section title="Null Attunement">
+          <p className="mb-1">
+            A corruption meter (0-100) that grows as you descend deeper. The void grants power, but at a cost.
+          </p>
+          <p className="mb-1"><Hl>Sources:</Hl> +5 per floor descended. Void shrines add +15.</p>
+          <div className="space-y-0.5 mt-1">
+            <div>
+              <span style={{ color: "#a855f7" }}>25% — Void Sight:</span>
+              <span style={{ color: "#22c55e" }}> +2 FOV radius</span> /
+              <span style={{ color: "#ef4444" }}> enemies detect you from +3 further</span>
+            </div>
+            <div>
+              <span style={{ color: "#a855f7" }}>50% — Void Strike:</span>
+              <span style={{ color: "#22c55e" }}> +3 ATK</span> /
+              <span style={{ color: "#ef4444" }}> healing potions 50% less effective</span>
+            </div>
+          </div>
+        </Section>
+
         {/* Runic Effects */}
         <Section title="Runic Effects">
           <p className="mb-1" style={{ color: "var(--void-muted)" }}>

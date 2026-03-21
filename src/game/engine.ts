@@ -29,7 +29,7 @@ import {
 import { random, seedRngForFloor, unseedRng } from "./rng";
 import { generateDungeon } from "./generation/dungeon";
 import { spawnEnemies, spawnBoss, spawnBossAdd } from "./generation/enemies";
-import { computeFov } from "./generation/fov";
+import { computeFov, FOV_RADIUS } from "./generation/fov";
 import { generateLootDrop, generateBossLoot, initConsumableAppearances, initIdentified } from "./data/items";
 import { findPath, findFleeStep } from "./pathfinding";
 
@@ -103,6 +103,29 @@ function createRunStats(): RunStats {
   };
 }
 
+// Void Attunement helpers — prototype has 2 thresholds at 25% and 50%
+const ATTUNEMENT_FLOOR_GAIN = 5;  // +5 per floor descended
+
+/** FOV radius bonus from Void Sight (attunement >= 25) */
+function getAttunementFovRadius(attunement: number): number {
+  return attunement >= 25 ? FOV_RADIUS + 2 : FOV_RADIUS;
+}
+
+/** Extra enemy detect range from attunement curse (>= 25) */
+function getAttunementDetectBonus(attunement: number): number {
+  return attunement >= 25 ? 3 : 0;
+}
+
+/** ATK bonus from Void Strike (attunement >= 50) */
+export function getAttunementAtkBonus(attunement: number): number {
+  return attunement >= 50 ? 3 : 0;
+}
+
+/** Healing multiplier from attunement curse (>= 50) */
+function getAttunementHealMultiplier(attunement: number): number {
+  return attunement >= 50 ? 0.5 : 1.0;
+}
+
 /** Get display name for a consumable based on identification state */
 export function getConsumableDisplayName(state: GameState, item: Item): string {
   if (!item.effect) return item.name;
@@ -126,7 +149,7 @@ export function initGame(mode: GameMode = "standard", seed?: string): GameState 
   } else {
     unseedRng();
   }
-  return generateFloor(1, null, null, null, null, null, null, null, mode, seed);
+  return generateFloor(1, null, null, null, null, null, null, null, null, mode, seed);
 }
 
 export function generateFloor(
@@ -138,6 +161,7 @@ export function generateFloor(
   prevStatusEffects: StatusEffect[] | null = null,
   prevIdentified: Record<string, boolean> | null = null,
   prevAppearances: Record<string, string> | null = null,
+  prevVoidAttunement: number | null = null,
   mode: GameMode = "standard",
   seed?: string,
 ): GameState {
@@ -169,7 +193,15 @@ export function generateFloor(
   const enemies = isBossFloor
     ? [spawnBoss(floor, dungeon.map)]
     : spawnEnemies(floor, floorTiles);
-  const fov = computeFov(dungeon.map, player.pos.x, player.pos.y);
+
+  // Void Attunement: increases on descent
+  const prevAttunement = prevVoidAttunement ?? 0;
+  const attunementGain = prevPlayer ? ATTUNEMENT_FLOOR_GAIN : 0; // No gain on floor 1
+  const voidAttunement = Math.min(100, prevAttunement + attunementGain);
+
+  // Compute FOV with attunement-based radius (Void Sight at 25%+)
+  const fovRadius = getAttunementFovRadius(voidAttunement);
+  const fov = computeFov(dungeon.map, player.pos.x, player.pos.y, fovRadius);
   const explored: boolean[][] = Array.from({ length: MAP_HEIGHT }, () =>
     Array(MAP_WIDTH).fill(false)
   );
@@ -185,6 +217,31 @@ export function generateFloor(
     ? { ...prevRunStats, deepestFloor: Math.max(prevRunStats.deepestFloor, floor) }
     : createRunStats();
 
+  // Build messages — floor descent + attunement threshold notifications
+  const messages: GameMessage[] = [
+    { text: `You descend to floor ${floor} of the void.`, color: MSG_COLORS.INFO },
+  ];
+  const pendingFloats: FloatingText[] = [];
+
+  if (isBossFloor) {
+    messages.push({ text: "The air crackles with energy. A massive Void Nucleus pulses at the far end of the chamber!", color: MSG_COLORS.WARNING });
+  }
+
+  if (attunementGain > 0) {
+    messages.push({ text: `The void seeps deeper... (+${attunementGain} Null Attunement)`, color: "#c084fc" });
+    pendingFloats.push({ text: `NULL +${attunementGain}`, color: "#c084fc", x: player.pos.x, y: player.pos.y });
+
+    // Threshold crossing messages
+    if (prevAttunement < 25 && voidAttunement >= 25) {
+      messages.push({ text: "Null Attunement 25%: Your vision expands beyond mortal limits... but the darkness knows where you are.", color: "#c084fc" });
+      pendingFloats.push({ text: "VOID SIGHT", color: "#a855f7", x: player.pos.x, y: player.pos.y });
+    }
+    if (prevAttunement < 50 && voidAttunement >= 50) {
+      messages.push({ text: "Null Attunement 50%: Void energy surges through your strikes... but healing grows faint.", color: "#c084fc" });
+      pendingFloats.push({ text: "VOID STRIKE", color: "#a855f7", x: player.pos.x, y: player.pos.y });
+    }
+  }
+
   return {
     floor,
     map: dungeon.map,
@@ -193,23 +250,19 @@ export function generateFloor(
     items: [],
     inventory: prevInventory ?? createInventory(),
     progression: prevProgression ?? createProgression(),
-    messages: isBossFloor
-      ? [
-          { text: `You descend to floor ${floor} of the void.`, color: MSG_COLORS.INFO },
-          { text: "The air crackles with energy. A massive Void Nucleus pulses at the far end of the chamber!", color: MSG_COLORS.WARNING },
-        ]
-      : [{ text: `You descend to floor ${floor} of the void.`, color: MSG_COLORS.INFO }],
+    messages,
     turnCount: 0,
     gameOver: false,
     fov,
     explored,
     runStats,
     statusEffects: prevStatusEffects ?? [],
-    pendingFloatingTexts: [],
+    pendingFloatingTexts: pendingFloats,
     pendingHitEffects: [],
     pendingShake: 0,
     identified: prevIdentified ?? initIdentified(),
     consumableAppearances: prevAppearances ?? initConsumableAppearances(),
+    voidAttunement,
     gameMode: mode,
     seed,
   };
@@ -424,9 +477,13 @@ function applyConsumableEffect(state: GameState, item: Item): boolean {
         state.messages.push({ text: "You're already at full health.", color: MSG_COLORS.WARNING });
         return false;
       }
-      const healed = Math.min(item.healAmount ?? 0, state.player.maxHp - state.player.hp);
+      const healMult = getAttunementHealMultiplier(state.voidAttunement);
+      const rawHeal = item.healAmount ?? 0;
+      const effectiveHeal = Math.max(1, Math.floor(rawHeal * healMult));
+      const healed = Math.min(effectiveHeal, state.player.maxHp - state.player.hp);
       state.player = { ...state.player, hp: state.player.hp + healed };
-      state.messages.push({ text: `Used ${displayName}. Restored ${healed} HP.`, color: MSG_COLORS.HEAL });
+      const healMsg = healMult < 1 ? ` (weakened by void)` : "";
+      state.messages.push({ text: `Used ${displayName}. Restored ${healed} HP.${healMsg}`, color: MSG_COLORS.HEAL });
       state.pendingFloatingTexts.push({ text: `+${healed} HP`, color: MSG_COLORS.HEAL, x: state.player.pos.x, y: state.player.pos.y });
       return true;
     }
@@ -456,8 +513,8 @@ function applyConsumableEffect(state: GameState, item: Item): boolean {
       state.player = { ...state.player, pos: { ...dest } };
       state.messages.push({ text: `Used ${displayName}. You teleport to a new location!`, color: MSG_COLORS.INFO });
       state.pendingFloatingTexts.push({ text: "TELEPORT", color: "#06b6d4", x: dest.x, y: dest.y });
-      // Update FOV immediately
-      state.fov = computeFov(state.map, state.player.pos.x, state.player.pos.y);
+      // Update FOV immediately (with attunement radius)
+      state.fov = computeFov(state.map, state.player.pos.x, state.player.pos.y, getAttunementFovRadius(state.voidAttunement));
       state.explored = state.explored.map((row) => [...row]);
       for (let y = 0; y < MAP_HEIGHT; y++) {
         for (let x = 0; x < MAP_WIDTH; x++) {
@@ -805,6 +862,7 @@ function getRandomFloorTileNearBoss(state: GameState, bossPos: Position): Positi
 
 function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
   const isInvisible = hasStatusEffect(state, StatusEffectType.INVISIBLE);
+  const detectBonus = getAttunementDetectBonus(state.voidAttunement);
 
   for (const enemy of state.entities) {
     if (enemy.hp <= 0 || enemy.friendly) continue;
@@ -821,7 +879,7 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
     const dx = state.player.pos.x - enemy.pos.x;
     const dy = state.player.pos.y - enemy.pos.y;
     const dist = Math.abs(dx) + Math.abs(dy);
-    const detectRange = enemy.detectRange ?? 8;
+    const detectRange = (enemy.detectRange ?? 8) + detectBonus; // Void Attunement curse: +3 at 25%+
     const behavior = enemy.behavior ?? AIBehavior.CHASE;
 
     // If enemy is feared, override behavior to flee
@@ -1148,6 +1206,8 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
   // Add strength potion bonus
   const strengthEffect = newState.statusEffects.find((e) => e.type === StatusEffectType.STRENGTH);
   if (strengthEffect) bonuses.attack += strengthEffect.value;
+  // Add Void Strike bonus (attunement >= 50)
+  bonuses.attack += getAttunementAtkBonus(newState.voidAttunement);
 
   if (direction !== "wait") {
     // Check for enemy at target (skip friendly entities for bump-attack)
@@ -1255,7 +1315,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       pickupItem(newState);
       if (newState.map[newY][newX] === TileType.STAIRS_DOWN) {
         newState.messages.push({ text: "You descend deeper into the void...", color: MSG_COLORS.INFO });
-        return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression, newState.runStats, newState.statusEffects, newState.identified, newState.consumableAppearances, newState.gameMode, newState.seed);
+        return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression, newState.runStats, newState.statusEffects, newState.identified, newState.consumableAppearances, newState.voidAttunement, newState.gameMode, newState.seed);
       }
     } else if (!isBlocked(newState, newX, newY)) {
       newState.player = { ...newState.player, pos: { x: newX, y: newY } };
@@ -1266,7 +1326,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       // Check for stairs
       if (newState.map[newY][newX] === TileType.STAIRS_DOWN) {
         newState.messages.push({ text: "You descend deeper into the void...", color: MSG_COLORS.INFO });
-        return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression, newState.runStats, newState.statusEffects, newState.identified, newState.consumableAppearances, newState.gameMode, newState.seed);
+        return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression, newState.runStats, newState.statusEffects, newState.identified, newState.consumableAppearances, newState.voidAttunement, newState.gameMode, newState.seed);
       }
     }
   }
@@ -1365,8 +1425,9 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       return true;
     });
 
-  // Update FOV
-  newState.fov = computeFov(newState.map, newState.player.pos.x, newState.player.pos.y);
+  // Update FOV (Void Sight at 25%+ attunement gives +2 radius)
+  const fovRadius = getAttunementFovRadius(newState.voidAttunement);
+  newState.fov = computeFov(newState.map, newState.player.pos.x, newState.player.pos.y, fovRadius);
   // Update explored
   newState.explored = newState.explored.map((row) => [...row]);
   for (let y = 0; y < MAP_HEIGHT; y++) {

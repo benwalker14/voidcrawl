@@ -280,6 +280,7 @@ export interface GameState {
   pendingShake: number; // 0 = none, higher = stronger shake (max ~8)
   identified: Record<string, boolean>;           // ConsumableEffect -> whether identified this run
   consumableAppearances: Record<string, string>;  // ConsumableEffect -> randomized appearance descriptor
+  voidAttunement: number;                         // 0-100 corruption/power meter
   gameMode: GameMode;
   seed?: string;                                  // Seed string for daily challenge mode
 }

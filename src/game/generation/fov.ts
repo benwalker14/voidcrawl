@@ -1,13 +1,15 @@
 import { TileType, MAP_WIDTH, MAP_HEIGHT } from "../config";
 
-const FOV_RADIUS = 7;
+export const FOV_RADIUS = 7;
 
 // Simple raycasting FOV
 export function computeFov(
   map: TileType[][],
   px: number,
-  py: number
+  py: number,
+  radiusOverride?: number,
 ): boolean[][] {
+  const radius = radiusOverride ?? FOV_RADIUS;
   const visible: boolean[][] = Array.from({ length: MAP_HEIGHT }, () =>
     Array(MAP_WIDTH).fill(false)
   );
@@ -24,7 +26,7 @@ export function computeFov(
     let x = px + 0.5;
     let y = py + 0.5;
 
-    for (let step = 0; step < FOV_RADIUS; step++) {
+    for (let step = 0; step < radius; step++) {
       x += dx * 0.5;
       y += dy * 0.5;
 
