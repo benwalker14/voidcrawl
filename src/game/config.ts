@@ -330,6 +330,8 @@ export enum SpecialAbility {
   BOSS_NUCLEUS = "boss_nucleus", // Void Nucleus: stationary, spawns adds, telegraphed attacks
   BOSS_SHADOW_TWIN = "boss_shadow_twin", // Shadow Twin: mirrors movement, splits, goes ethereal
   BOSS_RIFT_WARDEN = "boss_rift_warden", // Rift Warden: stationary sentinel, anchors, void patches
+  REFLECTIVE = "reflective",   // Crystal Sentinel: 25% of melee damage reflected back to attacker
+  SIPHON = "siphon",           // Null Siphon: steals a random active status effect from player on hit
 }
 
 export interface GameEntity {

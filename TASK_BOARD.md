@@ -132,13 +132,13 @@ These were previously classified as pre-launch requirements but the game already
 - [x] Floor 15 boss: "Rift Warden" — COMPLETED
 - [x] Environmental hazards — traps — COMPLETED
 - [x] Consumable-environment interactions: Fire Potion prevents Dark Slime splitting (burned slimes die outright). Poison Potion makes Void Beetles lose ARMORED (corrodes shell). Scroll of Fear doesn't affect bosses but scatters boss adds. Invisibility allows safe shrine use (always positive effect). These are if-checks in existing combat/effect code — zero new assets, zero new systems. Each interaction adds a message: "The fire burns through the slime before it can divide!" Creates emergent combos that reward player knowledge. **Post-launch update 1.**
-- [ ] 2 Crystal Depths zone-exclusive enemies: Crystal Depths (floors 5-9) currently uses repurposed Null Tunnels enemies via zone-weighting. Zone-exclusive enemies complete the zone identity. See spec in P2 Content Wave 2A. **Post-launch update 1.**
+- [x] 2 Crystal Depths zone-exclusive enemies: Crystal Sentinel (REFLECTIVE — 25% melee damage reflected) and Null Siphon (SIPHON — steals player status effects on hit). Zone-weighted to appear heavily in Crystal Depths (floors 5-9). **Post-launch update 1.**
 
 ### P2 - Content Depth (REVISED — strategist content planning wave 2, 2026-03-20)
 
 **Content Wave 2A — Mid-game enemies (fills floors 5-9 gap):**
-- ~~2 new Crystal Depths enemies~~ — **MOVED TO P1 Pre-Launch Content** (elevated by strategist content planning pass 2)
-- [ ] 2 new Crystal Depths enemies FULL SPEC (reference for P1 task above): **Crystal Sentinel** (`C`, cyan, 16 HP, 5 ATK, 4 DEF, CHASE, special: REFLECTIVE — 25% of melee damage reflected back to attacker, forces player to use consumables or high-damage weapons), **Null Siphon** (`n`, blue, 12 HP, 4 ATK, 1 DEF, AMBUSH, special: SIPHON — steals 1 charge of a random status effect from player on hit, if player has Haste/Strength/Invisibility active the Siphon gains it. Priority target that punishes buffing before engaging). These fill the gap where Crystal Depths currently just recycles Null Tunnels enemies with bigger numbers.
+- ~~2 new Crystal Depths enemies~~ — **MOVED TO P1 Pre-Launch Content** (elevated by strategist content planning pass 2) — **COMPLETED**
+- [x] 2 new Crystal Depths enemies FULL SPEC: **Crystal Sentinel** (`C`, cyan, 16 HP, 5 ATK, 4 DEF, CHASE, REFLECTIVE — 25% melee damage reflected) and **Null Siphon** (`n`, blue, 12 HP, 4 ATK, 1 DEF, AMBUSH, SIPHON — steals player status effects on hit, gains Strength ATK bonus permanently, cancels stun if Haste stolen). Implemented with zone-weight 9 for Crystal Depths.
 
 **Content Wave 2B — Bosses (build second, creates milestone goals):**
 - ~~Floor 10 boss: "Shadow Twin"~~ — **MOVED TO P1 Late-Game Pacing** (elevated by strategist systems integration audit)

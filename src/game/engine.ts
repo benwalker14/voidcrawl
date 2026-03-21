@@ -1720,6 +1720,27 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
             }
           }
         }
+
+        // SIPHON ability (Null Siphon): steal a random active status effect from player on hit
+        if (enemy.specialAbility === SpecialAbility.SIPHON && state.statusEffects.length > 0) {
+          const idx = Math.floor(random() * state.statusEffects.length);
+          const stolen = state.statusEffects[idx];
+          state.statusEffects = state.statusEffects.filter((_, i) => i !== idx);
+          const effectName = stolen.type === StatusEffectType.HASTE ? "Haste"
+            : stolen.type === StatusEffectType.INVISIBLE ? "Invisibility"
+            : stolen.type === StatusEffectType.STRENGTH ? "Strength" : stolen.type;
+          state.messages.push({ text: `${enemy.name} siphons your ${effectName}!`, color: "#3b82f6" });
+          state.pendingFloatingTexts.push({ text: `SIPHONED!`, color: "#3b82f6", x: enemy.pos.x, y: enemy.pos.y });
+          state.pendingFloatingTexts.push({ text: `-${effectName}`, color: "#ef4444", x: state.player.pos.x, y: state.player.pos.y });
+          // Siphon gains a temporary buff from the stolen effect
+          if (stolen.type === StatusEffectType.HASTE) {
+            enemy.stunnedNextTurn = false; // cancel any stun — it's now fast
+          } else if (stolen.type === StatusEffectType.STRENGTH) {
+            enemy.attack += stolen.value; // gains the stolen ATK bonus permanently
+            state.messages.push({ text: `${enemy.name} grows stronger!`, color: "#3b82f6" });
+          }
+          // Invisibility: Siphon doesn't gain invisibility (no visual sense for this)
+        }
       }
       if (state.player.hp <= 0) {
         state.gameOver = true;
@@ -2145,6 +2166,16 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
             enemy.stunnedNextTurn = true;
             newState.messages.push({ text: `${enemy.name} is stunned!`, color: MSG_COLORS.PLAYER_ATK });
             newState.pendingFloatingTexts.push({ text: "STUNNED!", color: "#fbbf24", x: newX, y: newY });
+          }
+
+          // REFLECTIVE ability (Crystal Sentinel): 25% of melee damage reflected back to attacker
+          if (enemy.specialAbility === SpecialAbility.REFLECTIVE && enemy.hp > 0) {
+            const reflectDmg = Math.max(1, Math.floor(result.damage * 0.25));
+            newState.player = { ...newState.player, hp: newState.player.hp - reflectDmg };
+            newState.runStats.damageTaken += reflectDmg;
+            newState.messages.push({ text: `Crystal Sentinel reflects ${reflectDmg} damage back at you!`, color: MSG_COLORS.ENEMY_ATK });
+            newState.pendingFloatingTexts.push({ text: `-${reflectDmg}`, color: "#22d3ee", x: newState.player.pos.x, y: newState.player.pos.y });
+            newState.pendingShake = Math.max(newState.pendingShake, 2);
           }
         }
 

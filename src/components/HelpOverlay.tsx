@@ -8,6 +8,8 @@ const ENEMIES = [
   { symbol: "S", color: "#6d28d9", name: "Shade", behavior: "Ambushes · Life drain (heals 50% of damage dealt)", floors: "3+" },
   { symbol: "W", color: "#5b21b6", name: "Void Walker", behavior: "Pursues · Teleports away when hit", floors: "4+" },
   { symbol: "H", color: "#c084fc", name: "Abyssal Hound", behavior: "Pursues · Howl alerts all other hounds", floors: "5+" },
+  { symbol: "C", color: "#22d3ee", name: "Crystal Sentinel", behavior: "Pursues · Reflective (25% melee damage reflected back)", floors: "5+" },
+  { symbol: "n", color: "#3b82f6", name: "Null Siphon", behavior: "Ambushes · Siphons active status effects on hit", floors: "5+" },
   { symbol: "R", color: "#e9d5ff", name: "Rift Wraith", behavior: "Moves through walls · Vulnerable only on floor tiles", floors: "7+" },
   { symbol: "V", color: "#f5f3ff", name: "Void Lord", behavior: "Pursues from very far away", floors: "10+" },
   { symbol: "O", color: "#06b6d4", name: "BOSS: Void Nucleus", behavior: "Stationary · Spawns adds · Telegraphs AoE · Alternates active/vulnerable phases", floors: "5" },

@@ -26,6 +26,8 @@ const ENEMY_TEMPLATES: EnemyTemplate[] = [
   { name: "Shade",          symbol: "S", color: "#6d28d9", baseHp: 10, baseAttack: 4, baseDefense: 2, baseXp: 18, minFloor: 3,  behavior: AIBehavior.AMBUSH, detectRange: 4,  specialAbility: SpecialAbility.LIFE_DRAIN, zoneWeights: [3, 8, 3] },
   { name: "Void Walker",    symbol: "W", color: "#5b21b6", baseHp: 14, baseAttack: 5, baseDefense: 2, baseXp: 25, minFloor: 4,  behavior: AIBehavior.CHASE,  detectRange: 10, specialAbility: SpecialAbility.TELEPORT,  zoneWeights: [1, 8, 3] },
   { name: "Abyssal Hound",  symbol: "H", color: "#c084fc", baseHp: 18, baseAttack: 6, baseDefense: 3, baseXp: 35, minFloor: 5,  behavior: AIBehavior.CHASE,  detectRange: 12, specialAbility: SpecialAbility.HOWL,      zoneWeights: [0, 8, 5] },
+  { name: "Crystal Sentinel",symbol: "C", color: "#22d3ee", baseHp: 16, baseAttack: 5, baseDefense: 4, baseXp: 30, minFloor: 5,  behavior: AIBehavior.CHASE,  detectRange: 8,  specialAbility: SpecialAbility.REFLECTIVE, zoneWeights: [0, 9, 2] },
+  { name: "Null Siphon",    symbol: "n", color: "#3b82f6", baseHp: 12, baseAttack: 4, baseDefense: 1, baseXp: 28, minFloor: 5,  behavior: AIBehavior.AMBUSH, detectRange: 6,  specialAbility: SpecialAbility.SIPHON,     zoneWeights: [0, 9, 2] },
   { name: "Rift Wraith",    symbol: "R", color: "#e9d5ff", baseHp: 22, baseAttack: 7, baseDefense: 4, baseXp: 50, minFloor: 7,  behavior: AIBehavior.CHASE,  detectRange: 14, specialAbility: SpecialAbility.ETHEREAL,  zoneWeights: [0, 2, 10] },
   { name: "Void Lord",      symbol: "V", color: "#f5f3ff", baseHp: 30, baseAttack: 9, baseDefense: 5, baseXp: 75, minFloor: 10, behavior: AIBehavior.CHASE,  detectRange: 16,                                          zoneWeights: [0, 1, 10] },
 ];

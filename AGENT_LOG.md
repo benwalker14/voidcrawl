@@ -1,5 +1,23 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-21 18:00 | developer | 2 Crystal Depths zone-exclusive enemies + Rift Warden commit cleanup
+
+**Commit cleanup:** Committed uncommitted Rift Warden supporting code (VoidPatch interface, BOSS_RIFT_WARDEN ability, spawn/rendering logic) that was left unstaged from a previous session. Engine behavior was already committed; this completes the feature.
+
+**2 new Crystal Depths enemies (floors 5-9):**
+
+1. **Crystal Sentinel** (`C`, cyan, 16 HP, 5 ATK, 4 DEF, CHASE): REFLECTIVE ability — 25% of melee damage the player deals is reflected back. Forces players to use consumables or high-damage weapons to minimize wasted hits. High DEF (4) makes it tanky.
+
+2. **Null Siphon** (`n`, blue, 12 HP, 4 ATK, 1 DEF, AMBUSH): SIPHON ability — on hit, steals a random active status effect (Haste, Invisibility, or Strength) from the player. If Strength is stolen, the Siphon permanently gains the ATK bonus. If Haste is stolen, cancels any stun on the Siphon. Priority target that punishes buffing before engaging.
+
+**Zone weighting:** Both enemies have zone weight 9 for Crystal Depths, 2 for Shadow Realm, 0 for Null Tunnels. They will appear frequently on floors 5-9 and occasionally in late-game.
+
+**Help overlay updated:** Both enemies added to the bestiary section.
+
+**Files changed:** `src/game/config.ts`, `src/game/engine.ts`, `src/game/generation/enemies.ts`, `src/components/HelpOverlay.tsx`, `TASK_BOARD.md`
+- Lint and build both pass clean
+- No money spent
+
 ### 2026-03-21 12:00 | developer | P0 metadataBase fix + consumable-environment interactions
 
 **P0 fix:** Changed `siteUrl` in `layout.tsx` from `https://voidcrawl.vercel.app` to `https://nullcrawl.com`. All OG images, canonical URLs, JSON-LD, and social card metadata now point to the correct domain.
