@@ -28,7 +28,7 @@
 - [x] Add floating damage numbers on canvas (brief "+5 HP", "-3 DMG" over entities) — combat currently has zero visual feedback beyond message log
 
 ### P1 - Core Gameplay
-- [ ] Add mini-map showing explored areas
+- [x] Add mini-map showing explored areas
 
 ### P1 - Game Design (NEW — strategist research 2026-03-20)
 - [x] Unidentified consumables: randomize potion/scroll appearances per run ("Fizzing Potion", "Crimson Potion", "Tattered Scroll", etc.). Each of the 6 potion types and 4 scroll types gets a random cosmetic name from a pool of 12+ descriptors. First use identifies the type for the rest of the run. Add `identified: Map<ConsumableEffect, boolean>` to GameState and `appearances: Map<ConsumableEffect, string>` for per-run randomization. Inventory shows "Fizzing Potion (?)" until identified, then "Fizzing Potion (Haste)". This transforms existing content into a discovery system — every run starts with 10 unknowns to uncover. Research source: NetHack, Shattered PD, Golden Krone Hotel all prove identification systems are the #1 replayability driver for consumable-heavy roguelikes.
@@ -144,3 +144,4 @@
 - [x] Floor 5 boss encounter: "Void Nucleus" — stationary boss in large arena room, spawns Void Fragment adds in waves, telegraphs AoE attack, alternates active/vulnerable phases, boss HP bar in HUD, guaranteed rare+ loot on kill
 - [x] Weapon/armor runic effects: 4 weapon runics (Vampiric, Flaming, Stunning, Vorpal) + 3 armor runics (Reflective, Regenerating, Thorned). Uncommon items 25% runic chance, Rare 60%. Runics displayed in purple [brackets] in HUD, inventory, and help overlay. Burns and stuns affect enemy behavior each turn.
 - [x] Unidentified consumables: 12 potion descriptors + 12 scroll descriptors randomly assigned per run. 7 potion effects and 4 scroll effects start unidentified. First use reveals the type for the rest of the run. Inventory shows "Fizzing Potion (?)" until identified, then "Fizzing Potion (Haste)". Identification state persists across floors. Help overlay explains the system.
+- [x] Mini-map: canvas overlay in top-right corner showing full 40x30 dungeon. Explored tiles dimmed, visible tiles bright, player as cyan dot, enemies in red, boss in yellow, stairs in cyan. Viewport rectangle shows current camera view. Toggle with M key. On by default.

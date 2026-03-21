@@ -24,6 +24,10 @@ export interface ActiveFloatingText {
 
 const SCALED_TILE = TILE_SIZE * SCALE;
 
+// Mini-map constants
+const MINIMAP_TILE = 3; // pixels per tile on minimap
+const MINIMAP_PADDING = 8;
+
 export function render(ctx: CanvasRenderingContext2D, state: GameState) {
   // Clear
   ctx.fillStyle = "#0a0a0f";
@@ -141,6 +145,92 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState) {
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("@", playerScreenX + SCALED_TILE / 2, playerScreenY + SCALED_TILE / 2);
+}
+
+export function renderMinimap(ctx: CanvasRenderingContext2D, state: GameState) {
+  const mmWidth = MAP_WIDTH * MINIMAP_TILE;
+  const mmHeight = MAP_HEIGHT * MINIMAP_TILE;
+  const mx = CANVAS_WIDTH - mmWidth - MINIMAP_PADDING;
+  const my = MINIMAP_PADDING;
+
+  // Semi-transparent background
+  ctx.fillStyle = "rgba(10, 10, 15, 0.85)";
+  ctx.fillRect(mx - 2, my - 2, mmWidth + 4, mmHeight + 4);
+
+  // Border
+  ctx.strokeStyle = "#444";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(mx - 2, my - 2, mmWidth + 4, mmHeight + 4);
+
+  // Draw tiles
+  for (let y = 0; y < MAP_HEIGHT; y++) {
+    for (let x = 0; x < MAP_WIDTH; x++) {
+      const isVisible = state.fov[y][x];
+      const isExplored = state.explored[y][x];
+      if (!isExplored) continue;
+
+      const tile = state.map[y][x];
+      if (tile === TileType.VOID) continue;
+
+      const px = mx + x * MINIMAP_TILE;
+      const py = my + y * MINIMAP_TILE;
+
+      if (tile === TileType.WALL) {
+        ctx.fillStyle = isVisible ? "#4a4a66" : "#2a2a3e";
+      } else if (tile === TileType.FLOOR) {
+        ctx.fillStyle = isVisible ? "#2a2a4e" : "#161628";
+      } else if (tile === TileType.STAIRS_DOWN) {
+        ctx.fillStyle = isVisible ? "#06b6d4" : "#044a5a";
+      } else {
+        ctx.fillStyle = isVisible ? "#2a2a4e" : "#161628";
+      }
+
+      ctx.fillRect(px, py, MINIMAP_TILE, MINIMAP_TILE);
+    }
+  }
+
+  // Draw ground items (only visible)
+  for (const groundItem of state.items) {
+    if (!state.fov[groundItem.pos.y][groundItem.pos.x]) continue;
+    const px = mx + groundItem.pos.x * MINIMAP_TILE;
+    const py = my + groundItem.pos.y * MINIMAP_TILE;
+    ctx.fillStyle = "#06b6d4";
+    ctx.fillRect(px, py, MINIMAP_TILE, MINIMAP_TILE);
+  }
+
+  // Draw enemies (only visible)
+  for (const entity of state.entities) {
+    if (entity.hp <= 0) continue;
+    if (!state.fov[entity.pos.y][entity.pos.x]) continue;
+    const px = mx + entity.pos.x * MINIMAP_TILE;
+    const py = my + entity.pos.y * MINIMAP_TILE;
+    ctx.fillStyle = entity.isBoss ? "#f59e0b" : "#ef4444";
+    ctx.fillRect(px, py, MINIMAP_TILE, MINIMAP_TILE);
+  }
+
+  // Draw player (always visible, bright cyan)
+  const ppx = mx + state.player.pos.x * MINIMAP_TILE;
+  const ppy = my + state.player.pos.y * MINIMAP_TILE;
+  ctx.fillStyle = "#22d3ee";
+  ctx.fillRect(ppx, ppy, MINIMAP_TILE, MINIMAP_TILE);
+
+  // Draw viewport rectangle
+  const camX = Math.max(
+    0,
+    Math.min(state.player.pos.x - Math.floor(VIEWPORT_TILES_X / 2), MAP_WIDTH - VIEWPORT_TILES_X)
+  );
+  const camY = Math.max(
+    0,
+    Math.min(state.player.pos.y - Math.floor(VIEWPORT_TILES_Y / 2), MAP_HEIGHT - VIEWPORT_TILES_Y)
+  );
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(
+    mx + camX * MINIMAP_TILE,
+    my + camY * MINIMAP_TILE,
+    VIEWPORT_TILES_X * MINIMAP_TILE,
+    VIEWPORT_TILES_Y * MINIMAP_TILE
+  );
 }
 
 export function renderFloatingTexts(

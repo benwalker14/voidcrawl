@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES, CONSUMABLE_EFFECT_NAMES } from "@/game/config";
 import { initGame, processPlayerTurn, applyInventoryItem, MoveDirection } from "@/game/engine";
-import { render, renderFloatingTexts, FLOAT_DURATION } from "@/game/renderer";
+import { render, renderMinimap, renderFloatingTexts, FLOAT_DURATION } from "@/game/renderer";
 import type { ActiveFloatingText } from "@/game/renderer";
 import type { GameState, GameMessage, PlayerInventory, RunStats, StatusEffect, GameEntity } from "@/game/config";
 import HelpOverlay from "./HelpOverlay";
@@ -61,6 +61,7 @@ export default function GameCanvas() {
   const showHelpRef = useRef(false);
   const [showPause, setShowPause] = useState(false);
   const showPauseRef = useRef(false);
+  const showMinimapRef = useRef(true);
   const floatingTextsRef = useRef<ActiveFloatingText[]>([]);
   const animFrameRef = useRef<number>(0);
 
@@ -69,6 +70,9 @@ export default function GameCanvas() {
     const ctx = canvas?.getContext("2d");
     if (!ctx || !gameRef.current) return;
     render(ctx, gameRef.current);
+    if (showMinimapRef.current) {
+      renderMinimap(ctx, gameRef.current);
+    }
     if (floatingTextsRef.current.length > 0) {
       renderFloatingTexts(ctx, gameRef.current, floatingTextsRef.current, performance.now());
     }
@@ -110,6 +114,9 @@ export default function GameCanvas() {
       }
 
       render(ctx, gameRef.current);
+      if (showMinimapRef.current) {
+        renderMinimap(ctx, gameRef.current);
+      }
 
       floatingTextsRef.current = floatingTextsRef.current.filter(
         (ft) => now - ft.startTime < FLOAT_DURATION
@@ -162,6 +169,14 @@ export default function GameCanvas() {
           showPauseRef.current = next;
           setShowPause(next);
         }
+        return;
+      }
+
+      // Mini-map toggle: M key
+      if (e.key === "m" || e.key === "M") {
+        e.preventDefault();
+        showMinimapRef.current = !showMinimapRef.current;
+        draw();
         return;
       }
 
@@ -465,7 +480,7 @@ export default function GameCanvas() {
 
       {/* Controls hint */}
       <div className="mt-2 text-xs" style={{ color: "var(--void-muted)" }}>
-        Arrow keys / WASD to move &middot; Space to wait &middot; Walk into enemies to attack &middot; Find the stairs (&gt;) to descend &middot; 1-8 to use items &middot; Esc to pause &middot; ? for help
+        Arrow keys / WASD to move &middot; Space to wait &middot; Walk into enemies to attack &middot; Find the stairs (&gt;) to descend &middot; 1-8 to use items &middot; M for map &middot; Esc to pause &middot; ? for help
       </div>
     </div>
   );

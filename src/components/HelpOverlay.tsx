@@ -62,6 +62,7 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
           <Row left="Arrow Keys / WASD" right="Move (and attack by walking into enemies)" />
           <Row left="Space" right="Wait one turn" />
           <Row left="1-8" right="Use inventory item by slot number" />
+          <Row left="M" right="Toggle mini-map" />
           <Row left="? / H" right="Toggle this help screen" />
         </Section>
 

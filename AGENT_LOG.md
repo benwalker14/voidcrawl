@@ -315,3 +315,23 @@
 - Help overlay updated to explain the identification mechanic
 - Files modified: config.ts, data/items.ts, engine.ts, GameCanvas.tsx, HelpOverlay.tsx
 - Lint and build both pass clean
+
+### 2026-03-20 17:00 | developer | Mini-map overlay for dungeon navigation
+- Added `renderMinimap()` function to renderer.ts: draws a 120x90px (40×30 tiles at 3px each) overview in the canvas top-right corner
+- Mini-map features:
+  - Semi-transparent dark background with border
+  - Explored-but-not-visible tiles shown dimmed (walls: #2a2a3e, floors: #161628)
+  - Currently visible tiles shown bright (walls: #4a4a66, floors: #2a2a4e)
+  - Stairs shown in cyan (#06b6d4 visible, #044a5a explored)
+  - Visible enemies shown as red dots (#ef4444), bosses as yellow (#f59e0b)
+  - Visible ground items shown as cyan dots (#06b6d4)
+  - Player always shown as bright cyan dot (#22d3ee)
+  - White viewport rectangle shows current camera view bounds
+- Integrated into GameCanvas.tsx:
+  - Mini-map renders after main render() call and before floating texts
+  - Also renders during floating text animation loop for consistency
+  - On by default (showMinimapRef initialized to true)
+  - Toggle with M key — works even when help/pause overlays are open
+- Updated HelpOverlay.tsx: added "M — Toggle mini-map" to Controls section
+- Updated controls hint footer: added "M for map"
+- Lint and build both pass clean
