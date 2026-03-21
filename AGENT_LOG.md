@@ -395,3 +395,10 @@
 - One attempt per day: completed daily results saved to localStorage, returning shows completion screen
 - Death screen share text includes daily date tag
 - Build passes, lint passes clean
+
+### 2026-03-20 23:15 | developer | Convert play pages to Server Components
+- Removed `"use client"` from `src/app/play/page.tsx` and `src/app/play/daily/page.tsx`
+- Created `src/components/GameLoader.tsx` — thin client wrapper with `dynamic()` import and `ssr: false`
+- Both play pages are now Server Components, enabling `metadata` exports for SEO
+- Next.js 16 requires `ssr: false` to live in Client Components — used wrapper pattern
+- Build and lint pass clean
