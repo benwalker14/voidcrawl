@@ -104,6 +104,15 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
   const [identified, setIdentified] = useState<Record<string, boolean>>(initializedState.identified);
   const [consumableAppearances, setConsumableAppearances] = useState<Record<string, string>>(initializedState.consumableAppearances);
   const [copied, setCopied] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return !localStorage.getItem("nullcrawl_tutorial_seen");
+    } catch {
+      return false;
+    }
+  });
+  const showTutorialRef = useRef(false);
   const [showHelp, setShowHelp] = useState(false);
   const showHelpRef = useRef(false);
   const [showPause, setShowPause] = useState(false);
@@ -228,6 +237,11 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
     animFrameRef.current = requestAnimationFrame(animate);
   }, []);
 
+  // Sync tutorial ref with initial state
+  useEffect(() => {
+    showTutorialRef.current = showTutorial;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     draw();
   }, [draw]);
@@ -240,6 +254,17 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      // Dismiss tutorial overlay
+      if (showTutorialRef.current) {
+        if (e.key === "Enter" || e.key === " " || e.key === "Escape") {
+          e.preventDefault();
+          showTutorialRef.current = false;
+          setShowTutorial(false);
+          try { localStorage.setItem("nullcrawl_tutorial_seen", "1"); } catch {}
+        }
+        return;
+      }
+
       // Help toggle: ? or h/H to open/close
       if (e.key === "?" || e.key === "h" || e.key === "H") {
         e.preventDefault();
@@ -618,6 +643,42 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
                 <span style={{ color: "#22c55e" }}>[Y] Accept</span>
                 <span style={{ color: "#ef4444" }}>[N] Decline</span>
               </div>
+            </div>
+          </div>
+        )}
+
+        {showTutorial && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ zIndex: 5 }}>
+            <div
+              className="pointer-events-auto px-6 py-4 rounded border-2 text-center max-w-xs"
+              style={{
+                backgroundColor: "rgba(10, 10, 15, 0.95)",
+                borderColor: "#06b6d4",
+                boxShadow: "0 0 20px rgba(6, 182, 212, 0.3)",
+              }}
+            >
+              <p className="text-sm font-bold mb-3" style={{ color: "#06b6d4" }}>
+                HOW TO PLAY
+              </p>
+              <div className="text-xs font-mono space-y-2 mb-4" style={{ color: "#e2e8f0" }}>
+                <p><span style={{ color: "#fbbf24" }}>WASD</span> or <span style={{ color: "#fbbf24" }}>Arrow Keys</span> to move</p>
+                <p>Walk into enemies to <span style={{ color: "#ef4444" }}>attack</span></p>
+                <p>Find the stairs <span style={{ color: "#06b6d4" }}>&gt;</span> to go deeper</p>
+              </div>
+              <button
+                onClick={() => {
+                  showTutorialRef.current = false;
+                  setShowTutorial(false);
+                  try { localStorage.setItem("nullcrawl_tutorial_seen", "1"); } catch {}
+                }}
+                className="px-4 py-1.5 border-2 font-bold tracking-wider text-xs transition-all hover:scale-105"
+                style={{ borderColor: "#06b6d4", color: "#06b6d4" }}
+              >
+                GOT IT
+              </button>
+              <p className="text-xs mt-2" style={{ color: "var(--void-muted)" }}>
+                Press <span style={{ color: "#fbbf24" }}>?</span> for full help
+              </p>
             </div>
           </div>
         )}

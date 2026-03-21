@@ -600,3 +600,17 @@
 
 **Build:** `npm run build` passes clean
 - No money spent
+
+### 2026-03-20 19:10 | developer | First-run tutorial overlay
+- Added tutorial overlay that auto-shows on first game load for new players
+- Detects first visit via `localStorage.getItem('nullcrawl_tutorial_seen')`
+- Displays 3-line guide: WASD/Arrows to move, walk into enemies to attack, find > stairs to go deeper
+- Styled as centered overlay on canvas with cyan void theme (matches game aesthetic)
+- Dismissible via "Got it" button click, Enter, Space, or Escape key
+- Sets `nullcrawl_tutorial_seen` in localStorage on dismiss — never shows again
+- Blocks all game input while visible (keyboard handler early-returns)
+- Includes "Press ? for full help" hint to guide players to the detailed help overlay
+- Follows existing overlay pattern (absolute inset-0, pointer-events-none/auto, ref+state sync)
+
+**Build:** `npm run build` passes clean. `npm run lint` passes clean.
+- No money spent
