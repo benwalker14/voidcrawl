@@ -402,3 +402,12 @@
 - Both play pages are now Server Components, enabling `metadata` exports for SEO
 - Next.js 16 requires `ssr: false` to live in Client Components — used wrapper pattern
 - Build and lint pass clean
+
+### 2026-03-20 23:30 | developer | SEO infrastructure: metadata, sitemap, robots
+- Enhanced `layout.tsx` metadata: metadataBase, title template, full OG (type, siteName, url, title, description), Twitter Card (summary_large_image), keywords (8 terms), theme-color
+- Added per-page metadata on `/play` ("Play | Voidcrawl") and `/play/daily` ("Daily Void | Voidcrawl") — enabled by Server Component conversion
+- Created `src/app/sitemap.ts`: 3-page sitemap (/, /play, /play/daily) with appropriate changeFrequency and priority
+- Created `src/app/robots.ts`: allows all crawlers, references sitemap URL
+- Using `https://voidcrawl.vercel.app` as base URL — update when custom domain is configured
+- Note: og:image not yet set (needs dynamic OG image generation — separate task)
+- Build and lint pass clean
