@@ -2,6 +2,7 @@
 export const TILE_SIZE = 16;
 export const MAP_WIDTH = 40;
 export const MAP_HEIGHT = 30;
+export const VICTORY_FLOOR = 15; // Descending past this floor triggers victory
 export const VIEWPORT_TILES_X = 20;
 export const VIEWPORT_TILES_Y = 15;
 export const SCALE = 2;
@@ -345,6 +346,7 @@ export interface GameState {
   messages: GameMessage[];
   turnCount: number;
   gameOver: boolean;
+  victory: boolean;
   fov: boolean[][];
   explored: boolean[][];
   runStats: RunStats;

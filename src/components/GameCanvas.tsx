@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES, CONSUMABLE_EFFECT_NAMES } from "@/game/config";
-import { initGame, processPlayerTurn, applyInventoryItem, processShrine, MoveDirection, getAttunementAtkBonus } from "@/game/engine";
+import { CANVAS_WIDTH, CANVAS_HEIGHT, RUNIC_NAMES, CONSUMABLE_EFFECT_NAMES, VICTORY_FLOOR } from "@/game/config";
+import { initGame, processPlayerTurn, applyInventoryItem, processShrine, continueEndless, MoveDirection, getAttunementAtkBonus } from "@/game/engine";
 import { render, renderMinimap, renderFloatingTexts, renderHitEffects, FLOAT_DURATION, HIT_EFFECT_DURATION } from "@/game/renderer";
 import type { ActiveFloatingText, ActiveHitEffect } from "@/game/renderer";
 import type { GameState, GameMessage, PlayerInventory, RunStats, StatusEffect, GameEntity, DailyResult } from "@/game/config";
@@ -97,6 +97,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
   const [stats, setStats] = useState(() => getStatsFromState(initializedState));
   const [inventory, setInventory] = useState<PlayerInventory>(() => getInventoryFromState(initializedState));
   const [gameOver, setGameOver] = useState(false);
+  const [victory, setVictory] = useState(false);
   const [runStats, setRunStats] = useState<RunStats>(initializedState.runStats);
   const [statusEffects, setStatusEffects] = useState<StatusEffect[]>([]);
   const [voidAttunement, setVoidAttunement] = useState(0);
@@ -179,7 +180,11 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
     }
     if (state.gameOver) {
       setGameOver(true);
-      saveDailyOnDeath();
+      if (state.victory) {
+        setVictory(true);
+      } else {
+        saveDailyOnDeath();
+      }
     }
   }, [saveDailyOnDeath]);
 
@@ -394,12 +399,22 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
       animFrameRef.current = 0;
     }
     setGameOver(false);
+    setVictory(false);
     setCopied(false);
     setStatusEffects([]);
     setIdentified(state.identified);
     setConsumableAppearances(state.consumableAppearances);
     setInventory({ items: [], equippedWeapon: null, equippedArmor: null });
     setMessages([{ text: "A new journey begins...", color: "#e2e8f0" }]);
+    updateUI(state);
+    draw();
+  };
+
+  const continueToEndless = () => {
+    const state = continueEndless(gameRef.current);
+    gameRef.current = state;
+    setGameOver(false);
+    setCopied(false);
     updateUI(state);
     draw();
   };
@@ -696,9 +711,20 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
 
         {gameOver && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85">
-            <p className="text-3xl font-bold mb-1" style={{ color: "#ef4444" }}>
-              YOU DIED
-            </p>
+            {victory ? (
+              <>
+                <p className="text-3xl font-bold mb-1" style={{ color: "#22c55e" }}>
+                  YOU ESCAPED THE VOID!
+                </p>
+                <p className="text-sm mb-1" style={{ color: "#06b6d4" }}>
+                  Congratulations, Void Walker.
+                </p>
+              </>
+            ) : (
+              <p className="text-3xl font-bold mb-1" style={{ color: "#ef4444" }}>
+                YOU DIED
+              </p>
+            )}
             {isDaily && (
               <p className="text-xs font-bold mb-1" style={{ color: "#c084fc" }}>
                 DAILY VOID &mdash; {formatDailyDate(dailySeed!)}
@@ -709,7 +735,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
             </p>
             <div
               className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs font-mono mb-4 px-4 py-2 rounded"
-              style={{ backgroundColor: "rgba(26, 26, 46, 0.8)", border: "1px solid #333" }}
+              style={{ backgroundColor: "rgba(26, 26, 46, 0.8)", border: `1px solid ${victory ? "#166534" : "#333"}` }}
             >
               <span style={{ color: "#fb923c" }}>Enemies slain</span>
               <span className="text-right">{runStats.enemiesKilled}</span>
@@ -727,16 +753,21 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
             <div className="flex gap-3">
               <button
                 onClick={() => {
-                  const maxFloor = 15;
-                  const filled = Math.round((runStats.deepestFloor / maxFloor) * 15);
-                  const bar = "\u2593".repeat(filled) + "\u2591".repeat(15 - filled);
-                  const killerText = runStats.killedBy ? ` | Killed by ${runStats.killedBy}` : "";
+                  const maxFloor = VICTORY_FLOOR;
+                  const filled = Math.min(maxFloor, Math.round((runStats.deepestFloor / maxFloor) * maxFloor));
+                  const bar = "\u2593".repeat(filled) + "\u2591".repeat(maxFloor - filled);
                   const dailyTag = isDaily ? ` (Daily ${dailySeed})` : "";
-                  const summary = [
-                    `\u2620 NULLCRAWL \u2620${dailyTag}`,
-                    `Floor ${runStats.deepestFloor} | Level ${stats.level} | ${runStats.enemiesKilled} kills | ${formatPlayTime(runStats.startTime)}${killerText}`,
-                    `${bar} Floor ${runStats.deepestFloor}/${maxFloor}`,
-                  ].join("\n");
+                  const summary = victory
+                    ? [
+                        `\uD83C\uDFC6 NULLCRAWL \uD83C\uDFC6 ESCAPED!${dailyTag}`,
+                        `Floor ${runStats.deepestFloor} | Level ${stats.level} | ${runStats.enemiesKilled} kills | ${formatPlayTime(runStats.startTime)}`,
+                        `${bar} Floor ${runStats.deepestFloor}/${maxFloor}`,
+                      ].join("\n")
+                    : [
+                        `\u2620 NULLCRAWL \u2620${dailyTag}`,
+                        `Floor ${runStats.deepestFloor} | Level ${stats.level} | ${runStats.enemiesKilled} kills | ${formatPlayTime(runStats.startTime)}${runStats.killedBy ? ` | Killed by ${runStats.killedBy}` : ""}`,
+                        `${bar} Floor ${runStats.deepestFloor}/${maxFloor}`,
+                      ].join("\n");
                   navigator.clipboard.writeText(summary).then(() => {
                     setCopied(true);
                     setTimeout(() => setCopied(false), 2000);
@@ -748,14 +779,23 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
                   color: copied ? "#22c55e" : "#fbbf24",
                 }}
               >
-                {copied ? "COPIED!" : "COPY RUN SUMMARY"}
+                {copied ? "COPIED!" : victory ? "COPY VICTORY SUMMARY" : "COPY RUN SUMMARY"}
               </button>
+              {victory && (
+                <button
+                  onClick={continueToEndless}
+                  className="px-4 py-2 border-2 font-bold tracking-wider text-sm transition-all hover:scale-105"
+                  style={{ borderColor: "#c084fc", color: "#c084fc" }}
+                >
+                  CONTINUE (ENDLESS)
+                </button>
+              )}
               <button
                 onClick={restart}
                 className="px-6 py-2 border-2 font-bold tracking-wider transition-all hover:scale-105"
                 style={{ borderColor: "var(--void-cyan)", color: "var(--void-cyan)" }}
               >
-                {isDaily ? "PLAY STANDARD" : "TRY AGAIN"}
+                {isDaily ? "PLAY STANDARD" : victory ? "NEW RUN" : "TRY AGAIN"}
               </button>
             </div>
           </div>

@@ -614,3 +614,18 @@
 
 **Build:** `npm run build` passes clean. `npm run lint` passes clean.
 - No money spent
+
+### 2026-03-20 19:30 | developer | Floor 15 victory condition
+- Added `VICTORY_FLOOR = 15` constant and `victory` boolean to `GameState` in config.ts
+- Engine checks on stairs descent: if on floor 15 and victory not yet triggered, sets `gameOver = true` + `victory = true` instead of generating floor 16
+- Victory screen: green/cyan palette ("YOU ESCAPED THE VOID!" + "Congratulations, Void Walker."), distinct from red death screen
+- Full run stats grid (enemies, items, damage, floor, time) displayed on victory screen
+- "COPY VICTORY SUMMARY" button generates trophy-emoji format: `🏆 NULLCRAWL 🏆 ESCAPED! Floor 15 | Level X | Y kills`
+- "CONTINUE (ENDLESS)" button: calls `continueEndless()` which generates floor 16+ with victory flag preserved so the check doesn't re-trigger
+- "NEW RUN" button restarts from floor 1 (resets victory flag)
+- Death screen unchanged — only victory changes the visual treatment
+- `continueEndless()` exported from engine, adds "endless mode" message on floor entry
+- Daily challenge mode properly excluded from daily save on victory (only saves on death)
+
+**Build:** `npm run build` passes clean. `npm run lint` passes clean.
+- No money spent

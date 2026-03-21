@@ -26,6 +26,7 @@ import {
   MSG_COLORS,
   CONSUMABLE_EFFECT_NAMES,
   getZoneTheme,
+  VICTORY_FLOOR,
 } from "./config";
 import { random, seedRngForFloor, unseedRng } from "./rng";
 import { generateDungeon } from "./generation/dungeon";
@@ -269,6 +270,7 @@ export function generateFloor(
     messages,
     turnCount: 0,
     gameOver: false,
+    victory: false,
     fov,
     explored,
     runStats,
@@ -284,6 +286,27 @@ export function generateFloor(
     gameMode: mode,
     seed,
   };
+}
+
+/** Trigger victory — player escaped the void on floor 15 */
+function triggerVictory(state: GameState): GameState {
+  state.gameOver = true;
+  state.victory = true;
+  state.messages.push({ text: "YOU ESCAPED THE VOID!", color: "#22c55e" });
+  state.pendingFloatingTexts.push({ text: "VICTORY!", color: "#22c55e", x: state.player.pos.x, y: state.player.pos.y });
+  return state;
+}
+
+/** Continue into endless mode after victory — generates the next floor */
+export function continueEndless(state: GameState): GameState {
+  const nextState = generateFloor(
+    state.floor + 1, state.player, state.inventory, state.progression,
+    state.runStats, state.statusEffects, state.identified,
+    state.consumableAppearances, state.voidAttunement, state.gameMode, state.seed
+  );
+  nextState.victory = true; // Keep victory flag so it doesn't re-trigger
+  nextState.messages.push({ text: "You descend beyond the void... endless mode.", color: MSG_COLORS.INFO });
+  return nextState;
 }
 
 function isBlocked(state: GameState, x: number, y: number): boolean {
@@ -1333,6 +1356,9 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       enemy.pos = oldPos;
       pickupItem(newState);
       if (newState.map[newY][newX] === TileType.STAIRS_DOWN) {
+        if (newState.floor === VICTORY_FLOOR && !newState.victory) {
+          return triggerVictory(newState);
+        }
         newState.messages.push({ text: "You descend deeper into the void...", color: MSG_COLORS.INFO });
         return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression, newState.runStats, newState.statusEffects, newState.identified, newState.consumableAppearances, newState.voidAttunement, newState.gameMode, newState.seed);
       }
@@ -1344,6 +1370,9 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
 
       // Check for stairs
       if (newState.map[newY][newX] === TileType.STAIRS_DOWN) {
+        if (newState.floor === VICTORY_FLOOR && !newState.victory) {
+          return triggerVictory(newState);
+        }
         newState.messages.push({ text: "You descend deeper into the void...", color: MSG_COLORS.INFO });
         return generateFloor(newState.floor + 1, newState.player, newState.inventory, newState.progression, newState.runStats, newState.statusEffects, newState.identified, newState.consumableAppearances, newState.voidAttunement, newState.gameMode, newState.seed);
       }
