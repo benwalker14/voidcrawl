@@ -1,5 +1,74 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-20 23:15 | developer | Zone-weighted enemy spawns
+- **Added `zoneWeights: [number, number, number]` to EnemyTemplate** — each template now carries spawn weights for Null Tunnels (1-4), Crystal Depths (5-9), and Shadow Realm (10+)
+- **Weighted selection replaces uniform random** in both `spawnEnemies()` and `spawnEnemyAtPos()`. New `weightedPickTemplate()` helper rolls against cumulative zone weights
+- **Zone identity via spawn distribution:**
+  - Null Tunnels: dominated by Void Rat (10), Shadow Wisp (8), Void Beetle (8), Dark Slime (6). Shade appears at ~9%. Later enemies rarely.
+  - Crystal Depths: Shade (8), Void Walker (8), Abyssal Hound (8) are the signature enemies (~23% each). Early enemies drop to ~6%. Rift Wraith starts appearing at ~6%.
+  - Shadow Realm: Rift Wraith (10) and Void Lord (10) dominate (~28% each). Abyssal Hound (5) at ~14%. Earlier enemies are rare (~3-6%).
+- **Impact:** Floors 6-15 no longer feel like stat-scaled repetition. Each zone has mechanically distinct combat — Crystal Depths is life-drain/teleport/howl territory, Shadow Realm is wall-phasing wraiths and powerful lords. The 7 enemy special abilities are now concentrated where they define zone identity rather than diluted across all floors.
+- Lint and build both pass clean
+- No money spent
+
+### 2026-03-20 19:12 | health | Routine health check — all green
+
+- **Build:** Clean (no errors)
+- **Lint:** Clean (no warnings or errors)
+- **npm audit:** 0 vulnerabilities
+- **Git:** Branch `master`, up to date with `origin/master`. Uncommitted changes: modified `AGENT_LOG.md` and `TASK_BOARD.md`; untracked `CLAUDE.md.bak`, `HUMAN_INBOX.md.bak`, `agents/logs/`. No staged changes.
+- **Production:** URL TBD — not yet deployed, skipped availability check.
+- **Status:** HEALTHY
+
+### 2026-03-20 22:00 | strategist | Player Experience Audit — systems integration, message log, late-game pacing
+
+**Analysis type:** E. Player Experience (third pass — focused on systems integration quality, message log UX, and late-game pacing after 15+ new mechanics were added in one development cycle)
+
+**Research conducted:** Full code audit of GameCanvas.tsx (1118 lines), engine.ts (154 message-producing points), enemies.ts (spawn logic), items.ts (equipment tiers), renderer.ts (visual density), and HelpOverlay.tsx (documentation coverage). Analyzed the player journey floor-by-floor from first load through floor 15 victory, mapping system introductions, decision density, and information flow at each stage.
+
+**Key findings:**
+
+1. **Message log is the #1 UX bottleneck.** The log is h-24 (96px, ~4-5 visible lines) with 154 message-producing points in engine.ts. Boss fights generate 10-15 messages per turn. A single shrine commune crossing attunement thresholds can produce 8-9 messages. Critical information (level ups, threshold crossings, item identifications) scrolls away before the player can read it. Messages have color coding but no visual hierarchy — a "You attack Void Rat for 3 damage" looks the same weight as "VOID MASTERY — absolute power courses through you." This is the single most impactful UX fix remaining. NEW TASK ADDED.
+
+2. **Enemy selection is uniform random — breaks late-game feel.** Line 53 of enemies.ts: `eligible[Math.floor(random() * eligible.length)]`. On floor 12, all 9 enemy templates have equal 11% spawn chance. This means Void Rats (no ability, 4 base HP) appear at the same rate as Void Lords (75 base HP) and Rift Wraiths (ethereal movement). Result: floors 10-15 alternate between trivially easy encounters and dangerous ones with no pattern. The zone-weighted enemy spawns task (already on task board at P2) directly fixes this — ELEVATED to P1 because it's a feel/pacing issue, not just a content issue. The weighted spawning also makes each zone's special enemies actually define that zone's identity.
+
+3. **Equipment ceiling creates a 9-floor dead zone.** Abyssal Edge (+6 ATK) and Abyssal Ward (+6 DEF) are the best items in the game, available from floor 6. Floors 7-15 offer zero new equipment decisions — only duplicates of existing gear or Enchant Scrolls (+2 incremental). The sidegrade weapons task (already on task board at P2) directly fixes this — ELEVATED Null Scythe and Rift Dagger to P1 because the equipment ceiling is a player experience problem, not just a content gap. Players need to find exciting loot on floors 7-15 to maintain engagement.
+
+4. **Boss gap is 9 floors long.** Only one boss (Void Nucleus, floor 5) in a 15-floor game. Floors 6-14 are 9 consecutive floors with no boss encounter, no milestone, no structural variety. The floor 10 Shadow Twin boss (already on task board at P2) directly fixes this — ELEVATED to P1 because halving the boss-less stretch from 9 floors to 4-5 is a major pacing improvement.
+
+5. **Complexity ramp is well-managed.** Floors 1-5 introduce 9 systems (movement, combat, loot, identification, attunement, shrines, enemy abilities, boss mechanics, leveling). This is appropriate for the roguelike audience. The tutorial overlay, help screen, and intent indicators provide adequate learning support. No changes needed here.
+
+6. **HUD information density at high attunement is high but functional.** At 100% attunement with active status effects, the HUD shows 10+ information categories (HP, ATK, DEF, Level, Floor, Turns, XP bar, attunement meter + 6 effect labels, equipment + runics + curses, status effect timers, boss HP bar if present). The flex-wrap on attunement effects prevents overflow. This is dense but roguelike players expect information-rich HUDs. Not a blocker — revisit if player feedback reports confusion.
+
+7. **Enemy ability utilization is diluted by uniform spawning.** The game has 7 unique enemy abilities (Phase, Armored, Split, Life Drain, Teleport, Howl, Ethereal) but uniform spawning means most floors are dominated by ability-less enemies (Void Rat, Void Lord). Zone-weighted spawning would ensure 60-70% of enemies in each zone have relevant abilities, making combat consistently tactical rather than intermittently interesting.
+
+**Pacing analysis (floor-by-floor):**
+
+| Floor Range | Systems Active | Enemy Count | Loot Tier | New Mechanics Introduced | Pacing Feel |
+|-------------|---------------|-------------|-----------|-------------------------|-------------|
+| 1-2 | 5 (move, fight, loot, ID, level) | 4-6 | Common-Uncommon | Combat, identification | Comfortable learning |
+| 3-4 | 7 (+attunement, shrines) | 7-9 | Uncommon, Rare@15% | Shade life drain, Void Walker teleport | Rising tension |
+| 5 | 8 (+boss) | 1 boss + adds | Guaranteed Rare | Boss phases, telegraphs | Climax |
+| 6-9 | 8 (no new systems) | 10-13 | Rare@30%, peak gear at floor 6 | Rift Wraith ethereal (floor 7) | **Plateau — equipment ceiling, no bosses** |
+| 10-15 | 8 (no new systems) | 15-22 | Same as 7-9 | Shadow Realm FOV reduction only | **Endurance test — quantity over quality** |
+
+**Critical gap:** Floors 6-15 introduce almost nothing new. The game's mechanical depth peaks at floor 5. The remaining 10 floors are stat-scaled repetition with one zone transition (floor 10, FOV reduction). Three changes would fix this: zone-weighted spawns (make each zone feel distinct), sidegrade weapons (new loot decisions), and floor 10 boss (pacing milestone).
+
+**Task board changes:**
+- NEW: P2 Message log improvements (height increase, turn separators, critical message styling)
+- ELEVATED: Zone-weighted enemy spawns P2 → P1 (pacing fix, not just content)
+- ELEVATED: Floor 10 boss Shadow Twin P2 → P1 (breaks 9-floor boss gap)
+- ELEVATED: Late-game sidegrade weapons (Null Scythe, Rift Dagger) P2 → P1 (breaks equipment ceiling)
+
+**Recommended next sprint priority for developer agents:**
+1. Zone-weighted enemy spawns — smallest code change, biggest pacing impact
+2. Null Scythe + Rift Dagger sidegrade weapons — breaks equipment ceiling
+3. Message log height + turn separators + critical message styling — readability
+4. Floor 10 boss: Shadow Twin — content milestone, cuts boss gap in half
+5. Consumable-environment interactions — depth multiplier for existing content
+
+No money spent. No human decisions needed — all changes are player experience improvements within approved direction.
+
 ### 2026-03-20 21:00 | developer | Guaranteed floor loot (pity mechanic)
 - **New `generateGuaranteedFloorLoot()` function in `items.ts`:** Pre-places items at floor generation time so every non-boss floor has a minimum of 2 ground items: 1 random item (weapon/armor/consumable scaled to floor rarity) and 1 healing potion (Minor on floors 1-2, Health Potion on 3-5, Major Health Potion on 6+)
 - **Placement logic:** Items are placed in rooms the player doesn't start in (rooms[1:]), avoiding the player start position by 3+ Manhattan distance. Attempts up to 20 random positions per item to find valid floor tiles

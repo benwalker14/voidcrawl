@@ -13,19 +13,42 @@ interface EnemyTemplate {
   behavior: AIBehavior;
   detectRange: number;
   specialAbility?: SpecialAbility;
+  // Spawn weights per zone: [Null Tunnels (1-4), Crystal Depths (5-9), Shadow Realm (10+)]
+  zoneWeights: [number, number, number];
 }
 
 const ENEMY_TEMPLATES: EnemyTemplate[] = [
-  { name: "Void Rat", symbol: "r", color: "#8b5cf6", baseHp: 4, baseAttack: 2, baseDefense: 0, baseXp: 5, minFloor: 1, behavior: AIBehavior.WANDER, detectRange: 5 },
-  { name: "Shadow Wisp", symbol: "w", color: "#a78bfa", baseHp: 3, baseAttack: 3, baseDefense: 0, baseXp: 6, minFloor: 1, behavior: AIBehavior.COWARD, detectRange: 10, specialAbility: SpecialAbility.PHASE },
-  { name: "Void Beetle", symbol: "b", color: "#7c3aed", baseHp: 6, baseAttack: 2, baseDefense: 1, baseXp: 8, minFloor: 1, behavior: AIBehavior.WANDER, detectRange: 6, specialAbility: SpecialAbility.ARMORED },
-  { name: "Dark Slime", symbol: "s", color: "#4c1d95", baseHp: 8, baseAttack: 3, baseDefense: 1, baseXp: 12, minFloor: 2, behavior: AIBehavior.AMBUSH, detectRange: 3, specialAbility: SpecialAbility.SPLIT },
-  { name: "Shade", symbol: "S", color: "#6d28d9", baseHp: 10, baseAttack: 4, baseDefense: 2, baseXp: 18, minFloor: 3, behavior: AIBehavior.AMBUSH, detectRange: 4, specialAbility: SpecialAbility.LIFE_DRAIN },
-  { name: "Void Walker", symbol: "W", color: "#5b21b6", baseHp: 14, baseAttack: 5, baseDefense: 2, baseXp: 25, minFloor: 4, behavior: AIBehavior.CHASE, detectRange: 10, specialAbility: SpecialAbility.TELEPORT },
-  { name: "Abyssal Hound", symbol: "H", color: "#c084fc", baseHp: 18, baseAttack: 6, baseDefense: 3, baseXp: 35, minFloor: 5, behavior: AIBehavior.CHASE, detectRange: 12, specialAbility: SpecialAbility.HOWL },
-  { name: "Rift Wraith", symbol: "R", color: "#e9d5ff", baseHp: 22, baseAttack: 7, baseDefense: 4, baseXp: 50, minFloor: 7, behavior: AIBehavior.CHASE, detectRange: 14, specialAbility: SpecialAbility.ETHEREAL },
-  { name: "Void Lord", symbol: "V", color: "#f5f3ff", baseHp: 30, baseAttack: 9, baseDefense: 5, baseXp: 75, minFloor: 10, behavior: AIBehavior.CHASE, detectRange: 16 },
+  //                                                                                                                                                                    Null  Crystal  Shadow
+  { name: "Void Rat",       symbol: "r", color: "#8b5cf6", baseHp: 4,  baseAttack: 2, baseDefense: 0, baseXp: 5,  minFloor: 1,  behavior: AIBehavior.WANDER, detectRange: 5,                                          zoneWeights: [10, 2, 1] },
+  { name: "Shadow Wisp",    symbol: "w", color: "#a78bfa", baseHp: 3,  baseAttack: 3, baseDefense: 0, baseXp: 6,  minFloor: 1,  behavior: AIBehavior.COWARD, detectRange: 10, specialAbility: SpecialAbility.PHASE,     zoneWeights: [8, 2, 1] },
+  { name: "Void Beetle",    symbol: "b", color: "#7c3aed", baseHp: 6,  baseAttack: 2, baseDefense: 1, baseXp: 8,  minFloor: 1,  behavior: AIBehavior.WANDER, detectRange: 6,  specialAbility: SpecialAbility.ARMORED,   zoneWeights: [8, 2, 1] },
+  { name: "Dark Slime",     symbol: "s", color: "#4c1d95", baseHp: 8,  baseAttack: 3, baseDefense: 1, baseXp: 12, minFloor: 2,  behavior: AIBehavior.AMBUSH, detectRange: 3,  specialAbility: SpecialAbility.SPLIT,     zoneWeights: [6, 3, 2] },
+  { name: "Shade",          symbol: "S", color: "#6d28d9", baseHp: 10, baseAttack: 4, baseDefense: 2, baseXp: 18, minFloor: 3,  behavior: AIBehavior.AMBUSH, detectRange: 4,  specialAbility: SpecialAbility.LIFE_DRAIN, zoneWeights: [3, 8, 3] },
+  { name: "Void Walker",    symbol: "W", color: "#5b21b6", baseHp: 14, baseAttack: 5, baseDefense: 2, baseXp: 25, minFloor: 4,  behavior: AIBehavior.CHASE,  detectRange: 10, specialAbility: SpecialAbility.TELEPORT,  zoneWeights: [1, 8, 3] },
+  { name: "Abyssal Hound",  symbol: "H", color: "#c084fc", baseHp: 18, baseAttack: 6, baseDefense: 3, baseXp: 35, minFloor: 5,  behavior: AIBehavior.CHASE,  detectRange: 12, specialAbility: SpecialAbility.HOWL,      zoneWeights: [0, 8, 5] },
+  { name: "Rift Wraith",    symbol: "R", color: "#e9d5ff", baseHp: 22, baseAttack: 7, baseDefense: 4, baseXp: 50, minFloor: 7,  behavior: AIBehavior.CHASE,  detectRange: 14, specialAbility: SpecialAbility.ETHEREAL,  zoneWeights: [0, 2, 10] },
+  { name: "Void Lord",      symbol: "V", color: "#f5f3ff", baseHp: 30, baseAttack: 9, baseDefense: 5, baseXp: 75, minFloor: 10, behavior: AIBehavior.CHASE,  detectRange: 16,                                          zoneWeights: [0, 1, 10] },
 ];
+
+/** Get zone index from floor number for weighted spawning */
+function getZoneIndex(floor: number): number {
+  if (floor <= 4) return 0; // Null Tunnels
+  if (floor <= 9) return 1; // Crystal Depths
+  return 2;                  // Shadow Realm
+}
+
+/** Pick an enemy template using zone-weighted random selection */
+function weightedPickTemplate(eligible: EnemyTemplate[], floor: number): EnemyTemplate {
+  const zone = getZoneIndex(floor);
+  const totalWeight = eligible.reduce((sum, t) => sum + t.zoneWeights[zone], 0);
+  if (totalWeight <= 0) return eligible[Math.floor(random() * eligible.length)];
+  let roll = random() * totalWeight;
+  for (const template of eligible) {
+    roll -= template.zoneWeights[zone];
+    if (roll <= 0) return template;
+  }
+  return eligible[eligible.length - 1];
+}
 
 let nextEnemyId = 1;
 
@@ -49,8 +72,8 @@ export function spawnEnemies(floor: number, floorTiles: Position[]): GameEntity[
     if (attempts >= 50) break;
     usedPositions.add(`${pos.x},${pos.y}`);
 
-    // Pick random enemy weighted toward lower-tier
-    const template = eligible[Math.floor(random() * eligible.length)];
+    // Pick enemy weighted by zone
+    const template = weightedPickTemplate(eligible, floor);
     const scaling = 1 + (floor - 1) * 0.15;
 
     enemies.push({
@@ -76,7 +99,7 @@ export function spawnEnemies(floor: number, floorTiles: Position[]): GameEntity[
 
 export function spawnEnemyAtPos(floor: number, pos: Position): GameEntity {
   const eligible = ENEMY_TEMPLATES.filter((t) => t.minFloor <= floor);
-  const template = eligible[Math.floor(random() * eligible.length)];
+  const template = weightedPickTemplate(eligible, floor);
   const scaling = 1 + (floor - 1) * 0.15;
 
   return {
