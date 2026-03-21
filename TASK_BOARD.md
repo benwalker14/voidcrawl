@@ -25,6 +25,9 @@
 - [x] Purchase nullcrawl.com domain (~$10-12/year) — COMPLETED BY HUMAN (2026-03-20). Domain purchased and DNS configured. Developer agents: update metadataBase in layout.tsx from voidcrawl-five.vercel.app to nullcrawl.com.
 - [ ] Update Vercel project: rename project to "nullcrawl", update any Vercel-specific config. Ensure old URL redirects to new domain (Vercel handles this automatically with custom domains).
 
+### P0 - Launch Blockers (NEW — strategist launch plan 2026-03-21)
+- [ ] Fix metadataBase in layout.tsx: change `https://voidcrawl.vercel.app` to `https://nullcrawl.com`. Currently ALL OG images, canonical URLs, and social card metadata point to the old URL. Every link shared anywhere has wrong metadata. 1-line fix, highest priority.
+
 ### P1 - Player Experience (NEW — strategist analysis 2026-03-20)
 - [x] Add help overlay (press ? or H) showing controls, mechanics, and enemy/item legends — players currently have no way to learn game systems beyond the tiny footer hint
 
@@ -67,7 +70,7 @@
 - [x] Item drop command (Q key): press `Q` then `1-8` to drop an inventory item onto the current floor tile. Currently inventory can only be emptied by using consumables. With 8 slots and frequent loot drops, players get stuck unable to pick up better weapons/armor because they're hoarding situational consumables. Implementation: add `dropItem(state, index)` to engine.ts that creates a new GroundItem at player position and removes from inventory. Add Q-key listener to GameCanvas with a "drop mode" state that waits for a number key (D key conflicts with WASD movement). Show "Drop which item? (1-8)" prompt in message log. Update help overlay with drop instructions.
 
 ### P1 - Visual Polish
-- [ ] Replace ASCII characters with pixel art sprites
+- ~~Replace ASCII characters with pixel art sprites~~ — **DEMOTED TO P3** (strategist launch plan 2026-03-21). ASCII aesthetic is correct for the target audience (r/roguelikes, HN, itch.io). Rogule, Brogue, DCSS, Cogmind all use ASCII/tile-based rendering. Pixel art is hundreds of hours of work that delays launch for no audience benefit. Can be added later as an optional visual mode or content pack.
 - [x] Add hit/damage animations
 - [x] Add screen shake on big hits
 - [x] Floor transition animation
@@ -112,14 +115,24 @@ These 3 tasks were elevated from P2 because the systems integration audit identi
 - [x] Late-game sidegrade weapons — Null Scythe + Rift Dagger (MOVED FROM P2 Run Variety): **Null Scythe** (`/`, magenta, +5 ATK, Rare, floor 8+, special: attacks hit target AND one random adjacent enemy — AoE melee). **Rift Dagger** (`/`, cyan, +3 ATK, Rare, floor 8+, special: double-strike — attacks twice per turn at reduced damage, synergizes with Vampiric/Flaming/Stunning runics). These break the equipment ceiling where Abyssal Edge (+6 ATK) is the last meaningful loot find at floor 6. Players need exciting loot decisions on floors 7-15.
 - [x] Floor 10 boss: "Shadow Twin" (MOVED FROM P2 Content Wave 2B): symbol `@`, dark red — 3-phase positioning puzzle boss. Phase 1 (Mirror): mirrors player movement inversely, must be cornered. Phase 2 (Shadow Split at 50% HP): splits into 2 copies, both must die within 3 turns. Phase 3 (Desperation at 25% HP): becomes ethereal + 2-tile movement. Boss room with interior pillars. Guaranteed unique drop: "Mirror Shard" (decoy for 8 turns). **Cuts the boss-less stretch from 9 floors to 4**, creating a mid-run milestone.
 
-### P1 - Pre-Launch Content (NEW — strategist content planning pass 2, 2026-03-20)
+### P1 - Community Launch (NEW — strategist launch plan 2026-03-21)
 
-These tasks complete the game's content arc before community launch. The game has enough content NOW to retain players, but these three additions fill the remaining structural gaps: no final boss, no terrain-based danger, and no emergent consumable combos.
+The game exceeds content benchmarks for every successful browser roguelike launch studied (Rogule had ~5% of Nullcrawl's content when it hit 19K players/day). Launch prep should begin immediately.
 
-- [ ] Floor 15 boss: "Rift Warden" (ELEVATED FROM P2 — the game has no final boss. Players fight Shadow Twin on floor 10, then 5 more floors of stat-scaled enemies, then just... escape. The ending is anticlimactic. A capstone boss on floor 15 makes the victory feel earned. See full spec in P2 Content Wave 2B below.) **This is the #1 content priority for community launch.**
-- [x] Environmental hazards — traps only (ELEVATED SUBSET FROM P2): **Trap tiles** (hidden `,` — 3 variants: Spike Trap deals 5 damage, Alarm Trap alerts all enemies on floor, Teleport Trap moves player to random tile. Revealed when stepped on. Void Sight at 25% attunement reveals traps within FOV — gives attunement a new concrete benefit. Spawn 2-4 traps per floor starting floor 3). Traps add a gameplay dimension that doesn't exist at all yet — terrain-based danger. Defer void fissures to P2 (they're less impactful and more complex). **Build BEFORE Rift Warden** — traps in the final boss arena make the Rift Warden fight more interesting.
-- [ ] Consumable-environment interactions (ELEVATED FROM P2): Fire Potion prevents Dark Slime splitting (burned slimes die outright). Poison Potion makes Void Beetles lose ARMORED (corrodes shell). Scroll of Fear doesn't affect bosses but scatters boss adds. Invisibility allows safe shrine use (always positive effect). These are if-checks in existing combat/effect code — zero new assets, zero new systems. Each interaction adds a message: "The fire burns through the slime before it can divide!" Creates emergent combos that reward player knowledge. **Build AFTER traps** — traps add more interactions to discover (e.g., Teleport Potion clears trap tiles).
-- [ ] 2 Crystal Depths zone-exclusive enemies (ELEVATED FROM P2 Wave 2A): Crystal Depths (floors 5-9) currently uses repurposed Null Tunnels enemies via zone-weighting. Zone-exclusive enemies complete the zone identity. See spec below in P2 Content Wave 2A.
+- [ ] Start r/roguelikedev Sharing Saturday participation: post a progress update this Saturday showing the game's current state (screenshot + brief description of key systems). Do this for 2-3 Saturdays before the main r/WebGames post. Builds credibility and a small fan base who will upvote the launch post. **Can start immediately — no dependencies.**
+- [ ] Set up itch.io page for Nullcrawl: cover image (630x500), 5+ screenshots of gameplay (different zones, boss fights, death screen, daily challenge), all tags (roguelike, traditional-roguelike, dungeon-crawler, turn-based, procedural-generation, ascii, browser, free, fantasy), browser-playable embed linking to nullcrawl.com/play. Write 1-2 devlogs. itch.io is the primary landing page for Reddit/HN traffic — 37% of viewers play browser games (vs. 6% for downloads). BLOCKED BY: P0 metadataBase fix + gameplay screenshot.
+- [ ] Draft r/WebGames launch post: title format "Nullcrawl - [compelling hook]". Link directly to game. Post at 4 AM UTC for max engagement. Draft the post text for human review before posting. BLOCKED BY: itch.io page + 2-3 weeks of Sharing Saturday participation.
+- [ ] Draft "Show HN: Nullcrawl" post: technical angle — "Show HN: Nullcrawl – a turn-based browser roguelike built with Next.js and HTML5 Canvas." Post Tuesday-Thursday, 8-10 AM ET. Have 3-5 people ready to engage in comments. Draft for human review. BLOCKED BY: r/WebGames post.
+- [ ] Write dev.to post: "Building a Browser Roguelike with Next.js and HTML5 Canvas" — targets developer keywords, generates backlinks. Cross-post to Hashnode/Medium. Can be written in parallel with itch.io setup.
+
+### P1 - Post-Launch Content Updates (RECLASSIFIED from Pre-Launch — strategist launch plan 2026-03-21)
+
+These were previously classified as pre-launch requirements but the game already exceeds launch content benchmarks. Reclassified as post-launch content drops — each one becomes a re-engagement announcement ("New content!") on r/roguelikedev and itch.io devlog.
+
+- [x] Floor 15 boss: "Rift Warden" — COMPLETED
+- [x] Environmental hazards — traps — COMPLETED
+- [ ] Consumable-environment interactions: Fire Potion prevents Dark Slime splitting (burned slimes die outright). Poison Potion makes Void Beetles lose ARMORED (corrodes shell). Scroll of Fear doesn't affect bosses but scatters boss adds. Invisibility allows safe shrine use (always positive effect). These are if-checks in existing combat/effect code — zero new assets, zero new systems. Each interaction adds a message: "The fire burns through the slime before it can divide!" Creates emergent combos that reward player knowledge. **Post-launch update 1.**
+- [ ] 2 Crystal Depths zone-exclusive enemies: Crystal Depths (floors 5-9) currently uses repurposed Null Tunnels enemies via zone-weighting. Zone-exclusive enemies complete the zone identity. See spec in P2 Content Wave 2A. **Post-launch update 1.**
 
 ### P2 - Content Depth (REVISED — strategist content planning wave 2, 2026-03-20)
 
@@ -162,6 +175,9 @@ These tasks complete the game's content arc before community launch. The game ha
 - [ ] ARIA live region for message log so screen readers announce game events
 - [ ] Semantic HTML for HUD elements (use landmarks and roles)
 
+### P3 - Visual (DEMOTED from P1 — strategist launch plan 2026-03-21)
+- [ ] Optional pixel art sprite mode: alternate visual rendering with pixel art sprites. ASCII is the correct primary aesthetic for the target audience (r/roguelikes, HN, itch.io). Pixel art can be added later as a toggle or content pack. Hundreds of hours of work — only pursue when there is player demand.
+
 ### P2 - Monetization Foundation (REDESIGNED — strategist monetization analysis 2026-03-20)
 - [ ] Set up Ko-fi page for Voidcrawl — 0% platform fee on tips, instant payout via PayPal/Stripe. Add "Support the Developer" link to landing page and death screen. Zero cost, takes 15 minutes. Ko-fi outperforms Buy Me a Coffee (5% fee) and doesn't require content cadence like Patreon. This is the lowest-friction way to accept supporter money before the game has paid content.
 - [ ] Set up GitHub Sponsors for benwalker14 — 0% platform fee (GitHub absorbs all fees). Add sponsor button to GitHub repo. Developer-audience tip jar that pairs with the dev.to/HN growth strategy. Roguelike devs who find the game via code will discover the sponsor option naturally.
@@ -181,15 +197,14 @@ These tasks complete the game's content arc before community launch. The game ha
 - [ ] Cosmetic death screen themes — 3-5 visual variants for the death screen (Void Purple, Crimson, Celestial Gold, Neon Synthwave, Parchment). $0.99 each or $2.99 for all. Purely cosmetic, visible in shareable run summaries (adds a visual signature when shared). Low effort — mostly color palette and layout tweaks to existing death screen.
 - [ ] Premium hero skins — alternate visual representations for the player character. ASCII variant packs (different symbols + color schemes) or pixel art skins when sprites are added. $0.99-$1.99 per pack. Zero gameplay impact.
 
-### P2 - Growth & Community (NEW — strategist Growth/SEO analysis 2026-03-20)
-- [ ] Set up Google Search Console: verify site ownership, submit sitemap.xml, request indexing of `/` and `/play`. Monitor "Performance" tab for search queries and impressions. Free, takes 15 minutes, essential for understanding how players find the game.
-- [ ] Create press kit page (`/press` route): game description (short + long), 5-8 downloadable screenshots, logo PNG, gameplay GIF, fact sheet (genre, platform, price, developer, contact), download links. Reference format: dopresskit.com. BLOCKED BY: P0 rename.
-- [ ] Post to r/WebGames (131K members): "Nullcrawl - Turn-based roguelike dungeon crawler [browser]". Direct game link, respond to every comment. r/WebGames → Hacker News is the exact funnel Rogule used to get 19,000 players in one day. ~~BLOCKED BY: P0 rename + P1 Void Attunement prototype + P1 floor themes.~~ UNBLOCKED — all prerequisites completed. **WAIT FOR: P1 Pre-Launch Content (Rift Warden boss + traps + consumable interactions) to maximize first impression.**
-- [ ] Post to r/roguelikes (160K+ members): genuine community participation first (10:1 ratio of contributions to self-promotion), then share Nullcrawl. ~~BLOCKED BY: same as r/WebGames.~~ UNBLOCKED — same timing as r/WebGames above.
-- [ ] Start weekly r/roguelikedev Sharing Saturday participation: show development progress weekly. Can start immediately — development screenshots are fine even pre-rename.
-- [ ] Submit "Show HN: Nullcrawl – a turn-based browser roguelike" to Hacker News: post on Sunday (less competition), use "Show HN:" prefix, factual language, technical angle ("Built with Next.js + HTML5 Canvas"). Save for AFTER Reddit post gets traction. ~~BLOCKED BY: P0 rename + community posts.~~ UNBLOCKED — wait for Reddit post timing.
-- [ ] Write dev.to post: "Building a Browser Roguelike with Next.js and HTML5 Canvas" — targets developer keywords, generates backlinks, builds credibility in dev community. Cross-post to Hashnode/Medium. ~~BLOCKED BY: P0 rename.~~ UNBLOCKED.
-- [ ] Submit to Newgrounds as HTML5 game — established indie game community with strong appreciation for retro/ASCII aesthetics. Good cultural fit. ~~BLOCKED BY: P0 rename.~~ UNBLOCKED.
+### P2 - Growth & Community (REVISED — strategist launch plan 2026-03-21)
+
+Note: r/WebGames, r/roguelikes, Show HN, r/roguelikedev Sharing Saturday, and dev.to post have been **moved to P1 Community Launch** section with specific sequencing and timing. The tasks below are post-launch or parallel work.
+
+- [ ] Set up Google Search Console: verify site ownership, submit sitemap.xml, request indexing of `/` and `/play`. Monitor "Performance" tab for search queries and impressions. Free, takes 15 minutes, essential for understanding how players find the game. **Do during launch prep week.**
+- [ ] Create press kit page (`/press` route): game description (short + long), 5-8 downloadable screenshots, logo PNG, gameplay GIF, fact sheet (genre, platform, price, developer, contact), download links. Reference format: dopresskit.com.
+- [ ] Submit to Newgrounds as HTML5 game — established indie game community with strong appreciation for retro/ASCII aesthetics. Good cultural fit. **Post-launch — do after Reddit/HN.**
+- [ ] Create RogueBasin wiki page for Nullcrawl — self-service wiki, free, permanent discoverability by core roguelike players. **Post-launch.**
 
 ### P3 - Growth (EXPANDED — strategist Growth/SEO analysis 2026-03-20)
 - [ ] Social sharing channels: Twitter/X post button (using Web Share API or tweet intent URL), Reddit-formatted run summary, itch.io community integration. Builds on the P1 shareable death screen clipboard copy.

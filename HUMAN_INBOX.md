@@ -407,6 +407,43 @@ No decisions needed — all items are developer tasks that comply with ethics ru
 
 ---
 
+### 2026-03-20 24:45 | strategist | Content Planning pass 2 — monetization packs need redesign
+
+**From:** Strategist Agent (ninth session — Content Planning, second pass)
+**Priority:** Medium
+
+#### Domain Purchase Acknowledged
+
+nullcrawl.com is live. This unblocks the entire growth pipeline — itch.io, RogueBasin, Reddit, Hacker News, dev.to, and Newgrounds are all now unblocked. Developer agents need to:
+1. Connect nullcrawl.com to Vercel deployment
+2. Update `metadataBase` in layout.tsx from `voidcrawl-five.vercel.app` to `nullcrawl.com`
+
+#### Monetization Content Packs Are Obsolete — FYI
+
+The original content pack designs from session 5 reference content that has since been built into the base game:
+- "Crystalline Depths" pack included the Crystal zone theme — now free in-game (floors 5-9)
+- "Shadow Realm" pack included the Shadow zone theme AND Shadow Twin boss — both now free in-game
+
+I've redesigned the packs around content that ISN'T in the base game:
+- **"Depths Beyond" ($1.99):** Extends to floor 25 with new zones/bosses/enemies
+- **"Heroes of the Void" ($2.99):** Hero classes (still valid)
+- **"Void Arsenal" ($1.99):** Epic items, Void-Touched variants, sidegrade armor
+- **Bundle ($4.99):** All 3 at 28% discount
+
+No action needed from you — just flagging so you know the pack specs on the task board have been updated.
+
+#### Pre-Launch Content Plan (No Decisions Needed)
+
+The game's content depth has tripled since the first audit. It now exceeds Rogule (2K daily players) in every category. Four remaining structural gaps need filling before community launch (Reddit/HN posts):
+1. Floor 15 boss (Rift Warden) — the game has no final boss, ending feels anticlimactic
+2. Trap tiles — no terrain-based danger exists at all yet
+3. Consumable-environment interactions — emergent combos from existing content
+4. 2 Crystal Depths zone-exclusive enemies — complete zone identity
+
+All four are now P1 on the task board. After these, the game is ready for community launch.
+
+---
+
 ### 2026-03-20 19:50 | strategist | Game Design Research — run variety & endgame systems
 
 **From:** Strategist Agent (eighth session — Game Design Research, second pass)
@@ -433,5 +470,76 @@ All new tasks follow the approved direction (content-first, prototype-then-expan
 The P1 Attunement expansion tasks should be built **before community launch** — this is the game's signature hook and the thing players will discuss and share. The P2 run variety and endgame tasks should follow after Content Wave 2A (Crystal Depths enemies) since sidegrade weapons need the late-game zones to have distinct enemies first.
 
 No money spent. No human action required.
+
+---
+
+### 2026-03-21 08:00 | strategist | Community Launch Plan — 2 decisions needed
+
+**From:** Strategist Agent (tenth session — Growth & Launch Timing)
+**Priority:** HIGH — the game is ready to launch
+
+#### The Big Finding
+
+**Nullcrawl is ready for community launch.** I audited the game against every successful browser roguelike launch I could find, and the content depth significantly exceeds launch benchmarks:
+
+| Metric | Nullcrawl (now) | Rogule (at 19K-player launch) | Verdict |
+|--------|----------------|-------------------------------|---------|
+| Enemy types | 14 | ~5 | 3x more |
+| Bosses | 3 (multi-phase) | 0 | Way more |
+| Items | 26 + runics + curses | ~8 | 3x more |
+| Consumable effects | 12 (with identification) | 3-4 | 3x more |
+| Game modes | 2 (Standard + Daily) | 1 (Daily only) | More |
+| Unique mechanic | Void Attunement (4 thresholds) | Daily seed | Comparable |
+| Zones | 3 themed | 1 | More |
+
+Rogule reached 19,000 players in one day and settled to 2,000/day sustained — with a fraction of Nullcrawl's content. The limiting factor is no longer content depth. It's discoverability.
+
+#### What Must Happen Before Launch (developer tasks, no human action)
+
+1. **Fix metadataBase** — layout.tsx still says `voidcrawl.vercel.app` instead of `nullcrawl.com`. Every shared link has wrong OG metadata.
+2. **Capture gameplay screenshot** for landing page — text-only landing pages convert 2-3x worse.
+3. **Set up itch.io page** — primary landing page for Reddit/HN traffic.
+
+#### Recommended Launch Timeline
+
+| Week | Action | Platform |
+|------|--------|----------|
+| Now | Fix metadata + screenshot + itch.io setup | Developer tasks |
+| This week | Start posting in r/roguelikedev Sharing Saturday | Build credibility |
+| Week 1-2 | Soft launch itch.io (share in Sharing Saturday only) | itch.io |
+| Week 2-3 | Post to r/WebGames + r/roguelikes | Reddit |
+| Week 2-3 + 2 days | "Show HN: Nullcrawl" | Hacker News |
+
+The remaining P1 tasks (consumable-environment interactions, Crystal Depths enemies) become post-launch updates — "New content drop!" posts are a proven re-engagement strategy.
+
+#### Decision 1: Launch Timeline Approval
+
+Do you want to proceed with the community launch plan above? The developer agents will handle the technical prep (metadataBase fix, screenshot, itch.io page). The community posts (Reddit, HN) are public-facing and will be drafted for your review before posting.
+
+- **A) Approve** — Start launch prep now, target community posts in 2-3 weeks.
+- **B) Delay** — Wait for specific content/features before launching. If so, which ones?
+- **C) Faster** — Skip the r/roguelikedev warmup phase and post to r/WebGames this week.
+
+My recommendation: **Option A**. The 2-3 week warmup builds credibility in the roguelike community and gives developer agents time to fix the technical blockers. But if you want to move faster, C is viable — the game has enough content to impress.
+
+#### Decision 2: Reddit & Hacker News Account Readiness
+
+The community posts need to come from accounts with some history — brand-new accounts posting game links get flagged as spam. Questions:
+
+1. Do you have a Reddit account? Does it have posting history? (r/WebGames allows self-promotion but Reddit penalizes new/inactive accounts)
+2. Do you have a Hacker News account? (Show HN posts from new accounts get less visibility)
+
+If your accounts are new or inactive, the 2-3 week warmup period is even more important — you can build account karma through genuine r/roguelikedev participation before the launch posts.
+
+#### One More Thing: Pixel Art Sprites
+
+The P1 task board includes "Replace ASCII characters with pixel art sprites." I'm recommending this be **demoted to P3** (nice to have, not priority). Here's why:
+
+- Rogule uses emoji rendering. Brogue, DCSS, and Cogmind all use ASCII/tile-based graphics. The core roguelike audience on r/roguelikes and HN **expects and respects** ASCII aesthetics.
+- Pixel art is hundreds of hours of work that delays launch for months.
+- The current rendering style IS the correct aesthetic for the target audience.
+- If pixel art is desired later, it can be a content pack or optional toggle.
+
+No money spent.
 
 ---

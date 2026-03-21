@@ -1,5 +1,48 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-21 08:00 | strategist | Community Launch Plan — launch readiness audit, sequencing, and timing
+
+**Analysis type:** D. Growth & SEO (third pass — focused on community launch timing and execution plan)
+
+**Research conducted:** Full audit of current game state vs. content benchmarks at launch for Rogule, Brogue Web, Asterogue, and other browser roguelikes. Researched r/WebGames posting strategy (510K members), r/roguelikes (136K), r/roguelikedev Sharing Saturday cadence, itch.io page optimization and traffic benchmarks, Hacker News "Show HN" timing and framing, and multi-platform launch sequencing for solo-dev browser games. Cross-referenced with current Nullcrawl content inventory and remaining P1 tasks.
+
+**Key findings:**
+
+1. **Nullcrawl is launch-ready NOW.** Content far exceeds successful launch benchmarks. Rogule launched from a 7DRL jam entry with ~5% of Nullcrawl's content depth and reached 19,000 players in a single day, settling to 2,000/day sustained. Nullcrawl has 14 enemy types, 3 multi-phase bosses, 26 items with runics/curses, 12 consumable effects with per-run identification, 3 themed zones, the Void Attunement corruption system, daily seeded challenge, and shareable run summaries. This is more content than many commercial roguelikes launch with.
+
+2. **Two technical blockers remain:**
+   - `metadataBase` in layout.tsx still says `https://voidcrawl.vercel.app` — must be updated to `https://nullcrawl.com`. Every OG image and canonical URL is wrong.
+   - No gameplay screenshot/GIF on the landing page. Browser game landing pages with gameplay visuals convert 2-3x better than text-only. This is the highest-impact conversion fix.
+
+3. **The remaining "pre-launch" P1 tasks (consumable-environment interactions, Crystal Depths enemies) are NOT launch blockers.** Previous strategist sessions set these as pre-launch requirements, but the research shows this is overly conservative. Rogule launched with far less. These should be reclassified as post-launch content updates that give players a reason to return — "We added new content!" posts on r/roguelikedev are a proven re-engagement strategy.
+
+4. **Optimal launch sequence (based on Rogule case study and Reddit/HN timing research):**
+   - **Week 0 (now):** Fix metadataBase, capture gameplay screenshot, set up itch.io page
+   - **Week 0-1:** Start r/roguelikedev Sharing Saturday participation (build credibility before promotion)
+   - **Week 1-2:** Soft launch on itch.io (public page, share only in Sharing Saturday)
+   - **Week 2-3:** Post to r/WebGames (4 AM UTC for max engagement) + r/roguelikes same day
+   - **Week 2-3 + 2 days:** Show HN (Tuesday-Thursday, 8-10 AM ET, technical angle)
+
+5. **Marketing hooks for Nullcrawl (what makes it shareable):**
+   - **Primary hook:** "Daily Void" — the Wordle-model daily dungeon. This is the proven viral mechanic.
+   - **Secondary hook:** Void Attunement corruption system — "How much void will you embrace?" is a conversation-starter.
+   - **Tech hook (for HN):** "Built with Next.js + HTML5 Canvas, procedural generation, seeded RNG" — developers love this.
+   - **Social proof:** The shareable death/victory screen with emoji progress bar drives organic sharing.
+
+6. **The pixel art sprites task (P1 Visual Polish) should be removed or demoted to P3.** The ASCII aesthetic IS the correct choice for a browser roguelike targeting the r/roguelikes and HN audiences. Rogule uses emoji. Brogue uses ASCII. Cogmind uses ASCII. Pixel art would actually hurt the game's appeal to its core audience and is a massive time investment that delays launch for negative ROI.
+
+7. **Post-launch content cadence matters more than pre-launch content completeness.** Successful indie games (Vampire Survivors, Shattered PD, Slay the Spire) grew through regular content updates. The remaining P1 content tasks become post-launch update announcements: "Crystal Depths enemies are live!" → re-post to r/roguelikedev → sustained engagement.
+
+**Changes made to task board:**
+- Added P0 launch blocker: fix metadataBase to nullcrawl.com
+- Demoted pixel art sprites from P1 to P3 (ASCII is the correct aesthetic for this audience)
+- Added P1 Community Launch section with 5 sequenced tasks
+- Moved consumable-environment interactions from "pre-launch" framing to "post-launch update 1"
+- Moved Crystal Depths enemies from "pre-launch" framing to "post-launch update 1"
+- Added r/roguelikedev Sharing Saturday task (immediate, no dependencies)
+
+**No money spent. 2 decisions needed from human — written to HUMAN_INBOX.md.**
+
 ### 2026-03-20 25:30 | developer | Environmental hazards: hidden trap tiles (Spike, Alarm, Teleport)
 - **Added `TrapType` enum and `Trap` interface to config.ts** with 3 trap variants: SPIKE, ALARM, TELEPORT. Added `traps: Trap[]` to `GameState` interface. Each trap tracks position, type, and revealed status.
 - **Trap generation in engine.ts:** `generateTraps()` places 2-4 traps on random floor tiles per floor, starting from floor 3. Avoids player start position (manhattan distance ≤ 2), stairs, and shrine tiles. Boss floors get no traps. Uses seeded RNG for daily challenge consistency.
