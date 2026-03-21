@@ -417,3 +417,9 @@
 - Natural keyword usage: "free turn-based roguelike", "dungeon crawler", "browser", "no download required", "procedural generation", "permadeath", "daily seeded dungeon"
 - Styled consistently with existing landing page (void-muted text, void-text heading)
 - Build and lint pass clean
+
+### 2026-03-20 23:50 | developer | Dynamic OG image for social media previews
+- Created `src/app/opengraph-image.tsx` using Next.js ImageResponse API (Edge runtime)
+- 1200x630px PNG: dark gradient background (#0a0a0f → #1a1a2e → #2d2d44), cyan "VOIDCRAWL" title with glow shadow, "FREE BROWSER ROGUELIKE DUNGEON CRAWLER" tagline, 4 feature pills (Turn-Based Combat, Procedural Dungeons, Runic Loot, Daily Challenge), subtle ASCII art at bottom, purple gradient top border
+- Next.js auto-wires this as the og:image for the root route
+- Build and lint pass clean
