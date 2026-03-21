@@ -44,7 +44,7 @@ function getInventoryFromState(state: GameState): PlayerInventory {
 }
 
 // Daily challenge localStorage helpers
-const DAILY_KEY_PREFIX = "voidcrawl_daily_";
+const DAILY_KEY_PREFIX = "nullcrawl_daily_";
 
 function getDailyStorageKey(seed: string): string {
   return `${DAILY_KEY_PREFIX}${seed}`;
@@ -91,7 +91,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
   const [messages, setMessages] = useState<GameMessage[]>(() => {
     const welcomeMsg = isDaily
       ? `Daily Void \u2014 ${formatDailyDate(dailySeed!)}. Same dungeon for everyone today.`
-      : "Welcome to Voidcrawl. Use arrow keys or WASD to move. Space to wait.";
+      : "Welcome to Nullcrawl. Use arrow keys or WASD to move. Space to wait.";
     return [{ text: welcomeMsg, color: "#e2e8f0" }];
   });
   const [stats, setStats] = useState(() => getStatsFromState(initializedState));
@@ -111,6 +111,8 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
   const floatingTextsRef = useRef<ActiveFloatingText[]>([]);
   const hitEffectsRef = useRef<ActiveHitEffect[]>([]);
   const animFrameRef = useRef<number>(0);
+  const shakeRef = useRef<{ intensity: number; startTime: number }>({ intensity: 0, startTime: 0 });
+  const canvasWrapRef = useRef<HTMLDivElement>(null);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -587,7 +589,7 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
                   const killerText = runStats.killedBy ? ` | Killed by ${runStats.killedBy}` : "";
                   const dailyTag = isDaily ? ` (Daily ${dailySeed})` : "";
                   const summary = [
-                    `\u2620 VOIDCRAWL \u2620${dailyTag}`,
+                    `\u2620 NULLCRAWL \u2620${dailyTag}`,
                     `Floor ${runStats.deepestFloor} | Level ${stats.level} | ${runStats.enemiesKilled} kills | ${formatPlayTime(runStats.startTime)}${killerText}`,
                     `${bar} Floor ${runStats.deepestFloor}/${maxFloor}`,
                   ].join("\n");

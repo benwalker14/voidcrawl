@@ -163,7 +163,7 @@ Players would gain attunement from void shrines, descending floors, and certain 
 - **C) Skip it** — Focus on content variety instead of a unique mechanic. The game can succeed without a distinctive hook, just with more stuff.
 
 My recommendation: **Option B** (prototype). The mechanic is theoretically strong but needs playtesting before committing the full 4-threshold system.
-
+Human response: Yes, Let's go with option B
 #### Decision 2: Daily Seeded Challenge
 
 Rogule (a daily browser roguelike) got 350K+ plays using the Wordle model — one dungeon per day, same for everyone. This could be a powerful growth driver for Voidcrawl and naturally creates return visits + social sharing. However, it requires:
@@ -177,6 +177,7 @@ Should the developer prioritize this alongside content work, or defer until more
 - **B) Defer until more content** — Wait until bosses + floor themes + enemy abilities are in, so the daily challenge has more variety.
 
 My recommendation: **Option A**. Rogule has far less content than Voidcrawl and still thrives. The seeded RNG infrastructure also benefits regular gameplay (reproducible bugs, share-a-seed with friends).
+Human response: Option A sounds good to me.
 
 #### Decision 3: Unidentified Consumables
 
@@ -187,7 +188,7 @@ Should potions and scrolls have randomized names per run (NetHack/Shattered PD s
 - **C) No** — Keep consumables pre-identified. Focus on adding more types instead of obscuring existing ones.
 
 My recommendation: **Option B** (partial). Randomize potions but keep scrolls labeled — this is the Shattered Pixel Dungeon approach and feels most natural. It adds discovery to the most common consumable type without making scrolls feel illogical.
-
+human response: Yes, option B.
 ---
 
 ### 2026-03-20 | strategist | Growth & SEO Analysis — 3 decisions needed
@@ -213,6 +214,9 @@ All SEO tasks (metadata, sitemap, OG images, Google Search Console, directory li
 My recommendation: **Option A for now, B later**. Use the Vercel URL to unblock all SEO work immediately. Add a custom domain when there's player traction to justify it. The domain question was deferred earlier — this is fine, but we need the Vercel URL documented in CLAUDE.md to unblock the developer agents.
 
 **Action needed:** Please share the Vercel deployment URL so agents can configure metadata.
+
+Human response: I googled voidcrawl and got some results for existing games. We need to call it something else. Make sure you search to make sure it's unique, and then also make sure the domain you want is available.
+the current url is https://voidcrawl-five.vercel.app/
 
 #### Decision 2: Growth Task Priority vs. Content/Game Design Tasks
 
@@ -319,5 +323,53 @@ These prices are benchmarked against Vampire Survivors DLCs ($1.99), Hoplite IAP
 - **Replaced** old P3 Monetization (4 vague tasks) with **P2 Monetization Foundation** (6 detailed tasks with pricing, platform choices, and implementation specs)
 - **Added** P3 Monetization Long-Term (5 tasks: itch.io PWYW, Steam release, sponsorware model, cosmetic death screens, premium skins)
 - All 11 new tasks are zero-cost to implement. No money spent. No money will be spent without logging to FINANCES.md and writing here first.
+
+---
+
+### 2026-03-20 19:10 | strategist | Game Rename: "Nullcrawl" — action needed
+
+**From:** Strategist Agent (sixth session — Growth & Branding)
+**Priority:** HIGH — blocks all growth/launch work
+
+#### The Problem
+You flagged that "Voidcrawl" has naming conflicts with existing games. I researched 15 candidate names, checking each for existing games/products (web search) and domain availability (WHOIS + DNS lookup).
+
+#### The Decision: Nullcrawl
+
+**"Nullcrawl"** is the new game name. It was selected because:
+- **Zero conflicts** — no existing games, products, or brands use this name
+- **Both nullcrawl.com and nullcrawl.io are available**
+- "Null" perfectly captures the void/nothingness theme
+- "Crawl" is THE genre identifier (DCSS = Dungeon Crawl Stone Soup)
+- Short (9 chars), memorable, easy to spell
+- Unique compound word = instant SEO dominance for the name
+- "Null" resonates with the TypeScript/developer audience
+
+Runner-up: "Hollowdelve" (also fully clear, both domains available, but longer and less genre-associated).
+
+Note: "Void" as a thematic word in enemy/item names (Void Beetle, Void Nucleus, Void Attunement) stays — only the GAME TITLE changes to Nullcrawl.
+
+#### Action Needed From You
+
+**Purchase nullcrawl.com** (~$10-12/year on Namecheap, Cloudflare Registrar, or Google Domains). This is the only step agents cannot do. Once purchased:
+1. Connect the domain to the Vercel deployment
+2. Tell us the production URL so developer agents can update `metadataBase` in the code
+
+The developer agents will handle renaming all code references from "Voidcrawl" to "Nullcrawl" (metadata, OG image, JSON-LD, share text, landing page, help overlay, etc.).
+
+#### Launch Readiness
+
+The game is **ready for soft launch** once the rename + domain are in place. Current content inventory:
+- 9 enemy types + 1 boss with unique abilities
+- 28 items with runic enchantment system
+- 11 consumable effects with per-run identification
+- Daily seeded challenge mode
+- Full SEO infrastructure (OG images, sitemap, JSON-LD, landing page)
+
+Before community launch (Reddit/HN posts), the developer agents should also build:
+- Void Attunement prototype (you approved Option B) — the game's unique hook
+- Floor themes (3 visual zones) — makes screenshots dramatically more compelling
+
+I've updated the task board with P0 rename tasks and reprioritized accordingly.
 
 ---

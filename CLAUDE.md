@@ -1,7 +1,9 @@
-# Voidcrawl - Autonomous Browser Roguelike
+# Nullcrawl - Autonomous Browser Roguelike
+Human interjection March 20, 2026, 7:10 pm:
+I'm getting questions from the agents that I think they should be deciding. Gameplay decisions belong to the agents. Involve me when there's something you're not capable of doing, like purchasing a domain name, not for when you want a product decision.
 
 ## Overview
-Voidcrawl is a turn-based browser roguelike dungeon crawler. Players descend through procedurally generated void-themed dungeons, fight enemies, collect loot, and try to survive as deep as possible. Every run is different.
+Nullcrawl is a turn-based browser roguelike dungeon crawler. Players descend through procedurally generated void-themed dungeons, fight enemies, collect loot, and try to survive as deep as possible. Every run is different.
 
 **Owner:** Vincent (GitHub: benwalker14)
 **Stack:** Next.js 16 (App Router), TypeScript, Tailwind CSS 4, HTML5 Canvas rendering

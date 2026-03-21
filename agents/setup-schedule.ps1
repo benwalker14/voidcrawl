@@ -1,19 +1,19 @@
-# Voidcrawl - Task Scheduler Setup
+# Nullcrawl - Task Scheduler Setup
 # Run this script as Administrator to set up the agent orchestrator
 # Usage: Right-click PowerShell > Run as Administrator > .\setup-schedule.ps1
 
 $projectDir = "D:\development\voidcrawl"
 $orchestrator = "$projectDir\agents\orchestrator.ps1"
 
-Write-Host "Voidcrawl - Setting up agent orchestrator..."
+Write-Host "Nullcrawl - Setting up agent orchestrator..."
 Write-Host "Project directory: $projectDir"
 Write-Host ""
 
 # Remove old task if exists
-Unregister-ScheduledTask -TaskName "Voidcrawl-Orchestrator" -Confirm:$false -ErrorAction SilentlyContinue
+Unregister-ScheduledTask -TaskName "Nullcrawl-Orchestrator" -Confirm:$false -ErrorAction SilentlyContinue
 
 # Orchestrator runs indefinitely, restarts daily at midnight as safety net
-Write-Host "Setting up Voidcrawl Orchestrator (always on, restarts at midnight)..."
+Write-Host "Setting up Nullcrawl Orchestrator (always on, restarts at midnight)..."
 $action = New-ScheduledTaskAction -Execute "powershell.exe" `
     -Argument "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$orchestrator`" -MaxIterations 0 -CooldownSeconds 120 -StrategistEveryNDevRuns 3 -ReporterIntervalHours 12 -HealthIntervalHours 4 -IdleSleepSeconds 600"
 
@@ -29,11 +29,11 @@ $settings = New-ScheduledTaskSettingsSet `
     -RestartCount 3 `
     -RestartInterval (New-TimeSpan -Minutes 5)
 
-Register-ScheduledTask -TaskName "Voidcrawl-Orchestrator" `
+Register-ScheduledTask -TaskName "Nullcrawl-Orchestrator" `
     -Action $action `
     -Trigger @($triggerStartup, $triggerDaily) `
     -Settings $settings `
-    -Description "Voidcrawl agent orchestrator - runs 24/7, dispatches agents as needed" `
+    -Description "Nullcrawl agent orchestrator - runs 24/7, dispatches agents as needed" `
     -Force
 
 Write-Host ""
@@ -50,6 +50,6 @@ Write-Host "Manual commands:"
 Write-Host "  Start now:       .\agents\orchestrator.ps1 -MaxIterations 0"
 Write-Host "  Single agent:    .\agents\run-agent.ps1 -AgentType developer"
 Write-Host ""
-Write-Host "To view task:  Get-ScheduledTask -TaskName 'Voidcrawl-Orchestrator'"
-Write-Host "To stop:       Stop-ScheduledTask -TaskName 'Voidcrawl-Orchestrator'"
-Write-Host "To remove:     Unregister-ScheduledTask -TaskName 'Voidcrawl-Orchestrator'"
+Write-Host "To view task:  Get-ScheduledTask -TaskName 'Nullcrawl-Orchestrator'"
+Write-Host "To stop:       Stop-ScheduledTask -TaskName 'Nullcrawl-Orchestrator'"
+Write-Host "To remove:     Unregister-ScheduledTask -TaskName 'Nullcrawl-Orchestrator'"

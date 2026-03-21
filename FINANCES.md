@@ -1,4 +1,4 @@
-# Voidcrawl Finances
+# Nullcrawl Finances
 
 ## Budget Rules
 - No spending without logging here AND writing to HUMAN_INBOX.md

@@ -1,4 +1,4 @@
-# Voidcrawl Agent Activity Log
+# Nullcrawl Agent Activity Log
 
 ### 2026-03-20 00:00 | developer | Initial project setup
 - Scaffolded Next.js 16 project with TypeScript and Tailwind CSS 4
@@ -444,3 +444,53 @@
 - Hit effects render before floating texts (flash under the damage numbers)
 - Hit effects cleared on game restart
 - Build and lint pass clean
+
+### 2026-03-20 19:10 | strategist | Growth & Branding analysis — game rename + launch readiness (sixth strategist session)
+- **Analysis type:** Growth & SEO (type D, second pass)
+- **Critical blocker addressed:** Human flagged that "Voidcrawl" has naming conflicts with existing games. Researched 15 candidate names for game uniqueness (web search for "[name] game" and "[name] roguelike") and domain availability (WHOIS lookup for .com and .io).
+- **Name research results (15 candidates):**
+  - TAKEN (5): Voidstep, Voidrift, Voidborne, Darkdelve, Voidwalk
+  - RISKY (5): Abyssdive, Depthcrawl (TTRPG term), Nullvoid, Hollowrift (Minecraft brand), Gloomcrawl (Gloomhaven confusion)
+  - CLEAR (5): Nullcrawl, Hollowdelve, Nulldepth, Abyssturn, Driftcrawl
+- **Domain availability (both .com AND .io available):** Nullcrawl, Hollowdelve, Depthcrawl, Abyssturn, Hollowrift, Gloomcrawl
+- **Decision: New name is "Nullcrawl"**
+  - Zero existing games, products, or brands
+  - Both nullcrawl.com and nullcrawl.io available
+  - "Null" perfectly captures the void/nothingness theme
+  - "Crawl" is THE genre identifier (DCSS = Dungeon Crawl Stone Soup)
+  - Short (9 chars), memorable, easy to spell and type
+  - Unique compound word = instant SEO dominance
+  - "Null" resonates with the programmer/TypeScript audience
+  - Runner-up: Hollowdelve (also fully clear, but longer and less genre-specific)
+- **Launch readiness assessment:**
+  - Game content: 9 enemy types + boss, 28 items, 11 consumable effects, 7 runics, identification system, daily challenge mode
+  - SEO infrastructure: OG metadata, dynamic OG image, sitemap, robots.txt, JSON-LD, landing page SEO text — all complete
+  - Verdict: **READY FOR SOFT LAUNCH** after name change and domain setup
+  - Missing but non-blocking: audio, leaderboards, mobile touch controls, hero classes, floor themes
+- **Launch-blocking tasks identified (must complete before Reddit/HN/itch.io posts):**
+  1. Rename codebase from "Voidcrawl" to "Nullcrawl" (all code, metadata, SEO, share text, README)
+  2. Purchase nullcrawl.com domain (~$10-12/year) — requires human action
+  3. Update Vercel project URL and metadataBase
+  4. Create itch.io page under new name
+- **Post-rename priority reassessment:**
+  - P0: Rename + domain (blocks everything)
+  - P1: Void Attunement prototype (approved by human, the game's unique hook — differentiation matters more pre-launch than post-launch)
+  - P1: Floor themes (massive visual variety for minimal code, makes screenshots/posts more compelling)
+  - P1: itch.io page, RogueBasin page (discovery platforms)
+  - P1: Community launch (Reddit r/WebGames + r/roguelikes, HN "Show HN")
+  - P2: Ko-fi + GitHub Sponsors (capture early supporters)
+  - P2: Mobile touch controls (expands audience)
+- **Unused dependency found:** Phaser is listed in package.json but the game uses vanilla HTML5 Canvas. Removing it (~1MB) improves bundle size and PageSpeed scores.
+- No money spent
+
+### 2026-03-20 19:30 | developer | P0 Game rename: Voidcrawl → Nullcrawl
+- Renamed all game title references from "Voidcrawl" to "Nullcrawl" across the entire codebase
+- Updated source files: layout.tsx (metadata, OG, Twitter, JSON-LD), page.tsx (heading, SEO text), opengraph-image.tsx (alt text, title), HelpOverlay.tsx, GameCanvas.tsx (localStorage key, welcome message, share text), play/page.tsx, play/daily/page.tsx
+- Updated package.json name field from "voidcrawl" to "nullcrawl"
+- Updated project files: CLAUDE.md, TASK_BOARD.md, AGENT_LOG.md, FINANCES.md headers
+- Updated agent files: all 4 agent prompts (developer, health-check, reporter, strategist) + 3 PowerShell scripts (orchestrator, run-agent, setup-schedule)
+- Preserved: "Void" in thematic enemy/item names (Void Beetle, Void Nucleus, etc.) — only the GAME TITLE changed
+- Preserved: Vercel deployment URL (voidcrawl-five.vercel.app) — will change when domain is purchased and Vercel project renamed
+- Preserved: filesystem paths (D:\development\voidcrawl) — directory name unchanged
+- Build passes clean
+- No money spent

@@ -207,6 +207,7 @@ export function generateFloor(
     statusEffects: prevStatusEffects ?? [],
     pendingFloatingTexts: [],
     pendingHitEffects: [],
+    pendingShake: 0,
     identified: prevIdentified ?? initIdentified(),
     consumableAppearances: prevAppearances ?? initConsumableAppearances(),
     gameMode: mode,
@@ -629,6 +630,7 @@ export function applyInventoryItem(state: GameState, index: number): GameState {
     statusEffects: [...state.statusEffects],
     pendingFloatingTexts: [] as FloatingText[],
     pendingHitEffects: [] as HitEffect[],
+    pendingShake: 0,
   };
   const item = newState.inventory.items[index];
 
@@ -755,6 +757,7 @@ function processBossAI(state: GameState): void {
           state.messages.push({ text: `The Void Nucleus discharges! You take ${dmg} damage!`, color: MSG_COLORS.ENEMY_ATK });
           state.pendingFloatingTexts.push({ text: `-${dmg}`, color: MSG_COLORS.ENEMY_ATK, x: px, y: py });
           state.pendingHitEffects.push({ x: px, y: py, color: MSG_COLORS.ENEMY_ATK, isPlayerAttack: false });
+          state.pendingShake = Math.max(state.pendingShake, 7);
           if (state.player.hp <= 0) {
             state.gameOver = true;
             state.runStats.killedBy = "Void Nucleus";
@@ -851,6 +854,8 @@ function moveEnemies(state: GameState, playerDefenseBonus: number = 0) {
       const result = combat(enemy, state.player, state.messages, 0, playerDefenseBonus, state.pendingFloatingTexts, 1, state.pendingHitEffects);
       state.runStats.damageTaken += result.damage;
       if (!result.dodged) {
+        // Screen shake scales with damage taken (min 2, max 6)
+        state.pendingShake = Math.max(state.pendingShake, Math.min(6, Math.max(2, result.damage)));
         state.pendingFloatingTexts.push({
           text: `-${result.damage}`,
           color: MSG_COLORS.ENEMY_ATK,
@@ -1124,6 +1129,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
     statusEffects: state.statusEffects.map((e) => ({ ...e })),
     pendingFloatingTexts: [] as FloatingText[],
     pendingHitEffects: [] as HitEffect[],
+    pendingShake: 0,
   };
   let dx = 0;
   let dy = 0;
@@ -1165,6 +1171,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
         const weaponRunic = newState.inventory.equippedWeapon?.runic;
         const vorpalMultiplier = (weaponRunic === RunicEffect.VORPAL && enemy.hp < enemy.maxHp * 0.3) ? 2 : 1;
         if (vorpalMultiplier > 1) {
+          newState.pendingShake = Math.max(newState.pendingShake, 5);
           newState.messages.push({ text: `Your blade senses weakness — VORPAL STRIKE!`, color: MSG_COLORS.PLAYER_ATK });
           newState.pendingFloatingTexts.push({ text: "VORPAL!", color: "#dc2626", x: newX, y: newY });
         }
@@ -1205,6 +1212,8 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
         }
 
         if (result.killed) {
+          // Screen shake on kill (3 for normal, 6 for boss)
+          newState.pendingShake = Math.max(newState.pendingShake, enemy.isBoss ? 6 : 3);
           spawnSplitSlimes(newState, enemy);
           newState.runStats.enemiesKilled++;
           awardXp(newState, enemy.xpReward ?? 5);

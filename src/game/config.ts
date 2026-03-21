@@ -277,6 +277,7 @@ export interface GameState {
   statusEffects: StatusEffect[];
   pendingFloatingTexts: FloatingText[];
   pendingHitEffects: HitEffect[];
+  pendingShake: number; // 0 = none, higher = stronger shake (max ~8)
   identified: Record<string, boolean>;           // ConsumableEffect -> whether identified this run
   consumableAppearances: Record<string, string>;  // ConsumableEffect -> randomized appearance descriptor
   gameMode: GameMode;

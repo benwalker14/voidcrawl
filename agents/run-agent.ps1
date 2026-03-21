@@ -1,4 +1,4 @@
-# Voidcrawl - Agent Runner
+# Nullcrawl - Agent Runner
 # Usage: .\run-agent.ps1 -AgentType health
 # Agent types: health, developer, strategist, reporter
 

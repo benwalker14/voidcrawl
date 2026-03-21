@@ -1,4 +1,4 @@
-# Voidcrawl - Agent Orchestrator
+# Nullcrawl - Agent Orchestrator
 # Continuously dispatches the right agent based on what needs doing.
 #
 # Usage: .\orchestrator.ps1 [-MaxIterations 50] [-CooldownSeconds 120]
@@ -67,7 +67,7 @@ function Select-Agent {
 
 Set-Location $projectDir
 
-Write-Host "=== Voidcrawl Agent Orchestrator ==="
+Write-Host "=== Nullcrawl Agent Orchestrator ==="
 Write-Host "Max iterations: $(if ($MaxIterations -eq 0) { 'unlimited' } else { $MaxIterations })"
 Write-Host "Cooldown: ${CooldownSeconds}s | Idle sleep: ${IdleSleepSeconds}s"
 Write-Host "Strategist every $StrategistEveryNDevRuns dev runs | Health every ${HealthIntervalHours}h | Reporter every ${ReporterIntervalHours}h"

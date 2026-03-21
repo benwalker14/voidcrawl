@@ -6,8 +6,8 @@ const siteUrl = "https://voidcrawl.vercel.app";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Voidcrawl - Free Browser Roguelike Dungeon Crawler",
-    template: "%s | Voidcrawl",
+    default: "Nullcrawl - Free Browser Roguelike Dungeon Crawler",
+    template: "%s | Nullcrawl",
   },
   description:
     "A free turn-based browser roguelike. Descend through procedurally generated void dungeons, fight tactical enemies, collect loot with runic effects, and try to survive. No download required.",
@@ -23,15 +23,15 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     type: "website",
-    siteName: "Voidcrawl",
-    title: "Voidcrawl - Free Browser Roguelike Dungeon Crawler",
+    siteName: "Nullcrawl",
+    title: "Nullcrawl - Free Browser Roguelike Dungeon Crawler",
     description:
       "Descend through procedurally generated void dungeons. Tactical turn-based combat, runic loot, boss encounters, and daily challenges. Play free in your browser.",
     url: siteUrl,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Voidcrawl - Free Browser Roguelike",
+    title: "Nullcrawl - Free Browser Roguelike",
     description:
       "Tactical turn-based dungeon crawler. Procedural dungeons, runic loot, boss fights, daily challenges. Free, no download.",
   },
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": ["VideoGame", "SoftwareApplication"],
-  name: "Voidcrawl",
+  name: "Nullcrawl",
   description:
     "A free turn-based browser roguelike dungeon crawler with procedurally generated dungeons, tactical combat, runic loot, and daily challenges.",
   url: siteUrl,

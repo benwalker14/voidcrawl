@@ -1,4 +1,4 @@
-# Voidcrawl Task Board
+# Nullcrawl Task Board
 
 ## Priority Legend
 - P0: Critical / Blocking
@@ -16,9 +16,14 @@
 ## Up Next
 
 ### P0 - Foundation
-- [ ] Deploy to Vercel and get production URL
-- [ ] Set up GitHub repo and push initial code
-- [ ] Add ESLint config
+- [x] Deploy to Vercel and get production URL
+- [x] Set up GitHub repo and push initial code
+- [x] Add ESLint config
+
+### P0 - Game Rename (BLOCKING — strategist branding analysis 2026-03-20)
+- [x] Rename game from "Voidcrawl" to "Nullcrawl" across entire codebase — all references in code, metadata, SEO text, OG image, JSON-LD, share text, layout.tsx, page.tsx, HelpOverlay, death screen, daily challenge, package.json name field, README, CLAUDE.md, TASK_BOARD.md, AGENT_LOG.md headers. The name "Voidcrawl" conflicts with existing games. "Nullcrawl" is verified unique (zero Google results for game/product) with both nullcrawl.com and nullcrawl.io domains available. Note: "Void" as a thematic word in enemy/item/mechanic names (Void Beetle, Void Nucleus, Void Attunement) stays — only the GAME TITLE changes.
+- [ ] Purchase nullcrawl.com domain (~$10-12/year) — REQUIRES HUMAN ACTION (agent cannot purchase domains). Connect to Vercel deployment. Update metadataBase in layout.tsx from voidcrawl-five.vercel.app to nullcrawl.com.
+- [ ] Update Vercel project: rename project to "nullcrawl", update any Vercel-specific config. Ensure old URL redirects to new domain (Vercel handles this automatically with custom domains).
 
 ### P1 - Player Experience (NEW — strategist analysis 2026-03-20)
 - [x] Add help overlay (press ? or H) showing controls, mechanics, and enemy/item legends — players currently have no way to learn game systems beyond the tiny footer hint
@@ -48,8 +53,8 @@
 - [x] Add JSON-LD structured data (schema.org/VideoGame + SoftwareApplication co-type) to landing page — enables Google rich results (price, platform, genre display in search). Create `src/app/json-ld.tsx` component, add to layout. Code example in research file.
 - [x] Remove `"use client"` from `src/app/play/page.tsx` — the page already uses `dynamic()` to import GameCanvas client-side, so the page itself should be a Server Component. This enables adding page-level metadata exports for the /play route (currently impossible because metadata can only be exported from Server Components).
 - [x] Add descriptive SEO paragraph to landing page (`src/app/page.tsx`) — currently almost no crawlable text content. Add a "What is Voidcrawl?" section below the fold with natural keyword usage: "free turn-based roguelike", "browser dungeon crawler", "procedural generation", "no download required". One paragraph hits 8+ target keywords.
-- [ ] Create itch.io page for Voidcrawl — link to Vercel deployment, add 3+ screenshots, cover image (630x500), tags (roguelike, dungeon-crawler, turn-based, browser, HTML5, free). itch.io is the #1 platform for indie browser game discovery. No approval process needed. Research: Rogule, A Dark Room, and most successful browser roguelikes list on itch.io.
-- [ ] Create RogueBasin wiki page for Voidcrawl — RogueBasin is THE roguelike database. Every roguelike should have a page. Self-service wiki, free, permanent discoverability by core roguelike players. Include: name, developer, platform (Web), language (TypeScript), status, description, screenshots, link.
+- [ ] Create itch.io page for **Nullcrawl** — link to production URL, add 3+ screenshots, cover image (630x500), tags (roguelike, dungeon-crawler, turn-based, browser, HTML5, free). itch.io is the #1 platform for indie browser game discovery. No approval process needed. BLOCKED BY: P0 rename + domain.
+- [ ] Create RogueBasin wiki page for **Nullcrawl** — RogueBasin is THE roguelike database. Every roguelike should have a page. Self-service wiki, free, permanent discoverability by core roguelike players. BLOCKED BY: P0 rename + domain.
 
 ### P1 - Visual Polish
 - [ ] Replace ASCII characters with pixel art sprites
@@ -66,15 +71,19 @@
 - [ ] Item stat comparison tooltip: when standing on an item, show current vs. new stats — players can't make informed loot decisions without memorizing their gear
 - [ ] Add simple movement animation (smooth tile-to-tile slide, ~100ms) — instant teleportation feels jarring
 
-### P2 - Game Systems (NEW — strategist research 2026-03-20)
-- [ ] Void Attunement system — the game's unique mechanical hook. A 0-100 meter that increases when the player interacts with void elements: using void shrines (+15), descending floors (+5 per floor), absorbing certain item effects. At thresholds, player gains BOTH a power and a curse. 25%: Void Sight (+2 FOV radius) / enemies detect from +3 further. 50%: Void Step (can phase through 1 wall per floor) / max HP reduced by 15%. 75%: Void Strike (+3 ATK) / healing 50% less effective. 100%: Void Avatar (double damage, see entire floor) / lose 1 HP per turn. Purification Scroll (new rare consumable) reduces attunement by 25. This creates the game's central risk-reward axis: every run becomes a story about how much void power the player chose to embrace. Render as a purple meter in HUD next to HP. Research source: community consensus says every successful roguelike needs a unique hook (Cogmind=modular robots, Hoplite=geometry, 868-HACK=siphon economy). Void Attunement makes the theme mechanical, not just cosmetic.
-- [ ] Void shrines: interactive `$` tiles (purple) that spawn 1 per floor in a random room. Walking onto one prompts "Commune with the Void? (Y/N)". Effects drawn from weighted pool: Heal 50% HP (20%), +1 permanent stat (15%), Identify all items (15%), Random consumable (15%), Spawn 2 enemies nearby (15%), Curse equipped weapon or armor (10%), Teleport to stairs (10%). Each use adds +15 Void Attunement. Creates gambling moments and memorable run stories. Research source: NetHack altars/fountains — the most-remembered moments in roguelikes come from gamble tiles.
+### P1 - Unique Mechanic (ELEVATED from P2 — strategist branding analysis 2026-03-20)
+- [ ] Void Attunement PROTOTYPE (human approved Option B): minimal version with the meter + 2 thresholds (25% and 50% only). A 0-100 meter that increases when descending floors (+5 per floor) and using void shrines (+15). At 25%: Void Sight (+2 FOV radius) / enemies detect from +3 further. At 50%: Void Strike (+3 ATK) / healing 50% less effective. Render as a purple meter in HUD next to HP. This is the game's unique differentiator — prototype first, expand to 4 thresholds later if it feels good. Every successful roguelike needs a signature hook (Cogmind=modular robots, Hoplite=geometry). Null Attunement makes the theme mechanical, not just cosmetic. **IMPORTANT: Build this BEFORE community launch** — the unique hook is what makes the game worth talking about.
+- [ ] Void shrines (pairs with Attunement prototype): interactive `$` tiles (purple) that spawn 1 per floor in a random room. Walking onto one prompts "Commune with the Void? (Y/N)". Effects drawn from weighted pool: Heal 50% HP (20%), +1 permanent stat (15%), Identify all items (15%), Random consumable (15%), Spawn 2 enemies nearby (15%), Curse equipped weapon or armor (10%), Teleport to stairs (10%). Each use adds +15 Void Attunement. Creates gambling moments and memorable run stories.
+
+### P2 - Game Systems (strategist research 2026-03-20)
 - [ ] Cursed equipment: 15% of Uncommon and 30% of Rare weapons/armor spawn cursed. Cursed items have a hidden negative runic (weapon: -2 ATK penalty, armor: -2 DEF penalty) and CANNOT be unequipped until a Scroll of Remove Curse (new uncommon scroll) is used. Unidentified until equipped — pairs with the identification system. Wearing a cursed item shows red "(cursed)" tag in inventory. Creates genuine tension when finding new gear: "Do I risk equipping this unidentified Rare sword?" Research source: NetHack, Shattered PD — cursed items are a core risk-reward mechanic in every major roguelike.
 - [ ] Enemy intent telegraphing: enemies display a 1-character intent indicator above their sprite on the canvas. `!` (red) = will attack next turn, `?` (yellow) = has detected player and is approaching, `~` (gray) = wandering/idle, `↓` (blue) = fleeing. Update each enemy's intent in moveEnemies() based on distance to player and AI behavior. Renders via renderer with small offset above entity. Makes combat a solvable positioning puzzle instead of bump-and-react. Research source: Hoplite, Slay the Spire — showing enemy intent is the single biggest tactical depth improvement in modern roguelikes.
 - [ ] Run narrative recap on death screen: auto-generate a floor-by-floor highlight log from key game events. Track `narrativeEvents: Array<{floor, turn, text}>` in GameState. Record: first enemy kill, boss encounters, near-death moments (HP < 20%), rare item finds, level ups, potion identifications. Death screen shows a scrollable "Your Story" section: "Floor 1: Found a Void Blade. Floor 3: Nearly died to Dark Slime (2 HP remaining). Floor 5: Reached Level 4." Makes each run feel like a story worth remembering and sharing. Research source: Caves of Qud's emergent narrative — the best roguelike moments are player-generated stories.
 
+### P1 - Visual Variety (ELEVATED from P2 — strategist branding analysis 2026-03-20)
+- [ ] Floor themes (3 zones): Floors 1-4 "Null Tunnels" (current purple), Floors 5-9 "Crystal Depths" (cyan/blue palette, crystal wall colors), Floors 10+ "Shadow Realm" (dark red/black palette, reduced FOV). Each zone is a `ZoneTheme` data object: `{ name, bgColor, wallColor, floorColor, enemyPool, fovModifier }`. Dungeon generator selects theme by floor number. Mostly data, minimal code — massive perceived variety. **Build before community launch** — screenshots with 3 visual zones are dramatically more compelling than one purple palette.
+
 ### P2 - Content Depth (EXPANDED — strategist content audit 2026-03-20)
-- [ ] Floor themes (3 zones): Floors 1-4 "Void Tunnels" (current purple), Floors 5-9 "Crystal Depths" (cyan/blue palette, crystal wall colors), Floors 10+ "Shadow Realm" (dark red/black palette, reduced FOV). Each zone is a `ZoneTheme` data object: `{ name, bgColor, wallColor, floorColor, enemyPool, fovModifier }`. Dungeon generator selects theme by floor number. Mostly data, minimal code — massive perceived variety.
 - [ ] 4 new enemy types for mid/late game: Void Turret (`T`, stationary, ranged attack every 2 turns, forces player to approach or avoid), Void Mimic (`!` or `[`, disguised as loot, attacks when adjacent — punishes careless pickup), Void Summoner (`Z`, spawns Void Rats every 3 turns, high priority target), Void Bomber (`B`, explodes on death dealing AoE to adjacent tiles — must be killed at range or with care)
 - [ ] Floor 10 boss: "Shadow Twin" (symbol `@`, red) — mirrors player's movements inversely, copies player's current stats. Positioning puzzle boss. Floor 15 boss: "Rift Warden" (symbol `W`, white) — teleports every 3 turns, leaves damaging void patches, arena shrinks over time.
 - [ ] Environmental hazards: trap tiles (hidden `,` — damage/teleport/alarm variants, revealed when stepped on or adjacent with high perception), lava tiles (`~` red — 3 dmg/turn while standing), void vents (`^` — periodic AoE pulse to adjacent tiles)
@@ -112,13 +121,13 @@
 
 ### P2 - Growth & Community (NEW — strategist Growth/SEO analysis 2026-03-20)
 - [ ] Set up Google Search Console: verify site ownership, submit sitemap.xml, request indexing of `/` and `/play`. Monitor "Performance" tab for search queries and impressions. Free, takes 15 minutes, essential for understanding how players find the game.
-- [ ] Create press kit page (`/press` route): game description (short + long), 5-8 downloadable screenshots, logo PNG, gameplay GIF, fact sheet (genre, platform, price, developer, contact), download links. Reference format: dopresskit.com. Enables press coverage and blog/review sites to write about Voidcrawl.
-- [ ] Post to r/WebGames (131K members): "Voidcrawl - Turn-based roguelike dungeon crawler [browser]". Direct game link, respond to every comment. r/WebGames → Hacker News is the exact funnel Rogule used to get 19,000 players in one day. Timing: when game has shareable death screen + OG images.
-- [ ] Post to r/roguelikes (160K+ members): genuine community participation first (10:1 ratio of contributions to self-promotion), then share Voidcrawl. The audience perfectly matches the game.
-- [ ] Start weekly r/roguelikedev Sharing Saturday participation: show development progress weekly. 500+ weekly threads and counting — the primary showcase mechanism for roguelike developers. Post early in the thread (first hour gets most views).
-- [ ] Submit "Show HN: Voidcrawl – a turn-based browser roguelike" to Hacker News: post on Sunday (less competition), use "Show HN:" prefix, factual language, technical angle ("Built with Next.js + HTML5 Canvas"). Reply to every comment in the first hour. Rogule hit #1 on HN and got 19K players that day.
-- [ ] Write dev.to post: "Building a Browser Roguelike with Next.js and HTML5 Canvas" — targets developer keywords, generates backlinks, builds credibility in dev community. Cross-post to Hashnode/Medium.
-- [ ] Submit to Newgrounds as HTML5 game — established indie game community with strong appreciation for retro/ASCII aesthetics. Good cultural fit for Voidcrawl.
+- [ ] Create press kit page (`/press` route): game description (short + long), 5-8 downloadable screenshots, logo PNG, gameplay GIF, fact sheet (genre, platform, price, developer, contact), download links. Reference format: dopresskit.com. BLOCKED BY: P0 rename.
+- [ ] Post to r/WebGames (131K members): "Nullcrawl - Turn-based roguelike dungeon crawler [browser]". Direct game link, respond to every comment. r/WebGames → Hacker News is the exact funnel Rogule used to get 19,000 players in one day. BLOCKED BY: P0 rename + P1 Void Attunement prototype + P1 floor themes.
+- [ ] Post to r/roguelikes (160K+ members): genuine community participation first (10:1 ratio of contributions to self-promotion), then share Nullcrawl. BLOCKED BY: same as r/WebGames.
+- [ ] Start weekly r/roguelikedev Sharing Saturday participation: show development progress weekly. Can start immediately — development screenshots are fine even pre-rename.
+- [ ] Submit "Show HN: Nullcrawl – a turn-based browser roguelike" to Hacker News: post on Sunday (less competition), use "Show HN:" prefix, factual language, technical angle ("Built with Next.js + HTML5 Canvas"). Save for AFTER Reddit post gets traction. BLOCKED BY: P0 rename + community posts.
+- [ ] Write dev.to post: "Building a Browser Roguelike with Next.js and HTML5 Canvas" — targets developer keywords, generates backlinks, builds credibility in dev community. Cross-post to Hashnode/Medium. BLOCKED BY: P0 rename.
+- [ ] Submit to Newgrounds as HTML5 game — established indie game community with strong appreciation for retro/ASCII aesthetics. Good cultural fit. BLOCKED BY: P0 rename.
 
 ### P3 - Growth (EXPANDED — strategist Growth/SEO analysis 2026-03-20)
 - [ ] Social sharing channels: Twitter/X post button (using Web Share API or tweet intent URL), Reddit-formatted run summary, itch.io community integration. Builds on the P1 shareable death screen clipboard copy.

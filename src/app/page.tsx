@@ -5,7 +5,7 @@ export default function Home() {
     <div className="min-h-screen flex flex-col items-center justify-center px-4">
       <div className="text-center max-w-2xl">
         <h1 className="text-6xl font-bold mb-2 tracking-wider" style={{ color: 'var(--void-cyan)' }}>
-          VOIDCRAWL
+          NULLCRAWL
         </h1>
         <p className="text-xl mb-8" style={{ color: 'var(--void-muted)' }}>
           Descend into the void. Turn-based roguelike dungeon crawler.
@@ -58,9 +58,9 @@ export default function Home() {
         </div>
 
         <div className="mt-12 max-w-lg text-sm leading-relaxed" style={{ color: 'var(--void-muted)' }}>
-          <h2 className="font-bold mb-2" style={{ color: 'var(--void-text)' }}>What is Voidcrawl?</h2>
+          <h2 className="font-bold mb-2" style={{ color: 'var(--void-text)' }}>What is Nullcrawl?</h2>
           <p>
-            Voidcrawl is a free turn-based roguelike dungeon crawler you can play directly
+            Nullcrawl is a free turn-based roguelike dungeon crawler you can play directly
             in your browser &mdash; no download required. Explore procedurally generated
             dungeons filled with unique enemies, runic weapons, unidentified potions, and
             boss encounters. Every run is different thanks to procedural generation, and

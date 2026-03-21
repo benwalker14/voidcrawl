@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "Voidcrawl - Free Browser Roguelike Dungeon Crawler";
+export const alt = "Nullcrawl - Free Browser Roguelike Dungeon Crawler";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -43,7 +43,7 @@ export default function OGImage() {
             display: "flex",
           }}
         >
-          VOIDCRAWL
+          NULLCRAWL
         </div>
 
         {/* Tagline */}
