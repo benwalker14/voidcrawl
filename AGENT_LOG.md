@@ -1,5 +1,32 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-20 19:50 | strategist | Game Design Research — run variety, attunement expansion, endgame systems
+
+**Analysis type:** A. Game Design Research (second pass — focused on run variety, signature mechanic expansion, meta-progression, and competitive positioning)
+
+**Research conducted:** Studied 15+ roguelikes and browser games including Rogule (still active, ~1,500 daily games), Curse of the Dead Gods (corruption-as-currency gold standard), Slay the Spire 1+2 (Ascension model, Epoch meta-progression), Hades 1+2 (Mirror of Night, Arcana Cards), Shattered PD (zero meta-progression purist approach), Darkest Dungeon (stress mechanics), Revita (health-as-currency), Nuclear Throne (mutations). Also surveyed r/roguelikedev trends, 7DRL 2025 entries (819 participants), and the browser roguelike market landscape.
+
+**Key findings:**
+
+1. **Run variety is the biggest remaining gap.** The game has excellent systems (attunement, curses, runics, identification, enemy abilities) but runs converge by floor 6. Every player ends up with Abyssal Edge (+6 ATK) + Abyssal Ward (+6 DEF) because there are no alternatives at that power level. Floors 7-15 have no meaningful loot decisions. The fix is sidegrade weapons/armor (not upgrades) that create distinct playstyles per run — a Rift Dagger + Flaming run should play completely differently from a Void Halberd + Vorpal run. Added 3 sidegrade weapons and 2 sidegrade armor to the task board.
+
+2. **Void Attunement is ready for full expansion.** The 2-threshold prototype is built and working. Research into Curse of the Dead Gods reveals the critical missing piece: **attunement-as-currency**. Currently attunement only goes up (floor descent + shrines). Adding the ability to *spend* attunement at shrines for guaranteed positive effects transforms it from "meter that fills" into "resource you actively manage." This creates the central strategic question: "Do I keep my Void Strike power, or spend 15 attunement for a guaranteed heal?" Also adding 75% (Void Phase — walk through walls) and 100% (Void Mastery — god mode with HP drain) thresholds. Boss kills should reduce attunement by 15 as an escape valve.
+
+3. **Ascension system is the highest-efficiency replayability investment.** Slay the Spire gets hundreds of hours from 20 difficulty levels with zero new content — just cumulative modifiers (more enemy HP, less healing, start with debuffs). For a browser game, 5 Ascension levels is the right scope. Unlock after first victory. Each level adds one modifier. This extends endgame indefinitely without any new art, enemies, or items. Added to task board.
+
+4. **Ethical streak tracking drives daily mode engagement.** Research shows 2.3x daily engagement increase at 7+ day streaks. But Duolingo's aggressive streak pressure drew widespread criticism. Design: track current + best streak, show on results screen and in shareable summary. NO punishment for breaks — no "you lost your streak" message, no guilt notifications. If a day is missed, current streak resets silently. The streak is a personal record, not a guilt mechanism.
+
+5. **Challenge modes are zero-content-cost replayability.** Shattered PD's challenge toggles (On Diet, Faith is my Armor) are the #1 driver of post-victory engagement. Added 3 challenge modes (Fragile, Identified, Speedvoid) that test different skills and can be combined. Completing all 3 simultaneously ("Null Challenge") is the hardest achievement.
+
+6. **Competitive positioning is strong.** Nullcrawl already has more content than Rogule (35 items vs. ~10, 12 consumable effects, attunement system, 3 zones). The positioning should be: "Rogule is the 5-minute coffee break roguelike. Nullcrawl is the 20-minute lunch break roguelike. Same daily format, 10x the tactical depth." The daily mode + shareable results + unique attunement hook give Nullcrawl a clear identity in the market.
+
+**Task board changes:**
+- ADDED: P1 Unique Mechanic Expansion (3 tasks): 4-threshold attunement, attunement-as-currency, boss kill escape valve
+- ADDED: P2 Run Variety & Build Identity (3 tasks): 3 sidegrade weapons, 2 sidegrade armor, Void-Touched item variant
+- REVISED: P2 Meta Progression (6 tasks): Ascension system, Bestiary/Codex, daily streaks, challenge modes, run history, leaderboard — replaced 3 vague tasks with 6 detailed, research-backed tasks
+
+No money spent. One decision flagged for HUMAN_INBOX.md (attunement expansion timing).
+
 ### 2026-03-21 01:30 | developer | Floor transition animation
 - **Fade-from-black effect:** When descending stairs, the new floor fades in from black over 600ms with a floor number and zone name displayed during the transition
 - **Zone-aware styling:** Floor number text uses the zone's accent color (purple for Null Tunnels, cyan for Crystal Depths, red for Shadow Realm). Zone name shown below in gray

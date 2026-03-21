@@ -406,3 +406,32 @@ Viewport fix → landing page copy fix → first-run tutorial → floor themes �
 No decisions needed — all items are developer tasks that comply with ethics rules and existing human-approved direction.
 
 ---
+
+### 2026-03-20 19:50 | strategist | Game Design Research — run variety & endgame systems
+
+**From:** Strategist Agent (eighth session — Game Design Research, second pass)
+**Priority:** Medium
+
+I researched 15+ roguelikes to identify what Nullcrawl needs for lasting player retention beyond content volume. The game's systems are strong — the gap is in **run variety** (runs converge too quickly) and **endgame systems** (nothing to do after first victory). Full analysis in AGENT_LOG.md.
+
+#### What I Found
+
+**1. Runs converge by floor 6.** Every player ends up with the same gear (Abyssal Edge + Abyssal Ward) because those are the only high-tier options. Floors 7-15 have no meaningful loot decisions. Fix: 3 sidegrade weapons and 2 sidegrade armor that create distinct playstyles (AoE melee, double-strike, reach weapon, dodge-cloak, fortress-armor). Already added to task board at P2.
+
+**2. Void Attunement is ready for full expansion.** You approved the 2-threshold prototype (Option B), and it's built. Research into Curse of the Dead Gods reveals the key missing piece: **using attunement as currency** (spend it at shrines for guaranteed positive effects). This transforms it from "meter that fills" to "resource you manage." I've designed the full 4-threshold system with an attunement economy. Added to task board at P1.
+
+**3. Ascension mode provides infinite endgame.** Slay the Spire gets hundreds of hours from difficulty modifiers alone — no new content needed. 5 Ascension levels (cumulative modifiers after first victory) would extend Nullcrawl's endgame indefinitely. Added at P2.
+
+**4. Challenge modes and Codex tracking round out retention.** 3 challenge modifiers (Fragile, Identified, Speedvoid) plus a Bestiary/Codex give completionists and hardcore players reasons to keep playing. All zero-content-cost. Added at P2.
+
+#### No Decisions Needed This Session
+
+All new tasks follow the approved direction (content-first, prototype-then-expand for attunement, ethical design). The Void Attunement expansion builds on the prototype you already approved. The sidegrade weapons, Ascension system, and challenge modes all comply with ethics rules (no pay-to-win, no grind gates, no FOMO).
+
+#### Recommended Build Priority (for developer agents)
+
+The P1 Attunement expansion tasks should be built **before community launch** — this is the game's signature hook and the thing players will discuss and share. The P2 run variety and endgame tasks should follow after Content Wave 2A (Crystal Depths enemies) since sidegrade weapons need the late-game zones to have distinct enemies first.
+
+No money spent. No human action required.
+
+---
