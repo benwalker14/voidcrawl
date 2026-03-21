@@ -233,7 +233,11 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
     setBossInfo(boss ?? null);
     setAnchorsAlive(state.entities.filter((e) => e.isAnchor && e.hp > 0).length);
     if (state.messages.length > 0) {
-      setMessages((prev) => [...state.messages, ...prev].slice(0, 50));
+      const turn = state.turnCount;
+      setMessages((prev) => [
+        ...state.messages.map((m) => ({ ...m, turn })),
+        ...prev,
+      ].slice(0, 50));
     }
     if (state.gameOver) {
       setGameOver(true);
@@ -1120,14 +1124,22 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
 
       {/* Message Log */}
       <div
-        className="w-full max-w-[640px] mt-2 p-2 text-xs font-mono h-24 overflow-y-auto"
+        className="w-full max-w-[640px] mt-2 p-2 text-xs font-mono h-32 overflow-y-auto"
         style={{ backgroundColor: "var(--void-dark)" }}
       >
-        {messages.map((msg, i) => (
-          <div key={i} style={{ color: msg.color, opacity: i === 0 ? 1 : 0.7 }}>
-            {msg.text}
-          </div>
-        ))}
+        {messages.map((msg, i) => {
+          const showSeparator = i > 0 && msg.turn !== undefined && messages[i - 1]?.turn !== undefined && msg.turn !== messages[i - 1].turn;
+          return (
+            <div key={i}>
+              {showSeparator && (
+                <div className="my-0.5" style={{ borderTop: "1px solid #334155", opacity: 0.5 }} />
+              )}
+              <div style={{ color: msg.color, opacity: i === 0 ? 1 : 0.7, fontWeight: msg.critical ? "bold" : "normal" }}>
+                {msg.critical ? "★ " : ""}{msg.text}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Controls hint */}

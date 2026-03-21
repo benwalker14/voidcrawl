@@ -392,6 +392,8 @@ export const MSG_COLORS = {
 export interface GameMessage {
   text: string;
   color: string;
+  turn?: number;
+  critical?: boolean;
 }
 
 export interface FloatingText {

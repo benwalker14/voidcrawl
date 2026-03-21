@@ -91,6 +91,7 @@ function awardXp(
     state.messages.push({
       text: `LEVEL UP! You are now level ${state.progression.level}! (+5 HP, +1 ATK, +1 DEF)`,
       color: MSG_COLORS.LEVEL_UP,
+      critical: true,
     });
     state.pendingFloatingTexts.push({
       text: "LEVEL UP!",
@@ -319,11 +320,11 @@ export function generateFloor(
   }
 
   if (floor === 5) {
-    messages.push({ text: "The air crackles with energy. A massive Void Nucleus pulses at the far end of the chamber!", color: MSG_COLORS.WARNING });
+    messages.push({ text: "The air crackles with energy. A massive Void Nucleus pulses at the far end of the chamber!", color: MSG_COLORS.WARNING, critical: true });
   } else if (floor === 10) {
-    messages.push({ text: "A dark reflection emerges from the shadows... it mirrors your every move.", color: MSG_COLORS.WARNING });
+    messages.push({ text: "A dark reflection emerges from the shadows... it mirrors your every move.", color: MSG_COLORS.WARNING, critical: true });
   } else if (floor === 15) {
-    messages.push({ text: "A towering sentinel guards the rift. Four anchors pulse with protective energy around it.", color: MSG_COLORS.WARNING });
+    messages.push({ text: "A towering sentinel guards the rift. Four anchors pulse with protective energy around it.", color: MSG_COLORS.WARNING, critical: true });
   }
 
   if (attunementGain > 0) {
@@ -332,15 +333,15 @@ export function generateFloor(
 
     // Threshold crossing messages
     if (prevAttunement < 25 && voidAttunement >= 25) {
-      messages.push({ text: "Null Attunement 25%: Your vision expands beyond mortal limits... but the darkness knows where you are.", color: "#c084fc" });
+      messages.push({ text: "Null Attunement 25%: Your vision expands beyond mortal limits... but the darkness knows where you are.", color: "#c084fc", critical: true });
       pendingFloats.push({ text: "VOID SIGHT", color: "#a855f7", x: player.pos.x, y: player.pos.y });
     }
     if (prevAttunement < 50 && voidAttunement >= 50) {
-      messages.push({ text: "Null Attunement 50%: Void energy surges through your strikes... but healing grows faint.", color: "#c084fc" });
+      messages.push({ text: "Null Attunement 50%: Void energy surges through your strikes... but healing grows faint.", color: "#c084fc", critical: true });
       pendingFloats.push({ text: "VOID STRIKE", color: "#a855f7", x: player.pos.x, y: player.pos.y });
     }
     if (prevAttunement < 75 && voidAttunement >= 75) {
-      messages.push({ text: "Null Attunement 75%: You can phase through walls... but the void drains your vitality.", color: "#c084fc" });
+      messages.push({ text: "Null Attunement 75%: You can phase through walls... but the void drains your vitality.", color: "#c084fc", critical: true });
       pendingFloats.push({ text: "VOID PHASE", color: "#a855f7", x: player.pos.x, y: player.pos.y });
       // Apply 25% max HP reduction (permanent for the rest of this run)
       const reduction = Math.floor(player.maxHp * 0.25);
@@ -352,7 +353,7 @@ export function generateFloor(
       pendingFloats.push({ text: `-${reduction} MAX HP`, color: "#ef4444", x: player.pos.x, y: player.pos.y });
     }
     if (prevAttunement < 100 && voidAttunement >= 100) {
-      messages.push({ text: "Null Attunement 100%: VOID MASTERY — absolute power at the cost of your life force.", color: "#c084fc" });
+      messages.push({ text: "Null Attunement 100%: VOID MASTERY — absolute power at the cost of your life force.", color: "#c084fc", critical: true });
       pendingFloats.push({ text: "VOID MASTERY", color: "#7c3aed", x: player.pos.x, y: player.pos.y });
     }
   }
@@ -410,7 +411,7 @@ export function generateFloor(
 function triggerVictory(state: GameState): GameState {
   state.gameOver = true;
   state.victory = true;
-  state.messages.push({ text: "YOU ESCAPED THE VOID!", color: "#22c55e" });
+  state.messages.push({ text: "YOU ESCAPED THE VOID!", color: "#22c55e", critical: true });
   state.pendingFloatingTexts.push({ text: "VICTORY!", color: "#22c55e", x: state.player.pos.x, y: state.player.pos.y });
   return state;
 }
@@ -1028,6 +1029,7 @@ export function applyInventoryItem(state: GameState, index: number): GameState {
         newState.messages.push({
           text: `You identify it! ${appearance} ${typeLabel} are ${effectName}!`,
           color: MSG_COLORS.LOOT,
+          critical: true,
         });
       }
     }
@@ -1199,7 +1201,7 @@ function processBossAI(state: GameState): void {
         boss.bossPhase = 1;
         boss.bossTurnCounter = 0;
         boss.bossTelegraphed = false;
-        state.messages.push({ text: "The Void Nucleus dims... it's vulnerable! Strike now!", color: MSG_COLORS.HEAL });
+        state.messages.push({ text: "The Void Nucleus dims... it's vulnerable! Strike now!", color: MSG_COLORS.HEAL, critical: true });
         state.pendingFloatingTexts.push({ text: "VULNERABLE", color: "#22c55e", x: boss.pos.x, y: boss.pos.y });
       }
     } else if (boss.bossPhase === 1) {
@@ -1209,7 +1211,7 @@ function processBossAI(state: GameState): void {
       if ((boss.bossTurnCounter ?? 0) >= BOSS_PAUSE_TURNS) {
         boss.bossPhase = 0;
         boss.bossTurnCounter = 0;
-        state.messages.push({ text: "The Void Nucleus pulses with renewed energy! It begins spawning again!", color: MSG_COLORS.WARNING });
+        state.messages.push({ text: "The Void Nucleus pulses with renewed energy! It begins spawning again!", color: MSG_COLORS.WARNING, critical: true });
         state.pendingFloatingTexts.push({ text: "ACTIVE", color: "#ef4444", x: boss.pos.x, y: boss.pos.y });
       }
     }
@@ -1301,7 +1303,7 @@ function processShadowTwinAI(state: GameState): void {
         state.entities.push(clone);
       }
 
-      state.messages.push({ text: "The Shadow Twin splits! Kill both within 3 turns or it regenerates!", color: MSG_COLORS.DEATH });
+      state.messages.push({ text: "The Shadow Twin splits! Kill both within 3 turns or it regenerates!", color: MSG_COLORS.DEATH, critical: true });
       state.pendingFloatingTexts.push({ text: "SHADOW SPLIT!", color: "#dc2626", x: twin.pos.x, y: twin.pos.y });
       state.pendingShake = Math.max(state.pendingShake, 5);
       continue;
@@ -1452,7 +1454,7 @@ function processRiftWardenAI(state: GameState): void {
     warden.bossTelegraphed = false;
     warden.wardenDamageReduction = 0;
     warden.behavior = AIBehavior.CHASE;
-    state.messages.push({ text: "The Rift Warden's anchors are destroyed! It breaks free and charges!", color: MSG_COLORS.DEATH });
+    state.messages.push({ text: "The Rift Warden's anchors are destroyed! It breaks free and charges!", color: MSG_COLORS.DEATH, critical: true });
     state.pendingFloatingTexts.push({ text: "UNLEASHED!", color: "#fbbf24", x: warden.pos.x, y: warden.pos.y });
     state.pendingShake = Math.max(state.pendingShake, 6);
   }
@@ -1466,7 +1468,7 @@ function processRiftWardenAI(state: GameState): void {
     for (const patch of state.voidPatches) {
       patch.damage = WARDEN_PATCH_DAMAGE_P3;
     }
-    state.messages.push({ text: "The Rift Warden flickers with unstable energy! It begins warping through space!", color: MSG_COLORS.DEATH });
+    state.messages.push({ text: "The Rift Warden flickers with unstable energy! It begins warping through space!", color: MSG_COLORS.DEATH, critical: true });
     state.pendingFloatingTexts.push({ text: "FINAL STAND!", color: "#ef4444", x: warden.pos.x, y: warden.pos.y });
     state.pendingShake = Math.max(state.pendingShake, 7);
   }
@@ -2254,7 +2256,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
               // Final boss kill: victory message + loot
               const isRiftWarden = enemy.specialAbility === SpecialAbility.BOSS_RIFT_WARDEN;
               if (isShadowTwin) {
-                newState.messages.push({ text: "The Shadow Twin dissolves into darkness! Your reflection is your own again.", color: MSG_COLORS.LEVEL_UP });
+                newState.messages.push({ text: "The Shadow Twin dissolves into darkness! Your reflection is your own again.", color: MSG_COLORS.LEVEL_UP, critical: true });
                 // Drop Mirror Shard unique item + standard boss loot
                 newState.items.push({
                   item: {
@@ -2273,7 +2275,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
                 });
                 newState.messages.push({ text: `The Shadow Twin dropped Mirror Shard!`, color: MSG_COLORS.LOOT });
               } else if (isRiftWarden) {
-                newState.messages.push({ text: "The Rift Warden collapses! The rift seals shut and void patches dissolve.", color: MSG_COLORS.LEVEL_UP });
+                newState.messages.push({ text: "The Rift Warden collapses! The rift seals shut and void patches dissolve.", color: MSG_COLORS.LEVEL_UP, critical: true });
                 // Clear all void patches on Warden death
                 newState.voidPatches = [];
                 // Drop Warden's Key unique passive item (reveals all traps permanently)
@@ -2292,7 +2294,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
                 });
                 newState.messages.push({ text: `The Rift Warden dropped Warden's Key!`, color: MSG_COLORS.LOOT });
               } else {
-                newState.messages.push({ text: "The Void Nucleus shatters! The chamber falls silent.", color: MSG_COLORS.LEVEL_UP });
+                newState.messages.push({ text: "The Void Nucleus shatters! The chamber falls silent.", color: MSG_COLORS.LEVEL_UP, critical: true });
               }
               newState.pendingFloatingTexts.push({ text: "BOSS SLAIN!", color: "#facc15", x: enemy.pos.x, y: enemy.pos.y });
               const bossLoot = generateBossLoot(newState.floor, enemy.pos);
@@ -2975,15 +2977,15 @@ export function processShrine(state: GameState, action: ShrineAction): GameState
 
   // Threshold crossing notifications
   if (prevAttunement < 25 && newState.voidAttunement >= 25) {
-    newState.messages.push({ text: "Null Attunement 25%: Your vision expands beyond mortal limits... but the darkness knows where you are.", color: "#c084fc" });
+    newState.messages.push({ text: "Null Attunement 25%: Your vision expands beyond mortal limits... but the darkness knows where you are.", color: "#c084fc", critical: true });
     newState.pendingFloatingTexts.push({ text: "VOID SIGHT", color: "#a855f7", x: newState.player.pos.x, y: newState.player.pos.y });
   }
   if (prevAttunement < 50 && newState.voidAttunement >= 50) {
-    newState.messages.push({ text: "Null Attunement 50%: Void energy surges through your strikes... but healing grows faint.", color: "#c084fc" });
+    newState.messages.push({ text: "Null Attunement 50%: Void energy surges through your strikes... but healing grows faint.", color: "#c084fc", critical: true });
     newState.pendingFloatingTexts.push({ text: "VOID STRIKE", color: "#a855f7", x: newState.player.pos.x, y: newState.player.pos.y });
   }
   if (prevAttunement < 75 && newState.voidAttunement >= 75) {
-    newState.messages.push({ text: "Null Attunement 75%: You can phase through walls... but the void drains your vitality.", color: "#c084fc" });
+    newState.messages.push({ text: "Null Attunement 75%: You can phase through walls... but the void drains your vitality.", color: "#c084fc", critical: true });
     newState.pendingFloatingTexts.push({ text: "VOID PHASE", color: "#a855f7", x: newState.player.pos.x, y: newState.player.pos.y });
     // Apply 25% max HP reduction (permanent for the rest of this run)
     if (!newState.maxHpReduced) {
@@ -2996,7 +2998,7 @@ export function processShrine(state: GameState, action: ShrineAction): GameState
     }
   }
   if (prevAttunement < 100 && newState.voidAttunement >= 100) {
-    newState.messages.push({ text: "Null Attunement 100%: VOID MASTERY — absolute power at the cost of your life force.", color: "#c084fc" });
+    newState.messages.push({ text: "Null Attunement 100%: VOID MASTERY — absolute power at the cost of your life force.", color: "#c084fc", critical: true });
     newState.pendingFloatingTexts.push({ text: "VOID MASTERY", color: "#7c3aed", x: newState.player.pos.x, y: newState.player.pos.y });
   }
 

@@ -1,5 +1,32 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-21 22:00 | developer | Message log improvements (P2 Player Experience)
+
+**3 improvements to the message log — the #1 information delivery problem:**
+
+1. **Increased height** from h-24 (96px, ~4-5 lines) to h-32 (128px, ~6-7 lines). Players can now see more messages without scrolling, critical during boss fights and shrine communes.
+
+2. **Turn separator lines**: thin horizontal dividers appear between messages from different turns. Players can now distinguish which messages belong to which action. Messages are tagged with turn number when received from the engine.
+
+3. **Critical message highlighting**: important messages now render with **bold text** and a **★ prefix** to stand out from routine combat messages. 20+ messages marked critical across the engine:
+   - Level up notifications
+   - Void Attunement threshold crossings (25%, 50%, 75%, 100%) — both on floor descent and shrine commune
+   - Item identification ("You identify it!")
+   - Boss encounter announcements (Void Nucleus, Shadow Twin, Rift Warden)
+   - Boss phase transitions (vulnerable, splits, unleashed, final stand)
+   - Boss kill messages
+   - Victory message
+
+**Implementation details:**
+- Added `turn?: number` and `critical?: boolean` optional fields to `GameMessage` interface in config.ts
+- Tagged all incoming messages with `state.turnCount` in GameCanvas's `updateUI()` function
+- Turn separators detect when adjacent messages have different turn numbers
+- Critical flag set on ~20 specific engine messages across `engine.ts`
+
+**Files changed:** `src/game/config.ts`, `src/game/engine.ts`, `src/components/GameCanvas.tsx`, `TASK_BOARD.md`
+- Lint and build both pass clean
+- No money spent
+
 ### 2026-03-21 18:00 | developer | 2 Crystal Depths zone-exclusive enemies + Rift Warden commit cleanup
 
 **Commit cleanup:** Committed uncommitted Rift Warden supporting code (VoidPatch interface, BOSS_RIFT_WARDEN ability, spawn/rendering logic) that was left unstaged from a previous session. Engine behavior was already committed; this completes the feature.
