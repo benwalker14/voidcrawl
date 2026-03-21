@@ -533,18 +533,28 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
         return;
       }
 
-      // Handle shrine prompt Y/N
+      // Handle shrine prompt Y/N/P
       if (gameRef.current.shrinePrompt) {
         if (e.key === "y" || e.key === "Y") {
           e.preventDefault();
-          const newState = processShrine(gameRef.current, true);
+          const newState = processShrine(gameRef.current, "accept");
           gameRef.current = newState;
           updateUI(newState);
           draw();
           startAnimations(newState);
+        } else if (e.key === "p" || e.key === "P") {
+          // Purify: spend attunement for guaranteed positive effect
+          if (gameRef.current.voidAttunement >= 25) {
+            e.preventDefault();
+            const newState = processShrine(gameRef.current, "purify");
+            gameRef.current = newState;
+            updateUI(newState);
+            draw();
+            startAnimations(newState);
+          }
         } else if (e.key === "n" || e.key === "N" || e.key === "Escape") {
           e.preventDefault();
-          const newState = processShrine(gameRef.current, false);
+          const newState = processShrine(gameRef.current, "decline");
           gameRef.current = newState;
           updateUI(newState);
           draw();
@@ -898,6 +908,9 @@ export default function GameCanvas({ mode = "standard" }: GameCanvasProps) {
               </p>
               <div className="flex gap-4 justify-center text-xs font-bold">
                 <span style={{ color: "#22c55e" }}>[Y] Accept</span>
+                {voidAttunement >= 25 && (
+                  <span style={{ color: "#38bdf8" }}>[P] Purify (-15 Att, safe effect)</span>
+                )}
                 <span style={{ color: "#ef4444" }}>[N] Decline</span>
               </div>
             </div>

@@ -216,9 +216,9 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
         <Section title="Void Shrines">
           <p className="mb-1">
             <span style={{ color: "#c084fc" }}>$</span> Purple shrines appear once per floor. Step on one and press
-            <Hl> Y</Hl> to commune or <Hl>N</Hl> to decline.
+            <Hl> Y</Hl> to commune, <Hl>N</Hl> to decline, or <Hl>P</Hl> to purify (if attunement &ge; 25).
           </p>
-          <p className="mb-1">Each use adds <span style={{ color: "#c084fc" }}>+15 Null Attunement</span> and triggers a random effect:</p>
+          <p className="mb-1"><Hl>Commune (Y):</Hl> Adds <span style={{ color: "#c084fc" }}>+15 Null Attunement</span> and triggers a random effect:</p>
           <div className="space-y-0.5 ml-2">
             <div><span style={{ color: "#22c55e" }}>Heal 50% HP</span> <span style={{ color: "var(--void-muted)" }}>(20%)</span></div>
             <div><span style={{ color: "#c084fc" }}>+1 permanent stat (ATK, DEF, or Max HP)</span> <span style={{ color: "var(--void-muted)" }}>(15%)</span></div>
@@ -228,6 +228,7 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
             <div><span style={{ color: "#ef4444" }}>Curse equipped weapon or armor</span> <span style={{ color: "var(--void-muted)" }}>(10%)</span></div>
             <div><span style={{ color: "#06b6d4" }}>Teleport near stairs</span> <span style={{ color: "var(--void-muted)" }}>(10%)</span></div>
           </div>
+          <p className="mt-2 mb-1"><Hl>Purify (P):</Hl> Spends <span style={{ color: "#38bdf8" }}>-15 Null Attunement</span> for a <span style={{ color: "#22c55e" }}>guaranteed positive</span> effect (equal chance: Heal, +1 Stat, Identify All, or Random Item). No risk of enemies or curses. Available when attunement &ge; 25.</p>
         </Section>
 
         {/* Null Attunement */}
@@ -235,7 +236,7 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
           <p className="mb-1">
             A corruption meter (0-100) that grows as you descend deeper. The void grants power, but at a cost.
           </p>
-          <p className="mb-1"><Hl>Sources:</Hl> +5 per floor descended. Void shrines add +15.</p>
+          <p className="mb-1"><Hl>Sources:</Hl> +5 per floor descended. Void shrines add +15. <Hl>Purifying</Hl> a shrine spends -15.</p>
           <div className="space-y-0.5 mt-1">
             <div>
               <span style={{ color: "#a855f7" }}>25% — Void Sight:</span>

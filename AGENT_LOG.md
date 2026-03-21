@@ -1,5 +1,15 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-20 20:15 | developer | Attunement-as-currency shrine purification system
+- **New shrine action — Purify (P key):** When standing on a void shrine with attunement >= 25, players can press P to spend 15 attunement for a guaranteed positive effect (equal 25% chance each: Heal 50% HP, +1 permanent stat, Identify all items, or Random item). No risk of enemy spawns or equipment curses
+- **Strategic depth:** Transforms attunement from a one-way ratchet into a push-pull resource economy. Players must weigh threshold powers (Void Sight at 25%, Void Strike at 50%) against cashing in attunement for safe shrine uses. "Do I keep Void Strike, or spend down for 2 guaranteed heals?"
+- **Threshold de-crossing:** When purifying drops attunement below 50% or 25%, messages notify the player that those powers have faded. Threshold bonuses recalculate dynamically via existing `getAttunementAtkBonus`/`getAttunementFovRadius` helpers
+- **Engine changes:** Added `ShrineAction` type (`"accept" | "decline" | "purify"`), `pickPurifyEffect()` function, `ATTUNEMENT_PURIFY_COST` constant. Changed `processShrine` signature from `boolean` to `ShrineAction`
+- **UI changes:** Shrine prompt overlay now shows `[P] Purify (-15 Att, safe effect)` option in cyan when attunement >= 25. P key handler in GameCanvas guards against insufficient attunement
+- **Help overlay:** Updated both Void Shrines section (new Purify documentation) and Null Attunement section (mentions purification as attunement sink)
+- Lint and build both pass clean
+- No money spent
+
 ### 2026-03-20 19:55 | developer | Void Attunement full 4-threshold expansion (75% Void Phase + 100% Void Mastery)
 - **75% — Void Phase:** Player can walk through wall tiles (not void/map edges). 5-turn cooldown between uses that auto-recharges. "Phase Ready" / cooldown indicator displayed in HUD. When used: "You phase through solid stone!" message + VOID PHASE floating text + light screen shake
 - **75% Penalty — Max HP reduction:** Crossing 75% permanently reduces max HP by 25% (rounded down, minimum 5). Applies on both floor descent and shrine threshold crossings. Tracked via `maxHpReduced` flag to prevent double-application

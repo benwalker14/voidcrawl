@@ -2057,7 +2057,19 @@ function pickNegativeShrineEffect(): typeof SHRINE_EFFECTS[number] {
   return negative[0];
 }
 
-export function processShrine(state: GameState, accept: boolean): GameState {
+const ATTUNEMENT_PURIFY_COST = 15; // cost to purify at a shrine
+
+// Positive-only shrine effects for purification (equal 25% each)
+function pickPurifyEffect(): typeof SHRINE_EFFECTS[number] {
+  const positive = SHRINE_EFFECTS.filter(
+    (e) => e.label === "heal" || e.label === "stat" || e.label === "identify" || e.label === "consumable"
+  );
+  return positive[Math.floor(random() * positive.length)];
+}
+
+export type ShrineAction = "accept" | "decline" | "purify";
+
+export function processShrine(state: GameState, action: ShrineAction): GameState {
   if (!state.shrinePrompt) return state;
 
   const newState: GameState = {
@@ -2075,15 +2087,45 @@ export function processShrine(state: GameState, accept: boolean): GameState {
     identified: { ...state.identified },
   };
 
-  // Mark shrine as used regardless of accept/decline
+  // Mark shrine as used regardless of accept/decline/purify
   const key = `${newState.player.pos.x},${newState.player.pos.y}`;
   newState.shrinesUsed.add(key);
 
-  if (!accept) {
+  if (action === "decline") {
     newState.messages.push({ text: "You step away from the shrine.", color: MSG_COLORS.INFO });
     return newState;
   }
 
+  if (action === "purify") {
+    // Spend attunement for a guaranteed positive effect
+    if (newState.voidAttunement < 25) {
+      // Shouldn't happen (UI prevents it), but guard anyway
+      newState.messages.push({ text: "Not enough Null Attunement to purify.", color: MSG_COLORS.INFO });
+      return newState;
+    }
+
+    const prevAttunement = newState.voidAttunement;
+    newState.voidAttunement = Math.max(0, newState.voidAttunement - ATTUNEMENT_PURIFY_COST);
+    newState.messages.push({ text: `You purify the shrine's energy... (-${ATTUNEMENT_PURIFY_COST} Null Attunement)`, color: "#38bdf8" });
+    newState.pendingFloatingTexts.push({ text: `NULL -${ATTUNEMENT_PURIFY_COST}`, color: "#38bdf8", x: newState.player.pos.x, y: newState.player.pos.y });
+
+    // Notify if dropping below thresholds
+    if (prevAttunement >= 50 && newState.voidAttunement < 50) {
+      newState.messages.push({ text: "Void Strike fades... the void's power recedes.", color: "#9ca3af" });
+    }
+    if (prevAttunement >= 25 && newState.voidAttunement < 25) {
+      newState.messages.push({ text: "Void Sight fades... the darkness releases its grip.", color: "#9ca3af" });
+    }
+
+    // Guaranteed positive effect
+    const effect = pickPurifyEffect();
+    newState.messages.push({ text: "The purified shrine grants a blessing.", color: "#38bdf8" });
+    effect.apply(newState);
+
+    return newState;
+  }
+
+  // action === "accept" — normal commune
   // Apply attunement gain
   const prevAttunement = newState.voidAttunement;
   newState.voidAttunement = Math.min(100, newState.voidAttunement + ATTUNEMENT_SHRINE_GAIN);
