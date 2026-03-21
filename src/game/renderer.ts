@@ -11,6 +11,7 @@ import {
   CANVAS_HEIGHT,
   EnemyIntent,
   SpecialAbility,
+  TrapType,
   getZoneTileColors,
   getZoneTheme,
 } from "./config";
@@ -146,6 +147,31 @@ export function render(ctx: CanvasRenderingContext2D, state: GameState) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(item.symbol, screenX + SCALED_TILE / 2, screenY + SCALED_TILE / 2);
+  }
+
+  // Draw revealed traps (only visible ones)
+  for (const trap of state.traps) {
+    if (!trap.revealed) continue;
+    if (!state.fov[trap.pos.y][trap.pos.x]) continue;
+
+    const screenX = (trap.pos.x - camX) * SCALED_TILE;
+    const screenY = (trap.pos.y - camY) * SCALED_TILE;
+
+    if (screenX < 0 || screenX >= CANVAS_WIDTH || screenY < 0 || screenY >= CANVAS_HEIGHT) continue;
+
+    // Trap color by type
+    let trapColor: string;
+    switch (trap.type) {
+      case TrapType.SPIKE: trapColor = "#ef4444"; break;    // red
+      case TrapType.ALARM: trapColor = "#eab308"; break;    // yellow
+      case TrapType.TELEPORT: trapColor = "#8b5cf6"; break; // purple
+    }
+
+    ctx.fillStyle = trapColor;
+    ctx.font = `bold ${SCALED_TILE - 6}px monospace`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(",", screenX + SCALED_TILE / 2, screenY + SCALED_TILE / 2);
   }
 
   // Draw entities (only visible ones)
@@ -303,6 +329,20 @@ export function renderMinimap(ctx: CanvasRenderingContext2D, state: GameState) {
     const py = my + groundItem.pos.y * MINIMAP_TILE;
     ctx.fillStyle = "#06b6d4";
     ctx.fillRect(px, py, MINIMAP_TILE, MINIMAP_TILE);
+  }
+
+  // Draw revealed traps (only visible)
+  for (const trap of state.traps) {
+    if (!trap.revealed) continue;
+    if (!state.fov[trap.pos.y][trap.pos.x]) continue;
+    const tpx = mx + trap.pos.x * MINIMAP_TILE;
+    const tpy = my + trap.pos.y * MINIMAP_TILE;
+    switch (trap.type) {
+      case TrapType.SPIKE: ctx.fillStyle = "#ef4444"; break;
+      case TrapType.ALARM: ctx.fillStyle = "#eab308"; break;
+      case TrapType.TELEPORT: ctx.fillStyle = "#8b5cf6"; break;
+    }
+    ctx.fillRect(tpx, tpy, MINIMAP_TILE, MINIMAP_TILE);
   }
 
   // Draw enemies (only visible) — color by intent

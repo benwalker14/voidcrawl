@@ -133,6 +133,19 @@ export enum ConsumableEffect {
   REMOVE_CURSE = "remove_curse",
 }
 
+// Trap types
+export enum TrapType {
+  SPIKE = "spike",         // Deals 5 damage when stepped on
+  ALARM = "alarm",         // Alerts all enemies on the floor (sets to CHASE)
+  TELEPORT = "teleport",   // Teleports player to a random floor tile
+}
+
+export interface Trap {
+  pos: Position;
+  type: TrapType;
+  revealed: boolean;       // true once triggered or revealed by Void Sight
+}
+
 // Status effects on the player
 export enum StatusEffectType {
   HASTE = "haste",
@@ -420,6 +433,7 @@ export interface GameState {
   consumableAppearances: Record<string, string>;  // ConsumableEffect -> randomized appearance descriptor
   voidAttunement: number;                         // 0-100 corruption/power meter
   shrinePrompt: boolean;                          // true when player is standing on unused shrine, awaiting Y/N
+  traps: Trap[];                                   // Hidden trap tiles on the floor
   shrinesUsed: Set<string>;                       // "x,y" keys of shrines already used this floor
   gameMode: GameMode;
   seed?: string;                                  // Seed string for daily challenge mode

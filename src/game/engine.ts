@@ -28,6 +28,8 @@ import {
   CurseEffect,
   CURSE_NAMES,
   WeaponSpecial,
+  Trap,
+  TrapType,
   MSG_COLORS,
   CONSUMABLE_EFFECT_NAMES,
   getZoneTheme,
@@ -180,6 +182,37 @@ export function initGame(mode: GameMode = "standard", seed?: string): GameState 
   return generateFloor(1, null, null, null, null, null, null, null, null, mode, seed);
 }
 
+/** Generate 2-4 traps on floor tiles, starting from floor 3. Avoids player start and stairs. */
+function generateTraps(floor: number, map: TileType[][], playerStart: Position, stairsPos: Position): Trap[] {
+  if (floor < 3) return [];
+
+  const trapTypes = [TrapType.SPIKE, TrapType.ALARM, TrapType.TELEPORT];
+  const count = 2 + Math.floor(random() * 3); // 2-4 traps
+
+  // Collect eligible floor tiles (not player start, not stairs, not shrines)
+  const eligible: Position[] = [];
+  for (let y = 0; y < MAP_HEIGHT; y++) {
+    for (let x = 0; x < MAP_WIDTH; x++) {
+      if (map[y][x] !== TileType.FLOOR) continue;
+      if (x === playerStart.x && y === playerStart.y) continue;
+      if (x === stairsPos.x && y === stairsPos.y) continue;
+      // Avoid tiles adjacent to player start
+      if (Math.abs(x - playerStart.x) + Math.abs(y - playerStart.y) <= 2) continue;
+      eligible.push({ x, y });
+    }
+  }
+
+  const traps: Trap[] = [];
+  for (let i = 0; i < count && eligible.length > 0; i++) {
+    const idx = Math.floor(random() * eligible.length);
+    const pos = eligible.splice(idx, 1)[0];
+    const type = trapTypes[Math.floor(random() * trapTypes.length)];
+    traps.push({ pos, type, revealed: false });
+  }
+
+  return traps;
+}
+
 export function generateFloor(
   floor: number,
   prevPlayer: GameEntity | null,
@@ -326,6 +359,7 @@ export function generateFloor(
     identified: prevIdentified ?? initIdentified(),
     consumableAppearances: prevAppearances ?? initConsumableAppearances(),
     voidAttunement,
+    traps: isBossFloor ? [] : generateTraps(floor, dungeon.map, dungeon.playerStart, dungeon.stairsPos),
     shrinePrompt: false,
     shrinesUsed: new Set<string>(),
     gameMode: mode,
@@ -363,6 +397,69 @@ export function continueEndless(state: GameState): GameState {
   nextState.victory = true; // Keep victory flag so it doesn't re-trigger
   nextState.messages.push({ text: "You descend beyond the void... endless mode.", color: MSG_COLORS.INFO });
   return nextState;
+}
+
+/** Check if player stepped on a trap and apply its effect. Returns true if a teleport trap fired (caller may need to re-check tile). */
+function checkTrap(state: GameState): boolean {
+  const px = state.player.pos.x;
+  const py = state.player.pos.y;
+  const trap = state.traps.find(t => t.pos.x === px && t.pos.y === py && !t.revealed);
+  if (!trap) return false;
+
+  trap.revealed = true;
+
+  switch (trap.type) {
+    case TrapType.SPIKE: {
+      const dmg = 5;
+      state.player.hp -= dmg;
+      state.runStats.damageTaken += dmg;
+      state.messages.push({ text: `You step on a spike trap! (-${dmg} HP)`, color: MSG_COLORS.ENEMY_ATK });
+      state.pendingFloatingTexts.push({ text: `-${dmg}`, color: "#ef4444", x: px, y: py });
+      state.pendingShake = Math.max(state.pendingShake, 4);
+      if (state.player.hp <= 0) {
+        state.player.hp = 0;
+        state.gameOver = true;
+        state.runStats.killedBy = "Spike Trap";
+        state.messages.push({ text: "You were killed by a spike trap...", color: MSG_COLORS.DEATH });
+      }
+      return false;
+    }
+    case TrapType.ALARM: {
+      state.messages.push({ text: "An alarm trap triggers! All enemies are alerted to your position!", color: MSG_COLORS.WARNING });
+      state.pendingFloatingTexts.push({ text: "ALARM!", color: "#eab308", x: px, y: py });
+      state.pendingShake = Math.max(state.pendingShake, 3);
+      for (const enemy of state.entities) {
+        if (enemy.hp > 0 && !enemy.friendly) {
+          enemy.intent = EnemyIntent.APPROACHING;
+        }
+      }
+      return false;
+    }
+    case TrapType.TELEPORT: {
+      // Collect safe floor tiles to teleport to
+      const floorTiles: Position[] = [];
+      for (let y = 0; y < MAP_HEIGHT; y++) {
+        for (let x = 0; x < MAP_WIDTH; x++) {
+          if (state.map[y][x] === TileType.FLOOR) {
+            // Not on an entity
+            if (state.entities.some(e => e.pos.x === x && e.pos.y === y && e.hp > 0)) continue;
+            // Not on current position
+            if (x === px && y === py) continue;
+            floorTiles.push({ x, y });
+          }
+        }
+      }
+      if (floorTiles.length > 0) {
+        const dest = floorTiles[Math.floor(random() * floorTiles.length)];
+        state.player = { ...state.player, pos: { x: dest.x, y: dest.y } };
+        state.messages.push({ text: "A teleport trap warps you to a random location!", color: MSG_COLORS.WARNING });
+        state.pendingFloatingTexts.push({ text: "TELEPORT!", color: "#eab308", x: dest.x, y: dest.y });
+        state.pendingShake = Math.max(state.pendingShake, 5);
+      }
+      return true;
+    }
+  }
+  return false;
 }
 
 function isBlocked(state: GameState, x: number, y: number): boolean {
@@ -2011,6 +2108,9 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       newState.player = { ...newState.player, pos: { x: newX, y: newY } };
       enemy.pos = oldPos;
       pickupItem(newState);
+      // Check for traps after swapping onto tile
+      checkTrap(newState);
+      if (newState.gameOver) return newState; // Killed by spike trap
       if (newState.map[newY][newX] === TileType.STAIRS_DOWN) {
         if (newState.floor === VICTORY_FLOOR && !newState.victory) {
           return triggerVictory(newState);
@@ -2024,8 +2124,16 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       // Check for item pickup
       pickupItem(newState);
 
+      // Check for traps (before stairs/shrine — traps can teleport the player)
+      const wasTeleported = checkTrap(newState);
+      if (newState.gameOver) return newState; // Killed by spike trap
+
+      // After teleport, use the player's new position for tile checks
+      const checkX = wasTeleported ? newState.player.pos.x : newX;
+      const checkY = wasTeleported ? newState.player.pos.y : newY;
+
       // Check for stairs
-      if (newState.map[newY][newX] === TileType.STAIRS_DOWN) {
+      if (newState.map[checkY][checkX] === TileType.STAIRS_DOWN) {
         if (newState.floor === VICTORY_FLOOR && !newState.victory) {
           return triggerVictory(newState);
         }
@@ -2034,7 +2142,7 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
       }
 
       // Check for void shrine
-      if (newState.map[newY][newX] === TileType.SHRINE && !newState.shrinesUsed.has(`${newX},${newY}`)) {
+      if (newState.map[checkY][checkX] === TileType.SHRINE && !newState.shrinesUsed.has(`${checkX},${checkY}`)) {
         newState.shrinePrompt = true;
         newState.messages.push({ text: "A Void Shrine pulses with dark energy. Commune with the Void? (Y/N)", color: "#c084fc" });
         // Return immediately — no enemy turn until the player answers
@@ -2211,6 +2319,15 @@ export function processPlayerTurn(state: GameState, direction: MoveDirection): G
   for (let y = 0; y < MAP_HEIGHT; y++) {
     for (let x = 0; x < MAP_WIDTH; x++) {
       if (newState.fov[y][x]) newState.explored[y][x] = true;
+    }
+  }
+
+  // Void Sight (25%+ attunement) reveals hidden traps within FOV
+  if (newState.voidAttunement >= 25) {
+    for (const trap of newState.traps) {
+      if (!trap.revealed && newState.fov[trap.pos.y][trap.pos.x]) {
+        trap.revealed = true;
+      }
     }
   }
 

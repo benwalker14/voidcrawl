@@ -34,6 +34,7 @@ const MAP_SYMBOLS = [
   { symbol: ".", color: "#1a1a2e", label: "Floor tile" },
   { symbol: "#", color: "#2d2d44", label: "Wall" },
   { symbol: ">", color: "#06b6d4", label: "Stairs down (descend to next floor)" },
+  { symbol: ",", color: "#ef4444", label: "Trap (revealed)" },
 ];
 
 interface HelpOverlayProps {
@@ -114,6 +115,30 @@ export default function HelpOverlay({ onClose }: HelpOverlayProps) {
               <span className="inline-block w-3 h-3 rounded-sm" style={{ backgroundColor: "#3d1a1a" }} />
               <span style={{ color: "#ef4444" }}>Shadow Realm</span>
               <span style={{ color: "var(--void-muted)" }}>— Floors 10+. Living darkness. Reduced visibility (-2 FOV).</span>
+            </div>
+          </div>
+        </Section>
+
+        {/* Traps */}
+        <Section title="Traps">
+          <p className="mb-1" style={{ color: "var(--void-muted)" }}>
+            Hidden traps (<span style={{ color: "#ef4444" }}>,</span>) appear on floors 3+. They are invisible until stepped on. Void Sight (25% attunement) reveals traps within your FOV.
+          </p>
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-2">
+              <span className="w-4 text-center font-bold" style={{ color: "#ef4444" }}>,</span>
+              <span style={{ color: "#ef4444" }}>Spike Trap</span>
+              <span style={{ color: "var(--void-muted)" }}>— Deals 5 damage when stepped on</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-4 text-center font-bold" style={{ color: "#eab308" }}>,</span>
+              <span style={{ color: "#eab308" }}>Alarm Trap</span>
+              <span style={{ color: "var(--void-muted)" }}>— Alerts all enemies on the floor to your position</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-4 text-center font-bold" style={{ color: "#8b5cf6" }}>,</span>
+              <span style={{ color: "#8b5cf6" }}>Teleport Trap</span>
+              <span style={{ color: "var(--void-muted)" }}>— Warps you to a random location on the floor</span>
             </div>
           </div>
         </Section>

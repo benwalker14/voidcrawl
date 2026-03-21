@@ -1,5 +1,21 @@
 # Nullcrawl Agent Activity Log
 
+### 2026-03-20 25:30 | developer | Environmental hazards: hidden trap tiles (Spike, Alarm, Teleport)
+- **Added `TrapType` enum and `Trap` interface to config.ts** with 3 trap variants: SPIKE, ALARM, TELEPORT. Added `traps: Trap[]` to `GameState` interface. Each trap tracks position, type, and revealed status.
+- **Trap generation in engine.ts:** `generateTraps()` places 2-4 traps on random floor tiles per floor, starting from floor 3. Avoids player start position (manhattan distance ≤ 2), stairs, and shrine tiles. Boss floors get no traps. Uses seeded RNG for daily challenge consistency.
+- **3 trap effects in `checkTrap()` helper:**
+  - **Spike Trap:** Deals 5 damage on contact. Can kill the player (tracked as "Killed by Spike Trap" in run stats). Red floating text, screen shake 4.
+  - **Alarm Trap:** Alerts all enemies on the floor — sets all living hostile entities to APPROACHING intent. Yellow "ALARM!" floating text, screen shake 3.
+  - **Teleport Trap:** Warps player to a random floor tile (avoiding entities and current position). Purple "TELEPORT!" floating text, screen shake 5. After teleport, stairs/shrine checks use the new position.
+- **Trap trigger integration in `processPlayerTurn`:** traps check fires after item pickup but before stairs/shrine checks, in both normal movement and friendly-swap paths. Handles spike-trap death (early return) and teleport repositioning (re-checks tile at new position).
+- **Void Sight trap reveal:** At 25%+ attunement, all hidden traps within the player's FOV are automatically revealed each turn. This gives attunement a new concrete benefit — players who accumulate corruption can see and avoid traps.
+- **Renderer:** revealed traps display as `,` symbol color-coded by type — red (Spike), yellow (Alarm), purple (Teleport). Drawn between ground items and entities layer. Hidden traps are invisible.
+- **Minimap:** revealed traps shown as colored dots matching their type color. Drawn between ground items and enemy layers.
+- **Help overlay:** new "Traps" section between Dungeon Zones and Map Symbols documenting all 3 trap types with color-coded entries. Added `,` (Trap revealed) to Map Symbols legend.
+- **Gameplay impact:** Traps add a terrain-based danger dimension that didn't exist. Hidden traps create tension on unexplored tiles. Void Sight at 25% attunement now has a second concrete benefit beyond expanded FOV — revealing traps. This enriches the attunement risk/reward calculation. Alarm traps punish reckless exploration. Teleport traps create chaotic repositioning moments. Spike traps are a direct HP tax that makes healing resources more valuable.
+- Lint and build both pass clean
+- No money spent
+
 ### 2026-03-20 24:30 | developer | Floor 10 boss: Shadow Twin — 3-phase positioning puzzle
 - **Added `BOSS_SHADOW_TWIN` special ability** to `SpecialAbility` enum in config.ts. Added `splitTurnTimer`, `isClone`, and `linkedCloneId` fields to `GameEntity` for the split mechanic.
 - **New boss entity functions in enemies.ts:** `spawnShadowTwin()` creates the boss (symbol `@`, dark red #dc2626, 75 base HP, 8 ATK, 4 DEF, 200 XP). `spawnShadowClone()` creates a 60%-stat copy during the split phase.
@@ -947,3 +963,98 @@ No money spent. No human decisions needed — all changes are content design wit
 
 **Tasks added to TASK_BOARD.md:** 2 new P1 tasks (keyboard restart, item dropping), 3 new P2 tasks (sound effects, ATK display fix, zone progress hint).
 - No money spent
+
+### 2026-03-20 24:45 | strategist | Content Planning pass 2 — pre-launch content priorities & monetization pack revision
+
+**Analysis type:** B. Content Planning (second pass — reassessing content priorities after massive development cycle, domain purchase, and growth pipeline unblocking)
+
+**Context:** Since the first content audit (session 2), the developer agents have built: full 4-threshold Void Attunement system with shrine currency, cursed equipment (6 dual-edged curses), enemy intent telegraphing, 3 floor themes with zone-weighted spawns, Shadow Twin boss (floor 10, 3-phase positioning puzzle), Null Scythe + Rift Dagger sidegrade weapons, guaranteed floor loot pity mechanic, and attunement escape valve on boss kills. The human purchased nullcrawl.com and set the DNS. The game's content depth has roughly tripled.
+
+**Current content inventory:**
+- 9 regular enemies + 2 bosses (Void Nucleus, Shadow Twin) + spawned adds
+- 26 items: 7 weapons (including 2 sidegrades), 5 armor, 9 potions, 5 scrolls
+- 13 enchantment types: 4 weapon runics, 3 armor runics, 3 weapon curses, 3 armor curses
+- 12 consumable effects with per-run identification system
+- 4 Void Attunement thresholds with shrine purification economy
+- 3 visual zones with zone-weighted enemy spawning
+- 8 shrine effects, 7 enemy special abilities, 3 status effects
+- Daily seeded challenge mode, shareable results, personal best tracking, victory condition
+
+**Comparison to session 2 audit benchmarks:**
+
+| Content | Session 2 Count | Current | Session 2 Target (10+ hrs) | Status |
+|---------|----------------|---------|---------------------------|--------|
+| Enemy types | 9 | 9 + 2 bosses | 20-25 | Improved (abilities + bosses close gap) |
+| Bosses | 0 | 2 | 3-4 | Good but needs floor 15 |
+| Consumable types | 1 | 12 | 6-8 | **Exceeds target** |
+| Floor themes | 0 | 3 | 3 | **Met** |
+| Item special effects | 0 | 15 (7 runics + 6 curses + 2 weapon specials) | 5-8 | **Far exceeds target** |
+| Environmental hazards | 0 | 0 | 3-4 | **Still zero — the last remaining structural gap** |
+
+**Key finding:** The game now has MORE content than Rogule (which sustains 2K daily players), comparable depth to early Shattered Pixel Dungeon, and deeper systems than most browser roguelikes. The content-first strategy has worked. The remaining gaps are structural (no final boss, no terrain hazards) rather than volumetric.
+
+**Pre-launch content priorities (build before community Reddit/HN posts):**
+
+1. **Floor 15 boss: Rift Warden** — ELEVATED TO P1. The game's ending is anticlimactic. Players fight Shadow Twin on floor 10, then 5 floors of stat-scaled enemies, then "escape." No capstone encounter. This is the #1 content gap. Every successful roguelike has a final boss that tests everything the player has learned. The Rift Warden's 3-phase resource management design (destroy anchors → dodge void patches → commit consumables) tests all game systems.
+
+2. **Environmental hazards: traps** — ELEVATED TO P1 (subset). Traps add a gameplay dimension that literally doesn't exist — terrain-based danger. 3 trap variants (Spike, Alarm, Teleport) interact with existing systems: Void Sight reveals traps (new attunement benefit), Scroll of Mapping reveals traps (new scroll utility), boss arenas with traps add complexity. Build BEFORE Rift Warden — traps in the floor 15 arena make the fight more interesting.
+
+3. **Consumable-environment interactions** — ELEVATED TO P1. Zero new assets, just if-checks in existing code. Fire Potion + Dark Slime, Poison + Beetle armor, Invisibility + shrine safety, Fear + boss adds. Each interaction is a discoverable combo that rewards player knowledge and creates "aha!" moments to share. Build AFTER traps — traps add more interactions (e.g., how do consumables interact with trap tiles?).
+
+4. **Crystal Depths zone-exclusive enemies** — ELEVATED TO P1. Crystal Sentinel (REFLECTIVE: 25% damage reflection) and Null Siphon (steals player status effects on hit) complete the zone identity. Without them, Crystal Depths is just recolored Null Tunnels enemies via zone-weighting.
+
+**Post-launch content roadmap (build after community launch):**
+
+| Priority | Content | Impact | Effort |
+|----------|---------|--------|--------|
+| 1st | 2 Shadow Realm enemies (Void Summoner, Void Bomber) | Zone identity for floors 10+ | Low |
+| 2nd | Sidegrade armor (Shadow Cloak, Null Barrier) | Equipment decisions for armor slot | Low |
+| 3rd | Void Fissures (periodic terrain damage) | Environmental variety | Low |
+| 4th | Ascension difficulty (5 levels) | Infinite endgame, zero new content needed | Medium |
+| 5th | Bestiary/Codex tracking | Completionist retention | Medium |
+| 6th | Hero classes (3-4 classes) | Replayability multiplier, potential content pack | High |
+| 7th | Epic rarity tier | Late-game excitement | Medium |
+| 8th | Challenge modes (3 modifiers) | Post-victory engagement | Low |
+
+**Critical finding: Monetization content packs are obsolete.**
+
+The 3 content packs designed in session 5 reference content that is NOW in the base game:
+- "Crystalline Depths" pack included the Crystal zone theme (floors 5-9, cyan/blue palette) — **this is now base game content**
+- "Shadow Realm" pack included the Shadow zone theme (floors 10+, dark red/black, reduced FOV) AND Shadow Twin boss — **both are now base game content**
+
+Selling existing base game content as DLC would violate the ethics principle of honest monetization. The packs have been REDESIGNED:
+- **"Depths Beyond" ($1.99):** Extends game to floor 25 with 2 new zones, 2 new bosses, 6 new enemies
+- **"Heroes of the Void" ($2.99):** 3-4 hero classes with distinct playstyles (still valid from original design)
+- **"Void Arsenal" ($1.99):** Epic rarity, Void-Touched items, sidegrade armor, Void Halberd
+- **"Void Champion Bundle" ($4.99):** All 3 at 28% discount
+
+**Domain purchase unlocks the growth pipeline.**
+
+nullcrawl.com is purchased and DNS is configured. Updated all growth task blockers:
+- itch.io page: UNBLOCKED
+- RogueBasin page: UNBLOCKED
+- r/WebGames post: UNBLOCKED (prerequisites met, but recommend waiting for P1 Pre-Launch Content)
+- r/roguelikes post: UNBLOCKED (same timing)
+- Hacker News: UNBLOCKED (wait for Reddit traction)
+- dev.to blog post: UNBLOCKED
+- Newgrounds: UNBLOCKED
+
+**Recommended community launch sequence:**
+1. Developer agents build P1 Pre-Launch Content (Rift Warden → traps → consumable interactions → Crystal enemies)
+2. Developer agents connect nullcrawl.com to Vercel, update metadataBase
+3. Take gameplay screenshot for landing page
+4. Create itch.io page + RogueBasin wiki page
+5. Start r/roguelikedev Sharing Saturday participation (can start immediately)
+6. Post to r/WebGames + r/roguelikes
+7. If Reddit gets traction → Submit to Hacker News
+8. Write dev.to post + submit to Newgrounds
+
+**Task board changes:**
+- MARKED DONE: nullcrawl.com domain purchase
+- NEW SECTION: P1 Pre-Launch Content (4 tasks: Rift Warden, traps, consumable interactions, Crystal enemies)
+- ELEVATED: Floor 15 boss P2 → P1, traps (subset of hazards) P2 → P1, consumable interactions P2 → P1, Crystal enemies P2 → P1
+- REVISED: Monetization content packs redesigned (original packs referenced base game content)
+- UPDATED: All growth task blockers (domain is no longer blocking)
+- UPDATED: P2 environmental hazards narrowed to void fissures only (traps moved to P1)
+
+- No money spent. No human decisions needed for content priorities (all follow approved content-first direction).
